@@ -300,11 +300,5 @@ private struct DungeonBackdrop: View {
                 .fill(.black.opacity(0.24))
                 .frame(height: 18)
         }
-        .overlay(alignment: .topTrailing) {
-            Circle()
-                .fill(.white.opacity(0.05))
-                .frame(width: 42, height: 42)
-                .offset(x: 10, y: -10)
-        }
     }
 }
