@@ -1,8 +1,15 @@
 # Spec 003 — Task CRUD & Hero View (Phase 2)
 
-Status: proposed
+Status: implemented
 Depends on: 002 (data model & derivation layer)
 Blocks: Phase 3 (local-notification lifecycle)
+
+Implementation note: build + all 13 unit tests pass (`-only-testing:QuestKeeperTests`); the app launches
+on the iOS 26.5 simulator and renders the hero header + empty state.
+Hero sprite uses SF Symbols (`figure.stand`/`figure.fall`) as placeholder frames, per §5.
+Interactive gestures (swipe-complete, grave rendering, the "꿱" mourning animation) are logic-verified
+by the four `QuestActionsTests` plus `DerivationTests`; gesture-level UI automation is deferred (the
+template `QuestKeeperUITests` runner is flaky on this simulator).
 
 ## Goal
 
@@ -211,8 +218,8 @@ verified by running the app, since the UI-test runner is flaky on this simulator
      delete, and `graves` reflects it.
    - Background the app, advance the device clock past a pending deadline, reopen → the "꿱 → revive"
      animation plays once and `graves` increments.
-4. `grep -rnE 'Item\.self|Item\(|Item\.swift' QuestKeeper/` returns nothing — the model is fully
-   removed (plain `grep 'Item'` would false-positive on SwiftUI's `ToolbarItem`).
+4. `grep -rnE '\bItem\.self|\bItem\(|\bItem\.swift' QuestKeeper/` returns nothing — the model is fully
+   removed. The `\b` word boundary is required so SwiftUI's `ToolbarItem(` does not false-positive.
 
 ## Open Questions (defaults chosen; flag before Phase 3)
 
