@@ -128,4 +128,117 @@ struct WidgetDungeonPayloadTests {
             )
         ])
     }
+
+    @Test("payload factory appends changed quest when stale source list is missing it")
+    @MainActor
+    func payloadFactoryAppendsChangedQuestWhenMissingFromSource() {
+        let existingQuest = Quest(
+            id: UUID(),
+            title: "기존 퀘스트",
+            deadline: now.addingTimeInterval(hour),
+            importance: .medium,
+            completedAt: nil
+        )
+        let changedQuest = Quest(
+            id: UUID(),
+            title: "새 퀘스트",
+            deadline: now.addingTimeInterval(2 * hour),
+            importance: .high,
+            completedAt: nil
+        )
+
+        let payload = WidgetDungeonPayload.make(
+            from: [existingQuest],
+            including: changedQuest,
+            generatedAt: now
+        )
+
+        #expect(payload.quests == [
+            WidgetQuestPayload(
+                id: existingQuest.id,
+                title: existingQuest.title,
+                deadline: existingQuest.deadline,
+                completedAt: existingQuest.completedAt,
+                importanceRawValue: existingQuest.importance.rawValue
+            ),
+            WidgetQuestPayload(
+                id: changedQuest.id,
+                title: changedQuest.title,
+                deadline: changedQuest.deadline,
+                completedAt: changedQuest.completedAt,
+                importanceRawValue: changedQuest.importance.rawValue
+            )
+        ])
+    }
+
+    @Test("payload factory replaces stale same-id quest facts with changed quest facts")
+    @MainActor
+    func payloadFactoryReplacesStaleFactsForChangedQuest() {
+        let questID = UUID()
+        let staleQuest = Quest(
+            id: questID,
+            title: "예전 제목",
+            deadline: now.addingTimeInterval(hour),
+            importance: .low,
+            completedAt: nil
+        )
+        let changedQuest = Quest(
+            id: questID,
+            title: "새 제목",
+            deadline: now.addingTimeInterval(3 * hour),
+            importance: .high,
+            completedAt: now
+        )
+
+        let payload = WidgetDungeonPayload.make(
+            from: [staleQuest],
+            including: changedQuest,
+            generatedAt: now
+        )
+
+        #expect(payload.quests == [
+            WidgetQuestPayload(
+                id: changedQuest.id,
+                title: changedQuest.title,
+                deadline: changedQuest.deadline,
+                completedAt: changedQuest.completedAt,
+                importanceRawValue: changedQuest.importance.rawValue
+            )
+        ])
+    }
+
+    @Test("payload factory excludes deleted quest from stale source list")
+    @MainActor
+    func payloadFactoryExcludesDeletedQuestFromStaleSource() {
+        let deletedQuest = Quest(
+            id: UUID(),
+            title: "삭제될 퀘스트",
+            deadline: now.addingTimeInterval(hour),
+            importance: .medium,
+            completedAt: nil
+        )
+        let survivingQuest = Quest(
+            id: UUID(),
+            title: "남는 퀘스트",
+            deadline: now.addingTimeInterval(2 * hour),
+            importance: .high,
+            completedAt: nil
+        )
+
+        let payload = WidgetDungeonPayload.make(
+            from: [deletedQuest, survivingQuest],
+            excluding: deletedQuest.id,
+            generatedAt: now
+        )
+
+        #expect(payload.quests == [
+            WidgetQuestPayload(
+                id: survivingQuest.id,
+                title: survivingQuest.title,
+                deadline: survivingQuest.deadline,
+                completedAt: survivingQuest.completedAt,
+                importanceRawValue: survivingQuest.importance.rawValue
+            )
+        ])
+    }
 }

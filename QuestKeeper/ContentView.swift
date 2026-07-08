@@ -100,14 +100,14 @@ struct ContentView: View {
                         quest: nil,
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
-                        onSaved: writeWidgetSnapshot
+                        onSaved: writeWidgetSnapshot(including:)
                     )
                 case .edit(let quest):
                     QuestEditor(
                         quest: quest,
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
-                        onSaved: writeWidgetSnapshot
+                        onSaved: writeWidgetSnapshot(including:)
                     )
                 case .dailyGrave(let quest):
                     QuestResolutionView(quest: quest, now: .now) {
@@ -172,7 +172,7 @@ struct ContentView: View {
     private func complete(_ quest: Quest) {
         let questID = quest.id
         QuestActions.complete(quest, at: .now)
-        writeWidgetSnapshot()
+        writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
         }
@@ -181,7 +181,7 @@ struct ContentView: View {
     private func retryTomorrow(_ quest: Quest) {
         let now = Date.now
         QuestActions.retryTomorrow(quest, now: now)
-        writeWidgetSnapshot()
+        writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             let authorization = await notificationService.sync(quest: quest, now: now)
             notificationAuthorization = authorization
@@ -192,7 +192,7 @@ struct ContentView: View {
         guard QuestActions.canDelete(quest.snapshot, at: .now) else { return }
         let questID = quest.id
         modelContext.delete(quest)
-        writeWidgetSnapshot()
+        writeWidgetSnapshot(excluding: questID)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
         }
@@ -200,6 +200,26 @@ struct ContentView: View {
 
     private func writeWidgetSnapshot() {
         let payload = WidgetDungeonPayload.make(from: quests)
+        do {
+            try widgetSnapshotStore.save(payload)
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            print("Failed to write widget snapshot: \(error.localizedDescription)")
+        }
+    }
+
+    private func writeWidgetSnapshot(including quest: Quest) {
+        let payload = WidgetDungeonPayload.make(from: quests, including: quest)
+        do {
+            try widgetSnapshotStore.save(payload)
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            print("Failed to write widget snapshot: \(error.localizedDescription)")
+        }
+    }
+
+    private func writeWidgetSnapshot(excluding questID: UUID) {
+        let payload = WidgetDungeonPayload.make(from: quests, excluding: questID)
         do {
             try widgetSnapshotStore.save(payload)
             WidgetCenter.shared.reloadAllTimelines()
