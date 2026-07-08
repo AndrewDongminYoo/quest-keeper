@@ -13,7 +13,6 @@ struct QuestKeeperApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Quest.self,
-            Item.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

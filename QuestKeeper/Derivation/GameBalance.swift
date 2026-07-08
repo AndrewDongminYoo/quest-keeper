@@ -14,4 +14,7 @@ nonisolated enum GameBalance {
 
     /// How far ahead of a deadline urgency starts climbing from 0.
     static let urgencyHorizon: TimeInterval = 7 * 24 * 60 * 60   // 7 days
+
+    /// How long the "꿱" dead-eyes frame shows on reopen before crossfading back to alive.
+    static let mourningDuration: TimeInterval = 2
 }
