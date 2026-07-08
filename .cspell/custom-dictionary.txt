@@ -1,5 +1,6 @@
 # Custom Dictionary Words
 393JTTV68D
+affordances
 cfbundle
 Dongmin
 donminzzi
@@ -10,7 +11,9 @@ OBJC
 Onone
 pbxproj
 simctl
+TIRD
 uitests
+uncomplete
 xcodeproj
 xcrun
 xctest
