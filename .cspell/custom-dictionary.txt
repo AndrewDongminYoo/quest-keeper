@@ -10,6 +10,7 @@ OBJC
 Onone
 pbxproj
 simctl
+uitests
 xcodeproj
 xcrun
 xctest
