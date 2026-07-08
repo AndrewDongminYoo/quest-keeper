@@ -5,18 +5,33 @@ nonisolated struct WidgetDungeonSnapshotStore: Sendable {
     static let fileName = "widget-dungeon-snapshot.json"
 
     private let fileURL: URL?
+    private let prepareDirectory: @Sendable (URL) throws -> Void
 
     init(
         appGroupIdentifier: String = Self.appGroupIdentifier,
         fileManager: FileManager = .default
     ) {
+        let fileManagerBox = FileManagerBox(fileManager)
+        self.prepareDirectory = { url in
+            try fileManagerBox.value.createDirectory(
+                at: url,
+                withIntermediateDirectories: true
+            )
+        }
         fileURL = fileManager
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)?
             .appending(path: Self.fileName)
     }
 
-    init(fileURL: URL, fileManager _: FileManager = .default) {
+    init(fileURL: URL, fileManager: FileManager = .default) {
         self.fileURL = fileURL
+        let fileManagerBox = FileManagerBox(fileManager)
+        self.prepareDirectory = { url in
+            try fileManagerBox.value.createDirectory(
+                at: url,
+                withIntermediateDirectories: true
+            )
+        }
     }
 
     func load() -> WidgetDungeonPayload {
@@ -37,12 +52,17 @@ nonisolated struct WidgetDungeonSnapshotStore: Sendable {
     func save(_ payload: WidgetDungeonPayload) throws {
         guard let fileURL else { return }
 
-        try FileManager.default.createDirectory(
-            at: fileURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
+        try prepareDirectory(fileURL.deletingLastPathComponent())
 
         let data = try JSONEncoder.widgetDungeon.encode(payload)
         try data.write(to: fileURL, options: [.atomic])
+    }
+}
+
+private nonisolated final class FileManagerBox: @unchecked Sendable {
+    let value: FileManager
+
+    init(_ value: FileManager) {
+        self.value = value
     }
 }
