@@ -84,7 +84,7 @@ struct WidgetDungeonPayloadTests {
         #expect(state.isStale == false)
     }
 
-    @Test("active mobs are sorted by urgency and limited for widget families")
+    @Test("active mobs are sorted by urgency")
     func activeMobsAreSortedAndLimited() {
         let lateID = UUID()
         let soonID = UUID()
