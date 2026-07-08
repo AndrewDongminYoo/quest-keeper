@@ -55,6 +55,16 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B25B88A72FFE318E00E4B8BE /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F7B47EB62FFD02AA00D8D4A1 /* QuestKeeperWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B20C629C2FFD556E00280BFB /* QuestKeeper */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -68,6 +78,9 @@
 		};
 		F7B47EB42FFD02AA00D8D4A1 /* QuestKeeperWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B25B88A72FFE318E00E4B8BE /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperWidget" target */,
+			);
 			path = QuestKeeperWidget;
 			sourceTree = "<group>";
 		};
@@ -675,8 +688,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 393JTTV68D;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = com.apple.widgetkit-extension;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = QuestKeeperWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = kr.donminzzi.QuestKeeper.Widget;
@@ -702,8 +715,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 393JTTV68D;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = com.apple.widgetkit-extension;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = QuestKeeperWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = kr.donminzzi.QuestKeeper.Widget;
