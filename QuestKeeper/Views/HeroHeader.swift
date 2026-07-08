@@ -2,7 +2,7 @@
 //  HeroHeader.swift
 //  QuestKeeper
 //
-//  Phase 2 — hero sprite plus the victory/grave scoreboard. Rendered from a derived HeroState.
+//  Phase 2 — hero sprite plus the daily dungeon HUD. Rendered from a derived HeroState.
 //
 
 import SwiftUI
@@ -13,33 +13,30 @@ struct HeroHeader: View {
 
     var body: some View {
         VStack(spacing: 12) {
+            Text("QUEST KEEPER")
+                .font(.title.bold().monospaced())
+                .foregroundStyle(.white)
             HeroSprite(isMourning: isMourning)
-            HStack(spacing: 32) {
-                tally(state.victories, symbol: "trophy.fill", tint: .yellow, label: "승리")
-                tally(state.graves, symbol: "cross.fill", tint: .secondary, label: "무덤")
+            HStack(spacing: 12) {
+                Text("HERO: Leo")
+                Text("|")
+                    .foregroundStyle(.secondary)
+                Label("\(state.totalVictories)", systemImage: "trophy.fill")
+                    .foregroundStyle(.yellow)
+                    .accessibilityLabel("승리 \(state.totalVictories)")
             }
+            .font(.caption.bold().monospacedDigit())
+            .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .listRowSeparator(.hidden)
-    }
-
-    private func tally(_ count: Int, symbol: String, tint: Color, label: String) -> some View {
-        VStack(spacing: 4) {
-            Label("\(count)", systemImage: symbol)
-                .font(.title3.monospacedDigit())
-                .foregroundStyle(tint)
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label) \(count)")
+        .listRowBackground(Color.clear)
     }
 }
 
 #Preview {
     List {
-        HeroHeader(state: HeroState(victories: 3, graves: 1, deathsWhileAway: []), isMourning: false)
+        HeroHeader(state: HeroState(totalVictories: 3, dailyGraves: [], deathsWhileAway: []), isMourning: false)
     }
 }

@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  QuestKeeper
 //
-//  Phase 2 — root: hero header + Active/Graveyard sections. Wires scenePhase state-replay and
+//  Phase 2 — root: hero header + dungeon/daily-grave sections. Wires scenePhase state-replay and
 //  TimelineView live derivation to the Phase 1 layer. See docs/specs/003-crud-hero-view.md.
 //
 
@@ -42,7 +42,7 @@ struct ContentView: View {
                 let state = HeroDerivation.state(quests: snapshots, now: now, lastOpened: now)
                 // Derived membership — recomputed every tick, never queried (outcome depends on `now`).
                 let pending = quests.filter { $0.snapshot.outcome(at: now) == .pending }
-                let graves = quests.filter { $0.snapshot.outcome(at: now) == .grave }
+                let dailyGraves = quests.filter { $0.snapshot.isVisibleDailyGrave(at: now) }
 
                 List {
                     HeroHeader(state: state, isMourning: !pendingDeaths.isEmpty)
@@ -51,25 +51,40 @@ struct ContentView: View {
                     }
                     QuestListSections(
                         pending: pending,
-                        graves: graves,
+                        dailyGraves: dailyGraves,
                         now: now,
                         onComplete: complete,
+                        onRetryTomorrow: retryTomorrow,
                         onDelete: delete,
                         onEdit: { route = .edit($0) }
                     )
                 }
+                .scrollContentBackground(.hidden)
+                .background(Color(red: 0.11, green: 0.09, blue: 0.15))
                 .overlay {
-                    if pending.isEmpty && graves.isEmpty {
-                        ContentUnavailableView("퀘스트가 없습니다", systemImage: "scroll",
-                                               description: Text("오른쪽 위 + 로 오늘의 퀘스트를 추가하세요."))
+                    if pending.isEmpty && dailyGraves.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "scroll")
+                                .font(.largeTitle)
+                            Text("퀘스트가 없습니다")
+                                .font(.headline)
+                            Text("오른쪽 위 + 로 오늘의 퀘스트를 추가하세요.")
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
                     }
                 }
+                .listStyle(.plain)
             }
-            .navigationTitle("QuestKeeper")
+            .navigationTitle("QUEST KEEPER")
+            .toolbarBackground(Color(red: 0.11, green: 0.09, blue: 0.15), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { route = .create } label: {
-                        Label("추가", systemImage: "plus")
+                        Label("전투 추가", systemImage: "plus")
                     }
                 }
             }
@@ -144,6 +159,14 @@ struct ContentView: View {
         QuestActions.complete(quest, at: .now)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
+        }
+    }
+
+    private func retryTomorrow(_ quest: Quest) {
+        QuestActions.retryTomorrow(quest, now: .now)
+        Task { @MainActor in
+            let authorization = await notificationService.sync(quest: quest, now: .now)
+            notificationAuthorization = authorization
         }
     }
 

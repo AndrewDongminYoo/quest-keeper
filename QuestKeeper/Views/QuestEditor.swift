@@ -20,6 +20,8 @@ struct QuestEditor: View {
     @State private var title: String
     @State private var deadline: Date
     @State private var importance: Importance
+    @State private var showingChunkingGuide = false
+    @State private var acceptedOversizedQuest = false
 
     init(
         quest: Quest?,
@@ -52,11 +54,28 @@ struct QuestEditor: View {
                     Button("취소") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") { save() }
+                    Button("저장") { attemptSave() }
                         .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
+            .alert("너무 큰 퀘스트예요", isPresented: $showingChunkingGuide) {
+                Button("작게 쪼개기", role: .cancel) { }
+                Button("그래도 진행") {
+                    acceptedOversizedQuest = true
+                    save()
+                }
+            } message: {
+                Text("작게 쪼개면 몹도 작아져요.")
+            }
         }
+    }
+
+    private func attemptSave() {
+        if !acceptedOversizedQuest && QuestActions.needsChunkingGuide(deadline: deadline, now: .now) {
+            showingChunkingGuide = true
+            return
+        }
+        save()
     }
 
     private func save() {
