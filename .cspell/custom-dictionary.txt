@@ -1,0 +1,18 @@
+# Custom Dictionary Words
+393JTTV68D
+cfbundle
+Dongmin
+donminzzi
+dsym
+gamified
+IPHONEOS
+OBJC
+Onone
+pbxproj
+simctl
+xcodeproj
+xcrun
+xctest
+xros
+XROS
+xrsimulator
