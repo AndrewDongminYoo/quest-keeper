@@ -200,31 +200,31 @@ struct ContentView: View {
 
     private func writeWidgetSnapshot() {
         let payload = WidgetDungeonPayload.make(from: quests)
-        do {
-            try widgetSnapshotStore.save(payload)
-            WidgetCenter.shared.reloadAllTimelines()
-        } catch {
-            print("Failed to write widget snapshot: \(error.localizedDescription)")
-        }
+        persistWidgetSnapshot(payload)
     }
 
     private func writeWidgetSnapshot(including quest: Quest) {
         let payload = WidgetDungeonPayload.make(from: quests, including: quest)
-        do {
-            try widgetSnapshotStore.save(payload)
-            WidgetCenter.shared.reloadAllTimelines()
-        } catch {
-            print("Failed to write widget snapshot: \(error.localizedDescription)")
-        }
+        persistWidgetSnapshot(payload)
     }
 
     private func writeWidgetSnapshot(excluding questID: UUID) {
         let payload = WidgetDungeonPayload.make(from: quests, excluding: questID)
-        do {
-            try widgetSnapshotStore.save(payload)
-            WidgetCenter.shared.reloadAllTimelines()
-        } catch {
-            print("Failed to write widget snapshot: \(error.localizedDescription)")
+        persistWidgetSnapshot(payload)
+    }
+
+    private func persistWidgetSnapshot(_ payload: WidgetDungeonPayload) {
+        let snapshotStore = widgetSnapshotStore
+
+        Task.detached(priority: .utility) {
+            do {
+                try snapshotStore.save(payload)
+                await MainActor.run {
+                    WidgetCenter.shared.reloadAllTimelines()
+                }
+            } catch {
+                print("Failed to write widget snapshot: \(error)")
+            }
         }
     }
 

@@ -50,6 +50,20 @@ struct WidgetDungeonSnapshotStoreTests {
         #expect(fileManager.createdDirectories == [fileURL.deletingLastPathComponent()])
     }
 
+    @Test("store save throws when app group container is unavailable")
+    func storeSaveThrowsWhenAppGroupContainerIsUnavailable() {
+        let store = WidgetDungeonSnapshotStore(fileURL: nil)
+        let payload = WidgetDungeonPayload(
+            schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
+            generatedAt: now,
+            quests: []
+        )
+
+        #expect(throws: WidgetDungeonSnapshotStoreError.appGroupUnavailable) {
+            try store.save(payload)
+        }
+    }
+
     @Test("store returns empty payload for missing file")
     func storeReturnsEmptyPayloadForMissingFile() {
         let directory = temporaryDirectory()

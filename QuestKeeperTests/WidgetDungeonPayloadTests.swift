@@ -31,6 +31,17 @@ struct WidgetDungeonPayloadTests {
         #expect(decoded == payload)
     }
 
+    @Test("empty payload derives to a non-stale empty state at now")
+    func emptyPayloadDerivesToNonStaleEmptyState() {
+        let state = WidgetDungeonDerivation.derive(payload: .empty, at: now)
+
+        #expect(state.activeMobs.isEmpty)
+        #expect(state.dailyGraves.isEmpty)
+        #expect(state.totalVictories == 0)
+        #expect(state.generatedAt == now)
+        #expect(state.isStale == false)
+    }
+
     @Test("derivation exposes active mobs, daily graves, and victories")
     func derivationBuildsWidgetState() {
         let activeID = UUID()
@@ -82,6 +93,28 @@ struct WidgetDungeonPayloadTests {
         #expect(state.dailyGraves.map(\.id) == [dailyGraveID])
         #expect(state.totalVictories == 1)
         #expect(state.isStale == false)
+    }
+
+    @Test("valid payload becomes stale after stale snapshot age")
+    func validPayloadBecomesStaleAfterStaleSnapshotAge() {
+        let generatedAt = now.addingTimeInterval(-(WidgetDungeonDerivation.staleSnapshotAge + 60))
+        let payload = WidgetDungeonPayload(
+            schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
+            generatedAt: generatedAt,
+            quests: [
+                WidgetQuestPayload(
+                    id: UUID(),
+                    title: "오래된 스냅샷",
+                    deadline: now.addingTimeInterval(hour),
+                    completedAt: nil,
+                    importanceRawValue: 1
+                )
+            ]
+        )
+
+        let state = WidgetDungeonDerivation.derive(payload: payload, at: now)
+
+        #expect(state.isStale == true)
     }
 
     @Test("active mobs are sorted by urgency")

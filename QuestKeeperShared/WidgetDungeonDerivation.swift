@@ -11,11 +11,11 @@ nonisolated struct WidgetDungeonEntryState: Sendable, Equatable {
     static func empty(date: Date) -> WidgetDungeonEntryState {
         WidgetDungeonEntryState(
             date: date,
-            generatedAt: .distantPast,
+            generatedAt: date,
             activeMobs: [],
             dailyGraves: [],
             totalVictories: 0,
-            isStale: true
+            isStale: false
         )
     }
 }
@@ -32,6 +32,7 @@ nonisolated struct WidgetMobState: Sendable, Identifiable, Equatable {
 nonisolated enum WidgetDungeonDerivation {
     static let staleSnapshotAge: TimeInterval = 24 * 60 * 60
     static let fallbackRefreshInterval: TimeInterval = 15 * 60
+    static let urgencyWarningLeadTime: TimeInterval = 6 * 60 * 60
     static let dueSoonLeadTime: TimeInterval = 60 * 60
 
     static func derive(
@@ -39,7 +40,7 @@ nonisolated enum WidgetDungeonDerivation {
         at date: Date,
         calendar: Calendar = .current
     ) -> WidgetDungeonEntryState {
-        guard payload.schemaVersion == WidgetDungeonPayload.currentSchemaVersion else {
+        guard isUsablePayload(payload) else {
             return .empty(date: date)
         }
 
@@ -96,18 +97,20 @@ nonisolated enum WidgetDungeonDerivation {
         after date: Date,
         calendar: Calendar = .current
     ) -> Date {
+        _ = calendar
+
         let thresholdDates = payload.quests
             .filter { $0.completedAt == nil && $0.deadline > date }
             .flatMap { quest in
-                [
-                    quest.deadline.addingTimeInterval(-dueSoonLeadTime),
-                    quest.deadline,
-                ]
+                nextUrgencyThresholds(for: quest, after: date)
             }
+        let staleCutoff = payload.generatedAt.addingTimeInterval(staleSnapshotAge)
+        let refreshCandidates = thresholdDates + [staleCutoff]
+        let futureCandidates = refreshCandidates
             .filter { $0 > date }
             .sorted()
 
-        return thresholdDates.first ?? date.addingTimeInterval(fallbackRefreshInterval)
+        return futureCandidates.first ?? date.addingTimeInterval(fallbackRefreshInterval)
     }
 
     private static func urgencyLevel(deadline: Date, at date: Date) -> Int {
@@ -116,5 +119,20 @@ nonisolated enum WidgetDungeonDerivation {
         if remaining <= 60 * 60 { return 3 }
         if remaining <= 6 * 60 * 60 { return 2 }
         return 1
+    }
+
+    private static func isUsablePayload(_ payload: WidgetDungeonPayload) -> Bool {
+        payload.schemaVersion == WidgetDungeonPayload.currentSchemaVersion && (
+            payload.generatedAt != .distantPast || !payload.quests.isEmpty
+        )
+    }
+
+    private static func nextUrgencyThresholds(for quest: WidgetQuestPayload, after date: Date) -> [Date] {
+        [
+            quest.deadline.addingTimeInterval(-urgencyWarningLeadTime),
+            quest.deadline.addingTimeInterval(-dueSoonLeadTime),
+            quest.deadline,
+        ]
+        .filter { $0 > date }
     }
 }

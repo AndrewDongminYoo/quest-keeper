@@ -1,5 +1,9 @@
 import Foundation
 
+nonisolated enum WidgetDungeonSnapshotStoreError: Error, Equatable {
+    case appGroupUnavailable
+}
+
 nonisolated struct WidgetDungeonSnapshotStore: Sendable {
     static let appGroupIdentifier = "group.kr.donminzzi.QuestKeeper"
     static let fileName = "widget-dungeon-snapshot.json"
@@ -24,6 +28,10 @@ nonisolated struct WidgetDungeonSnapshotStore: Sendable {
     }
 
     init(fileURL: URL, fileManager: FileManager = .default) {
+        self.init(fileURL: Optional(fileURL), fileManager: fileManager)
+    }
+
+    init(fileURL: URL?, fileManager: FileManager = .default) {
         self.fileURL = fileURL
         let fileManagerBox = FileManagerBox(fileManager)
         self.prepareDirectory = { url in
@@ -50,7 +58,9 @@ nonisolated struct WidgetDungeonSnapshotStore: Sendable {
     }
 
     func save(_ payload: WidgetDungeonPayload) throws {
-        guard let fileURL else { return }
+        guard let fileURL else {
+            throw WidgetDungeonSnapshotStoreError.appGroupUnavailable
+        }
 
         try prepareDirectory(fileURL.deletingLastPathComponent())
 
