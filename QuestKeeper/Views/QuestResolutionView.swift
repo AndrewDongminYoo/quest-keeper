@@ -12,6 +12,13 @@ struct QuestResolutionView: View {
 
     let quest: Quest
     let now: Date
+    let onRetryTomorrow: (() -> Void)?
+
+    init(quest: Quest, now: Date, onRetryTomorrow: (() -> Void)? = nil) {
+        self.quest = quest
+        self.now = now
+        self.onRetryTomorrow = onRetryTomorrow
+    }
 
     var body: some View {
         NavigationStack {
@@ -20,6 +27,16 @@ struct QuestResolutionView: View {
                     Text(quest.title)
                     LabeledContent("상태", value: statusText)
                     LabeledContent("마감", value: quest.deadline.formatted(date: .abbreviated, time: .shortened))
+                }
+                if quest.snapshot.isVisibleDailyGrave(at: now), let onRetryTomorrow {
+                    Section {
+                        Button {
+                            onRetryTomorrow()
+                            dismiss()
+                        } label: {
+                            Label("내일 도전하기", systemImage: "arrow.uturn.forward")
+                        }
+                    }
                 }
             }
             .navigationTitle("퀘스트 기록")

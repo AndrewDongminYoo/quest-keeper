@@ -21,7 +21,6 @@ struct QuestEditor: View {
     @State private var deadline: Date
     @State private var importance: Importance
     @State private var showingChunkingGuide = false
-    @State private var acceptedOversizedQuest = false
 
     init(
         quest: Quest?,
@@ -32,7 +31,8 @@ struct QuestEditor: View {
         self.notificationService = notificationService
         self.onAuthorizationChange = onAuthorizationChange
         _title = State(initialValue: quest?.title ?? "")
-        _deadline = State(initialValue: quest?.deadline ?? Date().addingTimeInterval(60 * 60))
+        let fallbackDeadline = Date().addingTimeInterval(60 * 60)
+        _deadline = State(initialValue: max(quest?.deadline ?? fallbackDeadline, Date.now))
         _importance = State(initialValue: quest?.importance ?? .medium)
     }
 
@@ -40,7 +40,7 @@ struct QuestEditor: View {
         NavigationStack {
             Form {
                 TextField("제목", text: $title)
-                DatePicker("마감", selection: $deadline)
+                DatePicker("마감", selection: $deadline, in: Date.now...)
                 Picker("중요도", selection: $importance) {
                     Text("낮음").tag(Importance.low)
                     Text("보통").tag(Importance.medium)
@@ -61,7 +61,6 @@ struct QuestEditor: View {
             .alert("너무 큰 퀘스트예요", isPresented: $showingChunkingGuide) {
                 Button("작게 쪼개기", role: .cancel) { }
                 Button("그래도 진행") {
-                    acceptedOversizedQuest = true
                     save()
                 }
             } message: {
@@ -71,7 +70,7 @@ struct QuestEditor: View {
     }
 
     private func attemptSave() {
-        if !acceptedOversizedQuest && QuestActions.needsChunkingGuide(deadline: deadline, now: .now) {
+        if QuestActions.needsChunkingGuide(deadline: deadline, now: .now) {
             showingChunkingGuide = true
             return
         }

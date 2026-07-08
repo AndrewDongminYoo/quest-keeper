@@ -145,6 +145,20 @@ struct QuestNotificationServiceTests {
         ])
     }
 
+    @Test("reconcile refreshes existing QuestKeeper requests for current deadlines")
+    func reconcileRefreshesExistingRequests() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let questID = UUID(uuidString: "77777777-7777-7777-7777-777777777777")!
+        let identifiers = QuestNotificationPlanner.identifiers(for: questID)
+        center.pendingRequestsList = identifiers.map { makeRequest(identifier: $0) }
+
+        await service.reconcile(quests: [quest(id: questID, deadlineOffset: 5 * hour)], now: now)
+
+        #expect(center.removedPendingIdentifiers == [identifiers])
+        #expect(center.addedRequests.map(\.identifier) == identifiers)
+    }
+
     @Test("reconcile does not request authorization when status is not determined")
     func reconcileDoesNotPromptForPermission() async {
         let center = FakeQuestNotificationCenter(status: .notDetermined)

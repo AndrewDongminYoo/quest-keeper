@@ -70,7 +70,8 @@ struct DerivationTests {
     // 4
     @Test("daily grave visibility resets by local day")
     func dailyGraveVisibilityResetsByLocalDay() {
-        let calendar = Calendar(identifier: .gregorian)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
         let todayGrave = snapshot(deadlineOffset: -60)
         let yesterdayGrave = snapshot(deadlineOffset: -day)
 

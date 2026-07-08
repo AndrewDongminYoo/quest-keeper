@@ -13,8 +13,12 @@ import Observation
 final class NotificationRouteStore {
     var pendingQuestID: UUID?
 
+    nonisolated static func questIDString(from userInfo: [AnyHashable: Any]) -> String? {
+        userInfo["questID"] as? String
+    }
+
     func route(userInfo: [AnyHashable: Any]) {
-        route(questIDString: userInfo["questID"] as? String)
+        route(questIDString: Self.questIDString(from: userInfo))
     }
 
     func route(questIDString: String?) {

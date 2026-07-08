@@ -20,7 +20,9 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        let questIDString = response.notification.request.content.userInfo["questID"] as? String
+        let questIDString = NotificationRouteStore.questIDString(
+            from: response.notification.request.content.userInfo
+        )
         await routeStore.route(questIDString: questIDString)
     }
 

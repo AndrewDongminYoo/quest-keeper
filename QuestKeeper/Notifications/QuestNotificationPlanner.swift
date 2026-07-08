@@ -29,8 +29,8 @@ nonisolated enum QuestNotificationPlanner {
                     questID: snapshot.id,
                     kind: .dueSoon,
                     fireDate: dueSoonDate,
-                    title: "퀘스트 마감 임박",
-                    body: "\(title) · 곧 마감됩니다"
+                    title: String(localized: "퀘스트 마감 임박"),
+                    body: String(localized: "\(title) · 곧 마감됩니다")
                 )
             )
         }
@@ -41,8 +41,8 @@ nonisolated enum QuestNotificationPlanner {
                 questID: snapshot.id,
                 kind: .deadline,
                 fireDate: snapshot.deadline,
-                title: "퀘스트 마감",
-                body: "\(title) 마감 시간이 되었습니다"
+                title: String(localized: "퀘스트 마감"),
+                body: String(localized: "\(title) 마감 시간이 되었습니다")
             )
         )
 

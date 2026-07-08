@@ -79,8 +79,12 @@ struct MobLevelBadge: View {
             .foregroundStyle(tint)
     }
 
-    private var tint: Color {
-        switch level {
+    private var tint: Color { level.mobLevelTint }
+}
+
+private extension Int {
+    var mobLevelTint: Color {
+        switch self {
         case ..<2: .green
         case 2..<4: .orange
         default: .red
@@ -107,11 +111,5 @@ struct MonsterGlyph: View {
         }
     }
 
-    private var tint: Color {
-        switch level {
-        case ..<2: .green
-        case 2..<4: .orange
-        default: .red
-        }
-    }
+    private var tint: Color { level.mobLevelTint }
 }

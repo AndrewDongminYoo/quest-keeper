@@ -405,9 +405,10 @@ Add:
 
 ```swift
 private func retryTomorrow(_ quest: Quest) {
-    QuestActions.retryTomorrow(quest, now: .now)
+    let now = Date.now
+    QuestActions.retryTomorrow(quest, now: now)
     Task { @MainActor in
-        let authorization = await notificationService.sync(quest: quest, now: .now)
+        let authorization = await notificationService.sync(quest: quest, now: now)
         notificationAuthorization = authorization
     }
 }
@@ -534,7 +535,6 @@ In `QuestEditor`, add:
 
 ```swift
 @State private var showingChunkingGuide = false
-@State private var acceptedOversizedQuest = false
 ```
 
 - [x] **Step 2: Split save trigger from save execution**
@@ -549,7 +549,7 @@ Add:
 
 ```swift
 private func attemptSave() {
-    if !acceptedOversizedQuest && QuestActions.needsChunkingGuide(deadline: deadline, now: .now) {
+    if QuestActions.needsChunkingGuide(deadline: deadline, now: .now) {
         showingChunkingGuide = true
         return
     }
@@ -565,7 +565,6 @@ Attach to the `NavigationStack` or `Form`:
 .alert("너무 큰 퀘스트예요", isPresented: $showingChunkingGuide) {
     Button("작게 쪼개기", role: .cancel) { }
     Button("그래도 진행") {
-        acceptedOversizedQuest = true
         save()
     }
 } message: {

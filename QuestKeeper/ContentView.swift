@@ -22,6 +22,7 @@ struct ContentView: View {
     @State private var pendingDeaths: [UUID] = []
     @State private var route: EditorRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
+    @State private var mourningTask: Task<Void, Never>?
 
     private let notificationService: QuestNotificationService
     private let notificationRouteStore: NotificationRouteStore
@@ -102,6 +103,11 @@ struct ContentView: View {
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 }
                     )
+                case .dailyGrave(let quest):
+                    QuestResolutionView(quest: quest, now: .now) {
+                        retryTomorrow(quest)
+                        self.route = nil
+                    }
                 case .resolved(let quest):
                     QuestResolutionView(quest: quest, now: .now)
                 }
@@ -146,8 +152,10 @@ struct ContentView: View {
         guard !deaths.isEmpty else { return }
         withAnimation { pendingDeaths = deaths }
         // Play once, then settle — otherwise the mourning frame latches until the next activation.
-        Task { @MainActor in
+        mourningTask?.cancel()
+        mourningTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(GameBalance.mourningDuration))
+            guard !Task.isCancelled else { return }
             withAnimation { pendingDeaths = [] }
         }
     }
@@ -163,9 +171,10 @@ struct ContentView: View {
     }
 
     private func retryTomorrow(_ quest: Quest) {
-        QuestActions.retryTomorrow(quest, now: .now)
+        let now = Date.now
+        QuestActions.retryTomorrow(quest, now: now)
         Task { @MainActor in
-            let authorization = await notificationService.sync(quest: quest, now: .now)
+            let authorization = await notificationService.sync(quest: quest, now: now)
             notificationAuthorization = authorization
         }
     }
@@ -186,10 +195,13 @@ struct ContentView: View {
             return
         }
 
-        switch quest.snapshot.outcome(at: .now) {
-        case .pending:
+        let now = Date.now
+        switch notificationDestination(for: quest.snapshot, now: now) {
+        case .edit:
             route = .edit(quest)
-        case .victory, .grave:
+        case .dailyGrave:
+            route = .dailyGrave(quest)
+        case .resolved:
             route = .resolved(quest)
         }
         notificationRouteStore.clear()
@@ -205,14 +217,33 @@ struct ContentView: View {
 enum EditorRoute: Identifiable {
     case create
     case edit(Quest)
+    case dailyGrave(Quest)
     case resolved(Quest)
 
     var id: String {
         switch self {
         case .create: "create"
         case .edit(let quest): quest.id.uuidString
+        case .dailyGrave(let quest): "daily-grave-\(quest.id.uuidString)"
         case .resolved(let quest): "resolved-\(quest.id.uuidString)"
         }
+    }
+}
+
+nonisolated enum NotificationQuestDestination: Equatable {
+    case edit
+    case dailyGrave
+    case resolved
+}
+
+nonisolated func notificationDestination(for snapshot: QuestSnapshot, now: Date) -> NotificationQuestDestination {
+    switch snapshot.outcome(at: now) {
+    case .pending:
+        return .edit
+    case .grave where snapshot.isVisibleDailyGrave(at: now):
+        return .dailyGrave
+    case .victory, .grave:
+        return .resolved
     }
 }
 

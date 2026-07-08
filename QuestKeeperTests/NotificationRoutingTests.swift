@@ -25,4 +25,17 @@ struct NotificationRoutingTests {
         store.clear()
         #expect(store.pendingQuestID == nil)
     }
+
+    @Test("visible daily graves route to retry-capable destination")
+    func visibleDailyGraveRoutesToRetryDestination() {
+        let now = Date(timeIntervalSinceReferenceDate: 700_000_000)
+        let snapshot = QuestSnapshot(
+            id: UUID(),
+            deadline: now.addingTimeInterval(-60),
+            completedAt: nil,
+            importance: .medium
+        )
+
+        #expect(notificationDestination(for: snapshot, now: now) == .dailyGrave)
+    }
 }

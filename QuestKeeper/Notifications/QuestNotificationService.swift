@@ -6,7 +6,13 @@
 //
 
 import Foundation
+import os
 import UserNotifications
+
+private let notificationLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "QuestKeeper",
+    category: "QuestNotificationService"
+)
 
 enum QuestNotificationAuthorization: Equatable, Sendable {
     case notDetermined
@@ -178,24 +184,19 @@ final class QuestNotificationService {
     }
 
     private func performReconcile(plans: [QuestNotificationPlan]) async -> QuestNotificationAuthorization {
-        let expectedIdentifiers = Set(plans.map(\.identifier))
         let pendingIdentifiers = await center.pendingNotificationIdentifiers()
-        let staleIdentifiers = pendingIdentifiers
-            .filter {
-                QuestNotificationPlanner.isQuestNotificationIdentifier($0)
-                    && !expectedIdentifiers.contains($0)
-            }
+        let questKeeperIdentifiers = pendingIdentifiers
+            .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0) }
 
-        if !staleIdentifiers.isEmpty {
-            center.removePendingNotificationRequests(withIdentifiers: staleIdentifiers)
+        if !questKeeperIdentifiers.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: questKeeperIdentifiers)
         }
 
         let authorization = await authorizationStatus()
         guard !plans.isEmpty else { return authorization }
         guard authorization.canSchedule else { return authorization }
 
-        let existingIdentifiers = Set(pendingIdentifiers).subtracting(staleIdentifiers)
-        for plan in plans where !existingIdentifiers.contains(plan.identifier) {
+        for plan in plans {
             do {
                 try await center.add(request(for: plan))
             } catch {
@@ -206,7 +207,8 @@ final class QuestNotificationService {
         return authorization
     }
 
-    private func enqueue(_ operation: @escaping @MainActor () async -> QuestNotificationAuthorization) async -> QuestNotificationAuthorization {
+    @discardableResult
+    private func enqueue<T: Sendable>(_ operation: @escaping @MainActor () async -> T) async -> T {
         let previous = operationTail
         operationVersion += 1
         let version = operationVersion
@@ -217,28 +219,11 @@ final class QuestNotificationService {
         operationTail = Task { @MainActor in
             _ = await task.value
         }
-        let authorization = await task.value
+        let result = await task.value
         if operationVersion == version {
             operationTail = nil
         }
-        return authorization
-    }
-
-    private func enqueue(_ operation: @escaping @MainActor () async -> Void) async {
-        let previous = operationTail
-        operationVersion += 1
-        let version = operationVersion
-        let task = Task { @MainActor in
-            await previous?.value
-            await operation()
-        }
-        operationTail = Task { @MainActor in
-            await task.value
-        }
-        await task.value
-        if operationVersion == version {
-            operationTail = nil
-        }
+        return result
     }
 
     private func request(for plan: QuestNotificationPlan) -> UNNotificationRequest {
@@ -268,7 +253,7 @@ final class QuestNotificationService {
         case .authorized, .provisional, .ephemeral:
             return .allowed
         @unknown default:
-            print("Unknown notification authorization status: \(status.rawValue)")
+            notificationLogger.error("Unknown notification authorization status: \(status.rawValue)")
             return .unavailable
         }
     }
