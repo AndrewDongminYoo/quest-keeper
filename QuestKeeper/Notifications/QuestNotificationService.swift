@@ -144,9 +144,15 @@ final class QuestNotificationService {
         let plans = quests.flatMap { quest in
             QuestNotificationPlanner.plans(for: quest.snapshot, title: quest.title, now: now)
         }
+        let deliveredIdentifiersToRemove = quests.flatMap { quest in
+            QuestNotificationPlanner.identifiers(for: quest.id)
+        }
 
         return await enqueue {
-            await self.performReconcile(plans: plans)
+            await self.performReconcile(
+                plans: plans,
+                deliveredIdentifiersToRemove: deliveredIdentifiersToRemove
+            )
         }
     }
 
@@ -183,13 +189,19 @@ final class QuestNotificationService {
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
     }
 
-    private func performReconcile(plans: [QuestNotificationPlan]) async -> QuestNotificationAuthorization {
+    private func performReconcile(
+        plans: [QuestNotificationPlan],
+        deliveredIdentifiersToRemove: [String]
+    ) async -> QuestNotificationAuthorization {
         let pendingIdentifiers = await center.pendingNotificationIdentifiers()
         let questKeeperIdentifiers = pendingIdentifiers
             .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0) }
 
         if !questKeeperIdentifiers.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: questKeeperIdentifiers)
+        }
+        if !deliveredIdentifiersToRemove.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: deliveredIdentifiersToRemove)
         }
 
         let authorization = await authorizationStatus()

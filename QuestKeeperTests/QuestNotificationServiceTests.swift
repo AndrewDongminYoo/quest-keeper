@@ -159,6 +159,18 @@ struct QuestNotificationServiceTests {
         #expect(center.addedRequests.map(\.identifier) == identifiers)
     }
 
+    @Test("reconcile removes delivered notifications for resolved quests")
+    func reconcileRemovesDeliveredResolvedQuestNotifications() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let questID = UUID(uuidString: "88888888-8888-8888-8888-888888888888")!
+        let identifiers = QuestNotificationPlanner.identifiers(for: questID)
+
+        await service.reconcile(quests: [quest(id: questID, deadlineOffset: -hour)], now: now)
+
+        #expect(center.removedDeliveredIdentifiers == [identifiers])
+    }
+
     @Test("reconcile does not request authorization when status is not determined")
     func reconcileDoesNotPromptForPermission() async {
         let center = FakeQuestNotificationCenter(status: .notDetermined)
