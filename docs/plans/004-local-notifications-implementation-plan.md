@@ -1,8 +1,12 @@
 # Plan 004 — Local Notification Lifecycle Implementation
 
-Status: planned
+Status: implemented baseline; historical plan
 Source spec: `docs/specs/004-local-notifications.md`
 Depends on: Phase 2 implemented state (`docs/specs/003-crud-hero-view.md`)
+
+Implementation note: this plan was executed by commit `87bc5a0 feat: implement local notification lifecycle`.
+It describes the pre-pivot baseline notification implementation.
+Do not use this as the next implementation plan after the rewritten `BLUEPRINT.md`; use the revised specs 002-004 and create a new plan for daily graves / retry tomorrow / pixel dungeon UI.
 
 ## Intent
 
