@@ -35,6 +35,11 @@
 			path = QuestKeeper;
 			sourceTree = "<group>";
 		};
+		F7B47EA72FFCBF8B00D8D4A1 /* QuestKeeperShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = QuestKeeperShared;
+			sourceTree = "<group>";
+		};
 		B20C62AC2FFD556F00280BFB /* QuestKeeperTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = QuestKeeperTests;
@@ -76,6 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				B20C629C2FFD556E00280BFB /* QuestKeeper */,
+				F7B47EA72FFCBF8B00D8D4A1 /* QuestKeeperShared */,
 				B20C62AC2FFD556F00280BFB /* QuestKeeperTests */,
 				B20C62B62FFD556F00280BFB /* QuestKeeperUITests */,
 				B20C629B2FFD556E00280BFB /* Products */,
@@ -109,6 +115,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				B20C629C2FFD556E00280BFB /* QuestKeeper */,
+				F7B47EA72FFCBF8B00D8D4A1 /* QuestKeeperShared */,
 			);
 			name = QuestKeeper;
 			packageProductDependencies = (
