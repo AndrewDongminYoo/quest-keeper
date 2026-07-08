@@ -49,7 +49,7 @@ nonisolated enum WidgetDungeonDerivation {
         var totalVictories = 0
 
         for quest in payload.quests {
-            if quest.completedAt != nil {
+            if let completedAt = quest.completedAt, completedAt <= quest.deadline {
                 totalVictories += 1
                 continue
             }
@@ -105,12 +105,13 @@ nonisolated enum WidgetDungeonDerivation {
                 nextUrgencyThresholds(for: quest, after: date)
             }
         let staleCutoff = payload.generatedAt.addingTimeInterval(staleSnapshotAge)
-        let refreshCandidates = thresholdDates + [staleCutoff]
+        let fallbackRefresh = date.addingTimeInterval(fallbackRefreshInterval)
+        let refreshCandidates = thresholdDates + [staleCutoff, fallbackRefresh]
         let futureCandidates = refreshCandidates
             .filter { $0 > date }
             .sorted()
 
-        return futureCandidates.first ?? date.addingTimeInterval(fallbackRefreshInterval)
+        return futureCandidates.first ?? fallbackRefresh
     }
 
     private static func urgencyLevel(deadline: Date, at date: Date) -> Int {

@@ -9,7 +9,6 @@
 import SwiftUI
 import SwiftData
 import UIKit
-import WidgetKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -27,16 +26,18 @@ struct ContentView: View {
 
     private let notificationService: QuestNotificationService
     private let notificationRouteStore: NotificationRouteStore
-    private let widgetSnapshotStore: WidgetDungeonSnapshotStore
+    private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
 
     init(
         notificationService: QuestNotificationService = .shared,
         notificationRouteStore: NotificationRouteStore = NotificationRouteStore(),
-        widgetSnapshotStore: WidgetDungeonSnapshotStore = WidgetDungeonSnapshotStore()
+        widgetSnapshotStore: WidgetDungeonSnapshotStore = WidgetDungeonSnapshotStore(),
+        widgetSnapshotWriter: WidgetDungeonSnapshotWriter? = nil
     ) {
         self.notificationService = notificationService
         self.notificationRouteStore = notificationRouteStore
-        self.widgetSnapshotStore = widgetSnapshotStore
+        self.widgetSnapshotWriter = widgetSnapshotWriter
+            ?? WidgetDungeonSnapshotWriter(snapshotStore: widgetSnapshotStore)
     }
 
     var body: some View {
@@ -214,17 +215,10 @@ struct ContentView: View {
     }
 
     private func persistWidgetSnapshot(_ payload: WidgetDungeonPayload) {
-        let snapshotStore = widgetSnapshotStore
+        let snapshotWriter = widgetSnapshotWriter
 
         Task.detached(priority: .utility) {
-            do {
-                try snapshotStore.save(payload)
-                await MainActor.run {
-                    WidgetCenter.shared.reloadAllTimelines()
-                }
-            } catch {
-                print("Failed to write widget snapshot: \(error)")
-            }
+            await snapshotWriter.submit(payload)
         }
     }
 

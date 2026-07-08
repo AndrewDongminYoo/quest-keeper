@@ -136,6 +136,42 @@ struct WidgetDungeonPayloadTests {
         #expect(state.activeMobs.first?.mobLevel == 3)
     }
 
+    @Test("late same-day completion remains a daily grave instead of a victory")
+    func lateSameDayCompletionRemainsDailyGrave() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let sameDayNow = calendar.date(from: DateComponents(
+            timeZone: calendar.timeZone,
+            year: 2026,
+            month: 1,
+            day: 15,
+            hour: 12
+        ))!
+        let lateQuestID = UUID()
+        let payload = WidgetDungeonPayload(
+            schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
+            generatedAt: sameDayNow,
+            quests: [
+                WidgetQuestPayload(
+                    id: lateQuestID,
+                    title: "늦은 완료",
+                    deadline: sameDayNow.addingTimeInterval(-hour),
+                    completedAt: sameDayNow,
+                    importanceRawValue: 2
+                )
+            ]
+        )
+
+        let state = WidgetDungeonDerivation.derive(
+            payload: payload,
+            at: sameDayNow,
+            calendar: calendar
+        )
+
+        #expect(state.totalVictories == 0)
+        #expect(state.dailyGraves.map(\.id) == [lateQuestID])
+    }
+
     @Test("payload factory preserves quest titles and raw facts")
     @MainActor
     func payloadFactoryPreservesRawFacts() throws {

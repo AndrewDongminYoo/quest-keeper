@@ -10,7 +10,7 @@ Show today's remaining mobs on the iOS Home Screen without opening the app.
 The widget must reflect the same raw quest facts and derived dungeon rules as the app:
 
 - pending future quests appear as active mobs;
-- completed quests contribute to the victory tally;
+- on-time completed quests contribute to the victory tally;
 - missed quests may appear as today's daily graves only when they are still visible by derivation;
 - old missed quests do not keep pressuring the user.
 
@@ -112,7 +112,7 @@ Derived entry fields:
 
 - `activeMobs`: pending quests sorted by earliest deadline, limited for each widget family;
 - `dailyGraves`: missed quests where `deadline` is on the current local day;
-- `totalVictories`: count of quests with `completedAt != nil`;
+- `totalVictories`: count of quests completed on time (`completedAt <= deadline`);
 - `isStale`: `generatedAt` is older than a conservative threshold such as 24 hours.
 
 Urgency and mob level remain a function of time:
@@ -187,7 +187,7 @@ No failure path should write derived game state back into SwiftData.
 Unit-level tests:
 
 - payload encodes and decodes dates, UUIDs, titles, and importance raw values;
-- widget derivation counts victories from `completedAt`;
+- widget derivation counts victories only from on-time completion and keeps late completion on the grave path;
 - pending quests become active mobs at `entryDate`;
 - old missed quests are hidden when not on the local day;
 - today's missed quests appear as daily graves;
