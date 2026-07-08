@@ -1,8 +1,11 @@
 # Spec 001 — Project Setup & Boilerplate Cleanup (Phase 0)
 
-Status: proposed
+Status: implemented
 Depends on: none
 Blocks: Phase 1 (data model & derivation layer)
+
+Implementation note: applied `TARGETED_DEVICE_FAMILY = "1"` (iPhone-only) per the assumed default below.
+Build and tests pass on the iOS 26.5 simulator under `SWIFT_VERSION = 6.0`, `SWIFT_STRICT_CONCURRENCY = complete`, zero warnings.
 
 ## Goal
 
