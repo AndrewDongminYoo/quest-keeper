@@ -1,8 +1,17 @@
 # Spec 002 — Data Model & Derivation Layer (Phase 1)
 
-Status: proposed
+Status: implemented
 Depends on: 001 (project setup — Swift 6, iOS-only)
 Blocks: Phase 2 (task CRUD & hero view)
+
+Implementation note: the project sets `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` (Xcode 26 default), so
+every type is `@MainActor` unless opted out.
+The derivation layer must run off the main actor (widget timeline provider, background reconstruction),
+so `Importance`, `QuestSnapshot`, `QuestOutcome`, `HeroState`, `HeroDerivation`, and `GameBalance` are
+declared `nonisolated`; only `Quest` (`@Model`) and the UI stay main-actor-isolated.
+Build and 8 derivation tests pass on the iOS 26.5 simulator, zero warnings.
+Note: run unit tests scoped with `-only-testing:QuestKeeperTests` — the template `QuestKeeperUITests`
+runner is flaky on this simulator ("server died") and is unrelated to Phase 1.
 
 ## Goal
 
