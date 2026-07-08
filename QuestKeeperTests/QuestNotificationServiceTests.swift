@@ -99,6 +99,22 @@ struct QuestNotificationServiceTests {
         #expect(center.removedDeliveredIdentifiers == [identifiers])
     }
 
+    @Test("retry tomorrow resync removes old notifications and schedules future requests")
+    func retryTomorrowResync() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let questID = UUID(uuidString: "66666666-6666-6666-6666-666666666666")!
+        let quest = quest(id: questID, deadlineOffset: -hour)
+
+        QuestActions.retryTomorrow(quest, now: now, calendar: Calendar(identifier: .gregorian))
+        await service.sync(quest: quest, now: now)
+
+        let identifiers = QuestNotificationPlanner.identifiers(for: questID)
+        #expect(center.removedPendingIdentifiers == [identifiers])
+        #expect(center.removedDeliveredIdentifiers == [identifiers])
+        #expect(center.addedRequests.map(\.identifier) == identifiers)
+    }
+
     @Test("reconcile removes stale QuestKeeper notification requests")
     func reconcileRemovesStaleRequests() async {
         let center = FakeQuestNotificationCenter()

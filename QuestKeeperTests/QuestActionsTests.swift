@@ -2,7 +2,7 @@
 //  QuestActionsTests.swift
 //  QuestKeeperTests
 //
-//  Phase 2 — logic seams: completion-as-fact, the deletion guard, and activation reconstruction.
+//  Phase 2 — logic seams: completion-as-fact, retry tomorrow, and activation reconstruction.
 //  See docs/specs/003-crud-hero-view.md.
 //
 
@@ -52,18 +52,48 @@ struct QuestActionsTests {
     }
 
     // 3
-    @Test("graves are undeletable; pending and victory are deletable")
-    func canDeleteGuard() {
+    @Test("delete is raw cleanup, not a permanent grave rule")
+    func canDeleteIsNotPermanentGraveRule() {
         let grave = QuestSnapshot(id: UUID(), deadline: now.addingTimeInterval(-day), completedAt: nil, importance: .medium)
         let pending = QuestSnapshot(id: UUID(), deadline: now.addingTimeInterval(day), completedAt: nil, importance: .medium)
         let victory = QuestSnapshot(id: UUID(), deadline: now.addingTimeInterval(day), completedAt: now.addingTimeInterval(-day), importance: .medium)
 
-        #expect(QuestActions.canDelete(grave, at: now) == false)
-        #expect(QuestActions.canDelete(pending, at: now) == true)
-        #expect(QuestActions.canDelete(victory, at: now) == true)
+        #expect(QuestActions.canDelete(grave, at: now))
+        #expect(QuestActions.canDelete(pending, at: now))
+        #expect(QuestActions.canDelete(victory, at: now))
     }
 
     // 4
+    @Test("retry tomorrow moves deadline future, clears completion, and keeps importance")
+    func retryTomorrowMutatesRawFactsOnly() throws {
+        let context = try makeContext()
+        let quest = Quest(
+            title: "리팩터",
+            deadline: now.addingTimeInterval(-day),
+            importance: .high,
+            completedAt: now.addingTimeInterval(-60)
+        )
+        context.insert(quest)
+
+        QuestActions.retryTomorrow(quest, now: now, calendar: Calendar(identifier: .gregorian))
+
+        #expect(quest.deadline > now)
+        #expect(quest.completedAt == nil)
+        #expect(quest.importance == .high)
+        #expect(quest.snapshot.outcome(at: now) == .pending)
+    }
+
+    // 5
+    @Test("chunking guide triggers only for oversized deadlines")
+    func chunkingGuideTrigger() {
+        let far = now.addingTimeInterval(GameBalance.longQuestWarningHorizon + 60)
+        let near = now.addingTimeInterval(GameBalance.longQuestWarningHorizon - 60)
+
+        #expect(QuestActions.needsChunkingGuide(deadline: far, now: now))
+        #expect(QuestActions.needsChunkingGuide(deadline: near, now: now) == false)
+    }
+
+    // 6
     @Test("activation surfaces deaths once; the advanced clock replays nothing")
     func reconstructionOrdering() {
         let died = UUID()

@@ -45,7 +45,7 @@ struct DerivationTests {
     }
 
     // 2
-    @Test("state reconstructs from facts alone after a long absence")
+    @Test("state reconstructs victories from facts alone after a long absence")
     func sixMonthsLaterReconstruction() {
         let sixMonths = 182 * day
         let quests = [
@@ -54,8 +54,8 @@ struct DerivationTests {
             snapshot(deadlineOffset: -sixMonths + day, completedOffset: -sixMonths + 2 * day), // late → grave
         ]
         let state = HeroDerivation.state(quests: quests, now: now, lastOpened: now.addingTimeInterval(-sixMonths - 10 * day))
-        #expect(state.victories == 1)
-        #expect(state.graves == 2)
+        #expect(state.totalVictories == 1)
+        #expect(state.dailyGraves.isEmpty)
     }
 
     // 3
@@ -68,18 +68,16 @@ struct DerivationTests {
     }
 
     // 4
-    @Test("graves are permanent and undeletable; pending/victory are deletable")
-    func gravesUndeletable() {
-        let grave = snapshot(deadlineOffset: -day)
-        #expect(grave.outcome(at: now) == .grave)
-        #expect(grave.isDeletable(at: now) == false)
+    @Test("daily grave visibility resets by local day")
+    func dailyGraveVisibilityResetsByLocalDay() {
+        let calendar = Calendar(identifier: .gregorian)
+        let todayGrave = snapshot(deadlineOffset: -60)
+        let yesterdayGrave = snapshot(deadlineOffset: -day)
 
-        let lateCompletion = snapshot(deadlineOffset: -2 * day, completedOffset: -day)
-        #expect(lateCompletion.outcome(at: now) == .grave)   // never flips to victory
-        #expect(lateCompletion.isDeletable(at: now) == false)
-
-        #expect(snapshot(deadlineOffset: day).isDeletable(at: now) == true)                 // pending
-        #expect(snapshot(deadlineOffset: day, completedOffset: -day).isDeletable(at: now))  // victory
+        #expect(todayGrave.outcome(at: now) == .grave)
+        #expect(todayGrave.isVisibleDailyGrave(at: now, calendar: calendar))
+        #expect(yesterdayGrave.outcome(at: now) == .grave)
+        #expect(yesterdayGrave.isVisibleDailyGrave(at: now, calendar: calendar) == false)
     }
 
     // 5
@@ -117,17 +115,19 @@ struct DerivationTests {
     }
 
     // 7
-    @Test("victories count on-time completions only")
-    func victoriesCount() {
+    @Test("hero state exposes total victories and only today's visible graves")
+    func heroStateHasDailyGravesOnly() {
+        let todayGraveID = UUID()
+        let oldGraveID = UUID()
+        let victoryID = UUID()
         let quests = [
-            snapshot(deadlineOffset: day, completedOffset: -day),      // victory
-            snapshot(deadlineOffset: 2 * day),                         // pending
-            snapshot(deadlineOffset: -day),                            // grave
-            snapshot(deadlineOffset: -2 * day, completedOffset: -day), // late → grave
+            snapshot(id: todayGraveID, deadlineOffset: -60),
+            snapshot(id: oldGraveID, deadlineOffset: -day),
+            snapshot(id: victoryID, deadlineOffset: day, completedOffset: -60),
         ]
         let state = HeroDerivation.state(quests: quests, now: now, lastOpened: now.addingTimeInterval(-10 * day))
-        #expect(state.victories == 1)
-        #expect(state.graves == 2)
+        #expect(state.totalVictories == 1)
+        #expect(state.dailyGraves == [todayGraveID])
     }
 
     // 8

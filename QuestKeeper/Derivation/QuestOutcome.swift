@@ -8,12 +8,12 @@
 import Foundation
 
 /// What a quest has resolved into, as a function of its facts and the current time.
-/// Once `.victory` or `.grave`, it stays there — the deadline moment fixes it, and a late
+/// Once `.victory` or `.grave`, it stays there until raw facts change, and a late
 /// completion does NOT convert a grave back into a victory (the hero already fell).
 nonisolated enum QuestOutcome: Sendable, Equatable {
     case pending   // deadline not yet passed, not completed
     case victory   // completed on time (completedAt <= deadline) — an enemy defeated
-    case grave     // deadline passed without on-time completion — permanent
+    case grave     // deadline passed without on-time completion
 }
 
 nonisolated extension QuestSnapshot {
@@ -26,9 +26,14 @@ nonisolated extension QuestSnapshot {
         return deadline < now ? .grave : .pending
     }
 
-    /// A grave is permanent and cannot be deleted; a pending or victorious quest can.
-    /// Phase 1 exposes the predicate; Phase 2's CRUD UI enforces it.
-    func isDeletable(at now: Date) -> Bool { outcome(at: now) != .grave }
+    /// Raw cleanup policy is owned by actions/UI; a grave is not a permanent lock.
+    func isDeletable(at now: Date) -> Bool { true }
+
+    /// Daily grave presentation is temporary and resets by local day.
+    func isVisibleDailyGrave(at now: Date, calendar: Calendar = .current) -> Bool {
+        guard outcome(at: now) == .grave else { return false }
+        return calendar.isDate(deadline, inSameDayAs: now)
+    }
 
     /// 0 … 1, rising as the deadline nears; only meaningful while `.pending` (0 otherwise).
     func urgency(at now: Date) -> Double {

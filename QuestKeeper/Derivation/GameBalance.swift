@@ -20,4 +20,10 @@ nonisolated enum GameBalance {
 
     /// Default local-notification lead time before a quest deadline.
     static let notificationLeadTime: TimeInterval = 60 * 60
+
+    /// How long a missed quest may remain emotionally visible in the daily dungeon.
+    static let dailyGraveVisibilityWindow: TimeInterval = 24 * 60 * 60
+
+    /// Deadline distance that triggers the elder chunking guide.
+    static let longQuestWarningHorizon: TimeInterval = 7 * 24 * 60 * 60
 }
