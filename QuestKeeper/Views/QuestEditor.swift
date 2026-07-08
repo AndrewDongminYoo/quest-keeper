@@ -14,13 +14,21 @@ struct QuestEditor: View {
 
     /// `nil` = create a new quest; non-nil = edit this existing one.
     let quest: Quest?
+    let notificationService: QuestNotificationService
+    let onAuthorizationChange: (QuestNotificationAuthorization) -> Void
 
     @State private var title: String
     @State private var deadline: Date
     @State private var importance: Importance
 
-    init(quest: Quest?) {
+    init(
+        quest: Quest?,
+        notificationService: QuestNotificationService = .shared,
+        onAuthorizationChange: @escaping (QuestNotificationAuthorization) -> Void = { _ in }
+    ) {
         self.quest = quest
+        self.notificationService = notificationService
+        self.onAuthorizationChange = onAuthorizationChange
         _title = State(initialValue: quest?.title ?? "")
         _deadline = State(initialValue: quest?.deadline ?? Date().addingTimeInterval(60 * 60))
         _importance = State(initialValue: quest?.importance ?? .medium)
@@ -53,13 +61,22 @@ struct QuestEditor: View {
 
     private func save() {
         let trimmed = title.trimmingCharacters(in: .whitespaces)
+        let savedQuest: Quest
         if let quest {
             quest.title = trimmed
             quest.deadline = deadline
             quest.importance = importance
+            savedQuest = quest
         } else {
-            modelContext.insert(Quest(title: trimmed, deadline: deadline, importance: importance))
+            let newQuest = Quest(title: trimmed, deadline: deadline, importance: importance)
+            modelContext.insert(newQuest)
+            savedQuest = newQuest
         }
         dismiss()
+
+        Task { @MainActor in
+            let authorization = await notificationService.sync(quest: savedQuest, now: .now)
+            onAuthorizationChange(authorization)
+        }
     }
 }

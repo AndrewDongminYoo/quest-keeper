@@ -17,4 +17,7 @@ nonisolated enum GameBalance {
 
     /// How long the "꿱" dead-eyes frame shows on reopen before crossfading back to alive.
     static let mourningDuration: TimeInterval = 2
+
+    /// Default local-notification lead time before a quest deadline.
+    static let notificationLeadTime: TimeInterval = 60 * 60
 }

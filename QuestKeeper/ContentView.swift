@@ -8,6 +8,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -20,6 +21,18 @@ struct ContentView: View {
     /// Transient: the deaths to mourn this activation. Drives the "꿱" frame, then resets.
     @State private var pendingDeaths: [UUID] = []
     @State private var route: EditorRoute?
+    @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
+
+    private let notificationService: QuestNotificationService
+    private let notificationRouteStore: NotificationRouteStore
+
+    init(
+        notificationService: QuestNotificationService = .shared,
+        notificationRouteStore: NotificationRouteStore = NotificationRouteStore()
+    ) {
+        self.notificationService = notificationService
+        self.notificationRouteStore = notificationRouteStore
+    }
 
     var body: some View {
         NavigationStack {
@@ -33,6 +46,9 @@ struct ContentView: View {
 
                 List {
                     HeroHeader(state: state, isMourning: !pendingDeaths.isEmpty)
+                    if notificationAuthorization == .denied {
+                        notificationPermissionSection
+                    }
                     QuestListSections(
                         pending: pending,
                         graves: graves,
@@ -58,11 +74,45 @@ struct ContentView: View {
                 }
             }
             .sheet(item: $route) { route in
-                QuestEditor(quest: route.editableQuest)
+                switch route {
+                case .create:
+                    QuestEditor(
+                        quest: nil,
+                        notificationService: notificationService,
+                        onAuthorizationChange: { notificationAuthorization = $0 }
+                    )
+                case .edit(let quest):
+                    QuestEditor(
+                        quest: quest,
+                        notificationService: notificationService,
+                        onAuthorizationChange: { notificationAuthorization = $0 }
+                    )
+                case .resolved(let quest):
+                    QuestResolutionView(quest: quest, now: .now)
+                }
+            }
+            .task {
+                notificationAuthorization = await notificationService.authorizationStatus()
+            }
+            .onChange(of: notificationRouteStore.pendingQuestID, initial: true) { _, questID in
+                consumeNotificationRoute(questID)
+            }
+            .onChange(of: quests.map(\.id), initial: true) { _, _ in
+                consumeNotificationRoute(notificationRouteStore.pendingQuestID)
             }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             if phase == .active { onBecameActive(now: .now) }
+        }
+    }
+
+    private var notificationPermissionSection: some View {
+        Section {
+            Button { openNotificationSettings() } label: {
+                Label("알림 꺼짐", systemImage: "bell.slash")
+            }
+        } footer: {
+            Text("마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요.")
         }
     }
 
@@ -73,6 +123,10 @@ struct ContentView: View {
         let (deaths, newLastOpened) = reconstructOnActivation(
             quests: quests.map(\.snapshot), now: now, previousLastOpened: previous)
         lastOpenedRaw = newLastOpened.timeIntervalSinceReferenceDate
+
+        Task { @MainActor in
+            notificationAuthorization = await notificationService.reconcile(quests: quests, now: now)
+        }
 
         guard !deaths.isEmpty else { return }
         withAnimation { pendingDeaths = deaths }
@@ -86,12 +140,41 @@ struct ContentView: View {
     // MARK: - Fact mutations
 
     private func complete(_ quest: Quest) {
+        let questID = quest.id
         QuestActions.complete(quest, at: .now)
+        Task { @MainActor in
+            await notificationService.cancel(questID: questID)
+        }
     }
 
     private func delete(_ quest: Quest) {
         guard QuestActions.canDelete(quest.snapshot, at: .now) else { return }
+        let questID = quest.id
         modelContext.delete(quest)
+        Task { @MainActor in
+            await notificationService.cancel(questID: questID)
+        }
+    }
+
+    private func consumeNotificationRoute(_ questID: UUID?) {
+        guard let questID else { return }
+        guard let quest = quests.first(where: { $0.id == questID }) else {
+            print("Notification route is waiting for quest: \(questID)")
+            return
+        }
+
+        switch quest.snapshot.outcome(at: .now) {
+        case .pending:
+            route = .edit(quest)
+        case .victory, .grave:
+            route = .resolved(quest)
+        }
+        notificationRouteStore.clear()
+    }
+
+    private func openNotificationSettings() {
+        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(settingsURL)
     }
 }
 
@@ -99,16 +182,14 @@ struct ContentView: View {
 enum EditorRoute: Identifiable {
     case create
     case edit(Quest)
+    case resolved(Quest)
 
     var id: String {
         switch self {
         case .create: "create"
         case .edit(let quest): quest.id.uuidString
+        case .resolved(let quest): "resolved-\(quest.id.uuidString)"
         }
-    }
-
-    var editableQuest: Quest? {
-        if case .edit(let quest) = self { quest } else { nil }
     }
 }
 

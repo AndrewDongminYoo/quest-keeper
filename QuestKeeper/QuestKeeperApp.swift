@@ -7,9 +7,21 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct QuestKeeperApp: App {
+    @State private var notificationRouteStore: NotificationRouteStore
+    private let notificationDelegate: NotificationDelegate
+
+    init() {
+        let routeStore = NotificationRouteStore()
+        let delegate = NotificationDelegate(routeStore: routeStore)
+        _notificationRouteStore = State(initialValue: routeStore)
+        notificationDelegate = delegate
+        UNUserNotificationCenter.current().delegate = delegate
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Quest.self,
@@ -25,7 +37,7 @@ struct QuestKeeperApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(notificationRouteStore: notificationRouteStore)
         }
         .modelContainer(sharedModelContainer)
     }
