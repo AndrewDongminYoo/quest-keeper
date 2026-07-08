@@ -102,4 +102,30 @@ struct WidgetDungeonPayloadTests {
         #expect(state.activeMobs.map(\.id) == [soonID, lateID])
         #expect(state.activeMobs.first?.mobLevel == 3)
     }
+
+    @Test("payload factory preserves quest titles and raw facts")
+    @MainActor
+    func payloadFactoryPreservesRawFacts() throws {
+        let quest = Quest(
+            id: UUID(),
+            title: "홈 위젯 만들기",
+            deadline: now.addingTimeInterval(hour),
+            importance: .high,
+            completedAt: nil
+        )
+
+        let payload = WidgetDungeonPayload.make(from: [quest], generatedAt: now)
+
+        #expect(payload.schemaVersion == WidgetDungeonPayload.currentSchemaVersion)
+        #expect(payload.generatedAt == now)
+        #expect(payload.quests == [
+            WidgetQuestPayload(
+                id: quest.id,
+                title: "홈 위젯 만들기",
+                deadline: quest.deadline,
+                completedAt: nil,
+                importanceRawValue: Importance.high.rawValue
+            )
+        ])
+    }
 }
