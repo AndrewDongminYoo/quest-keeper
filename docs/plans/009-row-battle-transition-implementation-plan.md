@@ -388,13 +388,7 @@ Update accessibility actions:
 }
 ```
 
-- [ ] **Step 6: Pass battle phase to QuestRow and block gestures while resolving**
-
-Change the row call:
-
-```swift
-QuestRow(quest: quest, now: now, battlePhase: battlePhase)
-```
+- [ ] **Step 6: Block gestures while resolving**
 
 Update gesture handlers:
 
@@ -468,7 +462,7 @@ git commit -m "feat(ui): delay quest completion for battle feedback"
 
 - [ ] **Step 1: Add battle phase input**
 
-Change `QuestRow` declaration:
+Change `QuestRow` declaration in `QuestKeeper/Views/QuestRow.swift`:
 
 ```swift
 struct QuestRow: View {
@@ -481,6 +475,12 @@ struct QuestRow: View {
         self.now = now
         self.battlePhase = battlePhase
     }
+```
+
+Change the row call in `QuestKeeper/Views/QuestListSections.swift`:
+
+```swift
+QuestRow(quest: quest, now: now, battlePhase: battlePhase)
 ```
 
 - [ ] **Step 2: Dim text during defeated phase**
