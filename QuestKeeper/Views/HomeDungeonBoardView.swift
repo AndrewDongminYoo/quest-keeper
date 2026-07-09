@@ -9,7 +9,7 @@ struct HomeDungeonBoardView: View {
     let showsNotificationPermissionBanner: Bool
     let onCreate: () -> Void
     let onOpenNotificationSettings: () -> Void
-    let onComplete: (Quest) -> Void
+    let onComplete: (Quest, Date) -> Void
     let onRetryTomorrow: (Quest) -> Void
     let onDelete: (Quest) -> Void
     let onEdit: (Quest) -> Void
