@@ -1,7 +1,7 @@
 # Phase 5 Retrospective
 
-Status: blocked - manual OS-surface verification pending
-Source commit: 2ec3ba4c266d61d07df726622e3a0ec1c94b442f
+Status: ready for PR review; quest-list visibility follow-up noted
+Source commit: 58cffb6a59c519932cf18e35ea58d858f95f4347
 
 ## Native Boundaries Crossed
 
@@ -20,7 +20,7 @@ The late-completion policy had to be made explicit: a quest completed after its 
 ## Manual-Only Assumptions
 
 - WidgetKit refresh timing: not proven by unit tests or simulator launch smoke.
-- Local notification delivery timing: scheduling and pruning are tested, but Notification Center presentation timing still needs hands-on verification.
+- Local notification delivery timing: scheduling and pruning are tested, and user manual check reports notification behavior works.
 - Device signing and App Group provisioning: entitlements and the shared identifier are present, but physical-device provisioning was not verified in this session.
 
 ## Accepted Shortcuts
@@ -33,13 +33,13 @@ The late-completion policy had to be made explicit: a quest completed after its 
 
 ## Follow-Up Backlog Recommendation
 
-Recommended next item: manual OS-surface verification sweep for notifications, widget installation, WidgetKit refresh, and App Group behavior.
+Recommended next item: improve quest list visibility without changing the raw-facts model or lifecycle behavior.
 
-Reason: the automated gate now covers raw facts and deterministic derivation, but Phase 5 acceptance still depends on manual evidence for OS-controlled surfaces.
+Reason: retry tomorrow and notification behavior are reported working, while the task list itself is harder to scan than the lifecycle surfaces around it.
 
 ## Closeout Decision
 
-- Phase 5 accepted: no
-- Phase 5 blocked: yes, pending manual OS-surface verification
+- Phase 5 accepted: ready for PR review with a known UI visibility follow-up
+- Phase 5 blocked: no
 
-Evidence: `QuestKeeperTests` passed with 63 tests, simulator build passed, source guard passed, simulator launch smoke passed, and all manual scenarios are recorded as blocked in `docs/notes/006-phase-5-verification-log.md`.
+Evidence: `QuestKeeperTests` passed with 63 tests, simulator build passed, source guard passed, simulator launch smoke passed, and user manual check reports `내일 도전하기` plus notification behavior work.

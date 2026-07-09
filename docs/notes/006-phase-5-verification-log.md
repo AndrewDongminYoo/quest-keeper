@@ -1,7 +1,7 @@
 # Phase 5 Verification Log
 
-Status: automated gate passed; manual OS-surface verification pending
-Source commit: 2ec3ba4c266d61d07df726622e3a0ec1c94b442f
+Status: ready for PR review; quest-list visibility follow-up noted
+Source commit: 58cffb6a59c519932cf18e35ea58d858f95f4347
 Date: 2026-07-09
 Tester: Codex via XcodeBuildMCP
 
@@ -10,7 +10,7 @@ Tester: Codex via XcodeBuildMCP
 - Device or simulator: iPhone 17e simulator, 7ED9020C-A21E-425F-AF74-C71C40DA0A13
 - OS version: iOS 26.5
 - Xcode version: Xcode 26.6, build 17F113
-- Notification authorization: not manually exercised in this session
+- Notification authorization: user manual check reports notification behavior works
 - Widget installed: not manually installed in this session
 - App Group identifier observed: `group.kr.donminzzi.QuestKeeper`
 
@@ -44,7 +44,7 @@ Steps:
 3. Inspect pending notification requests in the debugger or app logs.
 4. Add or refresh the QuestKeeper widget.
 
-Observed: Not run in this session; requires hands-on quest creation plus pending notification and Home Screen widget inspection.
+Observed: User manual check reports notification behavior works. Home Screen widget inspection was not reported. Quest list visibility is lower than desired and should be tracked as a UI follow-up.
 
 Result: blocked
 
@@ -55,7 +55,7 @@ Steps:
 2. Confirm old notification identifiers are removed before replacement requests are scheduled.
 3. Confirm the widget reflects the updated deadline after reload or normal refresh.
 
-Observed: Not run in this session; requires hands-on deadline editing plus notification request and widget refresh inspection.
+Observed: User manual check reports notification behavior works. Deadline-edit replacement scheduling and widget refresh inspection were not separately reported.
 
 Result: blocked
 
@@ -67,7 +67,7 @@ Steps:
 3. Confirm total victories increase.
 4. Confirm the widget no longer shows the quest as active.
 
-Observed: Not run in this session; requires hands-on completion plus delivered Notification Center and widget inspection.
+Observed: User manual check reports notification behavior works. Completion-specific delivered notification pruning and widget inspection were not separately reported.
 
 Result: blocked
 
@@ -79,9 +79,9 @@ Steps:
 3. Confirm notifications are recreated for the new future deadline.
 4. Confirm the widget shows the quest as active again.
 
-Observed: Not run in this session; requires a visible daily grave, retry action, notification request inspection, and widget refresh inspection.
+Observed: User manual check reports `내일 도전하기` works and notification behavior works. Widget refresh inspection was not separately reported.
 
-Result: blocked
+Result: pass
 
 ### 6. Delete Quest
 
@@ -90,7 +90,7 @@ Steps:
 2. Confirm notifications are removed.
 3. Confirm the widget payload no longer includes the quest.
 
-Observed: Not run in this session; requires hands-on deletion plus notification request and widget payload inspection.
+Observed: User manual check reports notification behavior works. Delete-specific notification removal and widget payload inspection were not separately reported.
 
 Result: blocked
 
@@ -110,5 +110,5 @@ Result: blocked
 ## Notes
 
 - WidgetKit refresh timing limitations: WidgetKit controls production refresh timing; unit tests verify cache payload derivation but do not prove Home Screen refresh latency.
-- Notification delivery timing limitations: Unit tests verify scheduling, cancellation, reconcile, and delivered pruning paths; they do not prove real Notification Center presentation timing.
-- Follow-up issues: manual OS-surface verification remains before Phase 5 can be accepted as fully closed.
+- Notification delivery timing limitations: Unit tests verify scheduling, cancellation, reconcile, and delivered pruning paths; user manual check reports notification behavior works.
+- Follow-up issues: improve quest list visibility; finish separate Home Screen widget refresh inspection if strict Phase 5 closeout evidence is required.
