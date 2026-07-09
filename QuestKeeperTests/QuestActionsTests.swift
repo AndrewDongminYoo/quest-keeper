@@ -51,6 +51,18 @@ struct QuestActionsTests {
         #expect(quest.snapshot.outcome(at: now.addingTimeInterval(2 * day)) == .victory)
     }
 
+    @Test("complete records the action timestamp even near a deadline")
+    func completeRecordsActionTimestampNearDeadline() {
+        let deadline = Date(timeIntervalSinceReferenceDate: 820_584_000)
+        let actionTime = deadline.addingTimeInterval(-0.1)
+        let quest = Quest(title: "Finish before the gate closes", deadline: deadline, importance: .medium)
+
+        QuestActions.complete(quest, at: actionTime)
+
+        #expect(quest.completedAt == actionTime)
+        #expect(quest.snapshot.outcome(at: deadline.addingTimeInterval(1)) == .victory)
+    }
+
     // 3
     @Test("delete is raw cleanup, not a permanent grave rule")
     func canDeleteIsNotPermanentGraveRule() {

@@ -131,9 +131,9 @@ struct ContentView: View {
 
     // MARK: - Fact mutations
 
-    private func complete(_ quest: Quest) {
+    private func complete(_ quest: Quest, at completedAt: Date = .now) {
         let questID = quest.id
-        QuestActions.complete(quest, at: .now)
+        QuestActions.complete(quest, at: completedAt)
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)

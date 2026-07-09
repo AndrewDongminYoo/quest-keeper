@@ -12,7 +12,7 @@ struct QuestListSections: View {
     let pending: [Quest]
     let dailyGraves: [Quest]
     let now: Date
-    let onComplete: (Quest) -> Void
+    let onComplete: (Quest, Date) -> Void
     let onRetryTomorrow: (Quest) -> Void
     let onDelete: (Quest) -> Void
     let onEdit: (Quest) -> Void
@@ -74,7 +74,7 @@ private struct BoardSectionTitle: View {
 private struct SwipeableQuestRow: View {
     let quest: Quest
     let now: Date
-    let onComplete: (Quest) -> Void
+    let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
     let onEdit: (Quest) -> Void
 
@@ -86,7 +86,7 @@ private struct SwipeableQuestRow: View {
             HStack(spacing: 0) {
                 actionButton(title: "완료", systemImage: "checkmark", color: Color(red: 0.18, green: 0.54, blue: 0.29)) {
                     reset()
-                    onComplete(quest)
+                    onComplete(quest, .now)
                 }
                 Spacer(minLength: 0)
                 actionButton(title: "삭제", systemImage: "trash", color: Color(red: 0.70, green: 0.18, blue: 0.16)) {
@@ -129,7 +129,7 @@ private struct SwipeableQuestRow: View {
                     }
                 }
         )
-        .accessibilityAction(named: "완료") { onComplete(quest) }
+        .accessibilityAction(named: "완료") { onComplete(quest, .now) }
         .accessibilityAction(named: "삭제") { onDelete(quest) }
     }
 
