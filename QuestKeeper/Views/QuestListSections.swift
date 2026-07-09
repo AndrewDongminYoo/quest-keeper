@@ -145,6 +145,7 @@ private struct SwipeableQuestRow: View {
             battleTask = nil
             battlePhase = .idle
             isResolvingBattle = false
+            isTrackingSwipe = false
             offset = 0
         }
     }
