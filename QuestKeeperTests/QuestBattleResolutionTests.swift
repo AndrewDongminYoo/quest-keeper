@@ -26,4 +26,11 @@ struct QuestBattleResolutionTests {
         #expect(QuestBattleResolution.shouldAcceptCompletion(isResolving: false))
         #expect(!QuestBattleResolution.shouldAcceptCompletion(isResolving: true))
     }
+
+    @Test("commit waits after defeated phase becomes visible")
+    func commitWaitsAfterDefeatedPhaseBecomesVisible() {
+        let visibleDefeatedDuration = QuestBattleResolution.commitDelay - QuestBattleResolution.defeatedPhaseDelay
+
+        #expect(visibleDefeatedDuration >= 0.4)
+    }
 }
