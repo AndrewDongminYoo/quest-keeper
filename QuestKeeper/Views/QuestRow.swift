@@ -14,28 +14,37 @@ struct QuestRow: View {
     let now: Date
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(quest.title)
-                    .font(.body.weight(.semibold))
-                Text(countdown)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            MobLevelBadge(level: quest.snapshot.mobLevel(at: now))
-            MonsterGlyph(level: quest.snapshot.mobLevel(at: now))
-        }
-        .padding(.vertical, 6)
-    }
+        let level = quest.snapshot.mobLevel(at: now)
+        let tone = DungeonPresentation.urgencyTone(deadline: quest.deadline, mobLevel: level, now: now)
 
-    private var countdown: String {
-        let remaining = quest.deadline.timeIntervalSince(now)
-        guard remaining > 0 else { return "마감 임박" }
-        let minutes = Int(remaining) / 60
-        if minutes >= 1440 { return "\(minutes / 1440)일 남음" }
-        if minutes >= 60 { return "\(minutes / 60)시간 \(minutes % 60)분 남음" }
-        return "\(minutes)분 남음"
+        HStack(spacing: 12) {
+            DungeonLaneMarker(tone: tone)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(quest.title)
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Text(DungeonPresentation.countdownText(deadline: quest.deadline, now: now))
+                        .font(.caption.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(tone.tint)
+                    ImportancePip(importance: quest.importance)
+                }
+            }
+            Spacer(minLength: 10)
+            VStack(alignment: .trailing, spacing: 8) {
+                MobLevelBadge(level: level)
+                MonsterGlyph(level: level)
+            }
+        }
+        .padding(14)
+        .frame(minHeight: 92)
+        .background(Color(red: 0.20, green: 0.20, blue: 0.27), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(tone.tint.opacity(0.38), lineWidth: 1)
+        )
     }
 }
 
@@ -47,22 +56,57 @@ struct DailyGraveRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "xmark.seal.fill")
-                .foregroundStyle(.gray)
-            VStack(alignment: .leading, spacing: 4) {
+                .font(.title2)
+                .foregroundStyle(Color(red: 0.66, green: 0.67, blue: 0.66))
+                .frame(width: 34)
+            VStack(alignment: .leading, spacing: 6) {
                 Text(quest.title)
+                    .font(.body.weight(.bold))
                     .strikethrough()
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.62))
+                    .lineLimit(2)
                 Text("오늘의 무덤")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
+                    .font(.caption.monospaced().weight(.semibold))
+                    .foregroundStyle(Color(red: 0.70, green: 0.72, blue: 0.71))
             }
-            Spacer()
+            Spacer(minLength: 10)
             Button(action: onRetryTomorrow) {
                 Label("내일 도전하기", systemImage: "arrow.uturn.forward")
+                    .labelStyle(.titleAndIcon)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
         }
-        .padding(.vertical, 6)
+        .padding(14)
+        .frame(minHeight: 92)
+        .background(Color(red: 0.17, green: 0.17, blue: 0.22), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(red: 0.55, green: 0.57, blue: 0.56).opacity(0.35), lineWidth: 1)
+        )
+    }
+}
+
+private struct DungeonLaneMarker: View {
+    let tone: DungeonUrgencyTone
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(tone.tint)
+            .frame(width: 5, height: 58)
+    }
+}
+
+private struct ImportancePip: View {
+    let importance: Importance
+
+    var body: some View {
+        Text("IMP \(importance.rawValue)")
+            .font(.caption2.weight(.black))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.white.opacity(0.10), in: Capsule())
+            .foregroundStyle(.white.opacity(0.72))
     }
 }
 
@@ -112,4 +156,14 @@ struct MonsterGlyph: View {
     }
 
     private var tint: Color { level.mobLevelTint }
+}
+
+private extension DungeonUrgencyTone {
+    var tint: Color {
+        switch self {
+        case .calm: Color(red: 0.46, green: 0.86, blue: 0.62)
+        case .warning: Color(red: 1.0, green: 0.70, blue: 0.29)
+        case .danger: Color(red: 1.0, green: 0.43, blue: 0.35)
+        }
+    }
 }

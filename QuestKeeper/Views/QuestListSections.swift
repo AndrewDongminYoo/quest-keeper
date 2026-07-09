@@ -18,37 +18,60 @@ struct QuestListSections: View {
     let onEdit: (Quest) -> Void
 
     var body: some View {
-        if !pending.isEmpty {
-            Section("던전") {
-                ForEach(pending) { quest in
-                    QuestRow(quest: quest, now: now)
-                        .listRowBackground(Color(red: 0.20, green: 0.19, blue: 0.25))
-                        .contentShape(Rectangle())
-                        .onTapGesture { onEdit(quest) }
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button { onComplete(quest) } label: {
-                                Label("완료", systemImage: "checkmark")
+        VStack(alignment: .leading, spacing: 12) {
+            if !pending.isEmpty {
+                BoardSectionTitle(title: "던전", count: pending.count)
+                VStack(spacing: 10) {
+                    ForEach(pending) { quest in
+                        QuestRow(quest: quest, now: now)
+                            .contentShape(Rectangle())
+                            .onTapGesture { onEdit(quest) }
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                Button { onComplete(quest) } label: {
+                                    Label("완료", systemImage: "checkmark")
+                                }
+                                .tint(.green)
                             }
-                            .tint(.green)
-                        }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) { onDelete(quest) } label: {
-                                Label("삭제", systemImage: "trash")
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) { onDelete(quest) } label: {
+                                    Label("삭제", systemImage: "trash")
+                                }
                             }
-                        }
-                }
-            }
-        }
-
-        if !dailyGraves.isEmpty {
-            Section("오늘의 무덤") {
-                ForEach(dailyGraves) { quest in
-                    DailyGraveRow(quest: quest) {
-                        onRetryTomorrow(quest)
                     }
-                    .listRowBackground(Color(red: 0.20, green: 0.19, blue: 0.25))
+                }
+            }
+
+            if !dailyGraves.isEmpty {
+                BoardSectionTitle(title: "오늘의 무덤", count: dailyGraves.count)
+                VStack(spacing: 10) {
+                    ForEach(dailyGraves) { quest in
+                        DailyGraveRow(quest: quest) {
+                            onRetryTomorrow(quest)
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+private struct BoardSectionTitle: View {
+    let title: String
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.system(.caption, design: .monospaced).weight(.black))
+                .foregroundStyle(.white.opacity(0.82))
+            Text("\(count)")
+                .font(.caption2.monospacedDigit().weight(.bold))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Color.white.opacity(0.12), in: Capsule())
+                .foregroundStyle(.white.opacity(0.72))
+            Spacer()
+        }
+        .textCase(.uppercase)
     }
 }
