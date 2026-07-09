@@ -1,7 +1,7 @@
 # Phase 5 Verification Log
 
 Status: ready for PR review; quest-list visibility follow-up noted
-Source commit: 58cffb6a59c519932cf18e35ea58d858f95f4347
+Source commit: e7323ec72be37b77a401847c655cfefc9acc898e
 Date: 2026-07-09
 Tester: Codex via XcodeBuildMCP
 
@@ -10,7 +10,8 @@ Tester: Codex via XcodeBuildMCP
 - Device or simulator: iPhone 17e simulator, 7ED9020C-A21E-425F-AF74-C71C40DA0A13
 - OS version: iOS 26.5
 - Xcode version: Xcode 26.6, build 17F113
-- Notification authorization: user manual check reports notification behavior works
+- Notification authorization: not verified
+- Notification behavior: user manual check reports notification behavior works
 - Widget installed: not manually installed in this session
 - App Group identifier observed: `group.kr.donminzzi.QuestKeeper`
 
@@ -32,7 +33,7 @@ Steps:
 3. Grant or deny notification permission explicitly.
 4. Confirm the empty dungeon copy is safe and no crash occurs.
 
-Observed: Simulator launch smoke passed and showed the empty quest state without a crash, but notification authorization was not manually granted or denied.
+Observed: Simulator launch smoke passed and showed the empty quest state without a crash, but notification authorization state was not recorded as authorized or denied.
 
 Result: blocked
 
@@ -110,5 +111,5 @@ Result: blocked
 ## Notes
 
 - WidgetKit refresh timing limitations: WidgetKit controls production refresh timing; unit tests verify cache payload derivation but do not prove Home Screen refresh latency.
-- Notification delivery timing limitations: Unit tests verify scheduling, cancellation, reconcile, and delivered pruning paths; user manual check reports notification behavior works.
+- Notification delivery timing limitations: Unit tests verify scheduling, cancellation, reconcile, and delivered pruning paths; user manual check reports notification behavior works, while the exact authorization state remains not verified.
 - Follow-up issues: improve quest list visibility; finish separate Home Screen widget refresh inspection if strict Phase 5 closeout evidence is required.

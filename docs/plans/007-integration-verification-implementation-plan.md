@@ -213,7 +213,7 @@ struct IntegrationVerificationTests {
 }
 ```
 
-- [ ] **Step 2: Run the focused test to verify RED or confirm already-covered behavior**
+- [ ] **Step 2: Run the focused test against the implemented integration state**
 
 Run:
 
@@ -221,12 +221,12 @@ Run:
 xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:QuestKeeperTests/IntegrationVerificationTests
 ```
 
-Expected: FAIL because `HeroDerivation.state` does not yet accept `calendar:`.
-After adding that parameter, the same test should expose the current late-completion widget drift: app derivation treats same-day late completions as daily graves while widget derivation skips every `completedAt != nil` quest.
+Expected: PASS with the current Phase 5 implementation.
+`HeroDerivation.state` already accepts `calendar:` and the widget late-completion behavior is aligned with the app derivation policy.
 
-- [ ] **Step 3: Fix only still-valid integration gaps**
+- [ ] **Step 3: Record the implemented integration alignment**
 
-First add calendar injection to app derivation:
+The app derivation entry point now accepts an explicit calendar for daily-grave visibility:
 
 ```swift
 static func state(
@@ -257,8 +257,8 @@ static func state(
 }
 ```
 
-Then align widget derivation with the Phase 5 policy that late completions remain graves when their deadline is on the current local day.
-Build the `WidgetMobState` before the completion branch and route late completions into `dailyGraves`:
+Widget derivation is aligned with the Phase 5 policy that late completions remain graves when their deadline is on the current local day.
+It builds the `WidgetMobState` before the completion branch and routes late completions into `dailyGraves`:
 
 ```swift
 let urgencyLevel = urgencyLevel(deadline: quest.deadline, at: date)
