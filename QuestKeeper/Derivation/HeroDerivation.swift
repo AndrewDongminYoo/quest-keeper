@@ -22,7 +22,12 @@ nonisolated struct HeroState: Sendable, Equatable {
 
 nonisolated enum HeroDerivation {
     /// Deterministic in all three inputs — same inputs, same output.
-    static func state(quests: [QuestSnapshot], now: Date, lastOpened: Date) -> HeroState {
+    static func state(
+        quests: [QuestSnapshot],
+        now: Date,
+        lastOpened: Date,
+        calendar: Calendar = .current
+    ) -> HeroState {
         var totalVictories = 0
         var dailyGraves: [UUID] = []
         for quest in quests {
@@ -30,7 +35,7 @@ nonisolated enum HeroDerivation {
             case .victory:
                 totalVictories += 1
             case .grave:
-                if quest.isVisibleDailyGrave(at: now) {
+                if quest.isVisibleDailyGrave(at: now, calendar: calendar) {
                     dailyGraves.append(quest.id)
                 }
             case .pending: break

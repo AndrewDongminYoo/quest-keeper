@@ -51,13 +51,6 @@ nonisolated enum WidgetDungeonDerivation {
         var totalVictories = 0
 
         for quest in payload.quests {
-            if let completedAt = quest.completedAt {
-                if completedAt <= quest.deadline {
-                    totalVictories += 1
-                }
-                continue
-            }
-
             let urgencyLevel = urgencyLevel(deadline: quest.deadline, at: date)
             let mob = WidgetMobState(
                 id: quest.id,
@@ -71,6 +64,15 @@ nonisolated enum WidgetDungeonDerivation {
                     at: date
                 )
             )
+
+            if let completedAt = quest.completedAt {
+                if completedAt <= quest.deadline {
+                    totalVictories += 1
+                } else if calendar.isDate(quest.deadline, inSameDayAs: date) {
+                    dailyGraves.append(mob)
+                }
+                continue
+            }
 
             if quest.deadline > date {
                 activeMobs.append(mob)
