@@ -5,11 +5,13 @@ import WidgetKit
 actor WidgetDungeonSnapshotWriter {
     typealias Save = @Sendable (WidgetDungeonPayload) async throws -> Void
     typealias ReloadAllTimelines = @Sendable () -> Void
+    typealias RetryDelay = @Sendable () async -> Void
 
     private static let maximumSaveAttempts = 2
 
     private let save: Save
     private let reloadAllTimelines: ReloadAllTimelines
+    private let retryDelay: RetryDelay
     private let logger = Logger(subsystem: "kr.donminzzi.QuestKeeper", category: "WidgetSnapshot")
     private var pendingPayload: WidgetDungeonPayload?
     private var latestSubmittedAt = Date.distantPast
@@ -21,20 +23,28 @@ actor WidgetDungeonSnapshotWriter {
             Task { @MainActor in
                 WidgetCenter.shared.reloadAllTimelines()
             }
+        },
+        retryDelay: @escaping RetryDelay = {
+            try? await Task.sleep(nanoseconds: 100_000_000)
         }
     ) {
         self.save = { payload in
             try snapshotStore.save(payload)
         }
         self.reloadAllTimelines = reloadAllTimelines
+        self.retryDelay = retryDelay
     }
 
     init(
         save: @escaping Save,
-        reloadAllTimelines: @escaping ReloadAllTimelines = {}
+        reloadAllTimelines: @escaping ReloadAllTimelines = {},
+        retryDelay: @escaping RetryDelay = {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
     ) {
         self.save = save
         self.reloadAllTimelines = reloadAllTimelines
+        self.retryDelay = retryDelay
     }
 
     func submit(_ payload: WidgetDungeonPayload) async {
@@ -69,9 +79,13 @@ actor WidgetDungeonSnapshotWriter {
                 if pendingPayload?.generatedAt ?? .distantPast > payload.generatedAt {
                     return false
                 }
+                if attempt < Self.maximumSaveAttempts {
+                    await retryDelay()
+                }
             }
         }
 
+        logger.error("Dropping widget snapshot after \(Self.maximumSaveAttempts) failed write attempts")
         return false
     }
 }

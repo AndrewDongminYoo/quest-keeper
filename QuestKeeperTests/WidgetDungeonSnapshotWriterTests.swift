@@ -139,6 +139,48 @@ struct WidgetDungeonSnapshotWriterTests {
         #expect(snapshot.reloadCount == 1)
     }
 
+    @Test("writer delays retry and recovers after permanent failure")
+    func writerDelaysRetryAndRecoversAfterPermanentFailure() async {
+        let failedPayload = payload(title: "fail", generatedAt: now)
+        let recoveryPayload = payload(title: "recover", generatedAt: now.addingTimeInterval(1))
+        let probe = SnapshotWriterProbe()
+        let writer = WidgetDungeonSnapshotWriter(
+            save: { payload in
+                await probe.recordSaveStart(payload)
+                if payload == failedPayload {
+                    struct SaveFailure: Error {}
+                    throw SaveFailure()
+                }
+                await probe.recordSaveFinish(payload)
+            },
+            reloadAllTimelines: {
+                Task {
+                    await probe.recordReload()
+                }
+            },
+            retryDelay: {
+                await probe.recordRetryDelay()
+            }
+        )
+
+        await writer.submit(failedPayload)
+        await writer.submit(recoveryPayload)
+
+        await waitForCondition("writer to recover after permanent failure") {
+            let snapshot = await probe.snapshot()
+            return snapshot.started == [failedPayload, failedPayload, recoveryPayload]
+                && snapshot.finished == [recoveryPayload]
+                && snapshot.reloadCount == 1
+                && snapshot.retryDelayCount == 1
+        }
+
+        let snapshot = await probe.snapshot()
+        #expect(snapshot.started == [failedPayload, failedPayload, recoveryPayload])
+        #expect(snapshot.finished == [recoveryPayload])
+        #expect(snapshot.reloadCount == 1)
+        #expect(snapshot.retryDelayCount == 1)
+    }
+
     private func payload(title: String, generatedAt: Date) -> WidgetDungeonPayload {
         WidgetDungeonPayload(
             schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
@@ -218,17 +260,25 @@ private actor SnapshotWriterProbe {
         reloadCount += 1
     }
 
+    func recordRetryDelay() {
+        retryDelayCount += 1
+    }
+
     func snapshot() -> SnapshotWriterProbeState {
         SnapshotWriterProbeState(
             started: started,
             finished: finished,
-            reloadCount: reloadCount
+            reloadCount: reloadCount,
+            retryDelayCount: retryDelayCount
         )
     }
+
+    private var retryDelayCount = 0
 }
 
 private struct SnapshotWriterProbeState: Sendable {
     let started: [WidgetDungeonPayload]
     let finished: [WidgetDungeonPayload]
     let reloadCount: Int
+    let retryDelayCount: Int
 }
