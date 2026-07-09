@@ -12,30 +12,48 @@ import SwiftUI
 struct QuestRow: View {
     let quest: Quest
     let now: Date
+    let battlePhase: QuestBattlePhase
+
+    init(quest: Quest, now: Date, battlePhase: QuestBattlePhase = .idle) {
+        self.quest = quest
+        self.now = now
+        self.battlePhase = battlePhase
+    }
 
     var body: some View {
         let level = quest.snapshot.mobLevel(at: now)
         let tone = DungeonPresentation.urgencyTone(deadline: quest.deadline, mobLevel: level, now: now)
+        let isDefeated = battlePhase == .defeated
 
         HStack(spacing: 12) {
             DungeonLaneMarker(tone: tone)
             VStack(alignment: .leading, spacing: 8) {
                 Text(quest.title)
                     .font(.body.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(isDefeated ? .white.opacity(0.58) : .white)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     Text(DungeonPresentation.countdownText(deadline: quest.deadline, now: now))
                         .font(.caption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(tone.tint)
+                        .foregroundStyle(isDefeated ? Color.white.opacity(0.48) : tone.tint)
                     ImportancePip(importance: quest.importance)
                 }
             }
             Spacer(minLength: 10)
             VStack(alignment: .trailing, spacing: 8) {
-                MobLevelBadge(level: level)
-                MonsterGlyph(level: level)
+                if battlePhase == .defeated {
+                    Text("VICTORY +1")
+                        .font(.caption2.monospaced().weight(.black))
+                        .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.35))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.black.opacity(0.22), in: Capsule())
+                        .transition(.scale.combined(with: .opacity))
+                } else {
+                    MobLevelBadge(level: level)
+                }
+                MonsterGlyph(level: level, battlePhase: battlePhase)
             }
         }
         .padding(14)
@@ -138,12 +156,21 @@ private extension Int {
 
 struct MonsterGlyph: View {
     let level: Int
+    let battlePhase: QuestBattlePhase
+
+    init(level: Int, battlePhase: QuestBattlePhase = .idle) {
+        self.level = level
+        self.battlePhase = battlePhase
+    }
 
     var body: some View {
         Image(systemName: symbol)
             .font(.title3)
             .foregroundStyle(tint)
             .frame(width: 28, height: 28)
+            .scaleEffect(battlePhase == .striking ? 1.22 : battlePhase == .defeated ? 0.82 : 1)
+            .rotationEffect(.degrees(battlePhase == .striking ? -8 : battlePhase == .defeated ? 10 : 0))
+            .opacity(battlePhase == .defeated ? 0.35 : 1)
             .accessibilityLabel("몹 레벨 \(level)")
     }
 

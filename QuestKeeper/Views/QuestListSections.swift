@@ -100,7 +100,7 @@ private struct SwipeableQuestRow: View {
             .frame(maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            QuestRow(quest: quest, now: now)
+            QuestRow(quest: quest, now: now, battlePhase: battlePhase)
                 .offset(x: offset)
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -136,6 +136,7 @@ private struct SwipeableQuestRow: View {
                 }
         )
         .accessibilityAction(named: "완료") { completeWithBattle() }
+        .accessibilityValue(isResolvingBattle ? "완료 처리 중" : "")
         .accessibilityAction(named: "삭제") {
             guard !isResolvingBattle else { return }
             onDelete(quest)
