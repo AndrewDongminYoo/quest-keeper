@@ -13,12 +13,15 @@ import UserNotifications
 struct QuestKeeperApp: App {
     @State private var notificationRouteStore: NotificationRouteStore
     private let notificationDelegate: NotificationDelegate
+    private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
 
     init() {
         let routeStore = NotificationRouteStore()
+        let snapshotWriter = WidgetDungeonSnapshotWriter()
         let delegate = NotificationDelegate(routeStore: routeStore)
         _notificationRouteStore = State(initialValue: routeStore)
         notificationDelegate = delegate
+        widgetSnapshotWriter = snapshotWriter
         UNUserNotificationCenter.current().delegate = delegate
     }
 
@@ -37,7 +40,10 @@ struct QuestKeeperApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(notificationRouteStore: notificationRouteStore)
+            ContentView(
+                notificationRouteStore: notificationRouteStore,
+                widgetSnapshotWriter: widgetSnapshotWriter
+            )
         }
         .modelContainer(sharedModelContainer)
     }

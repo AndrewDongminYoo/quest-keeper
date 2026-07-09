@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F7B47EB22FFD02AA00D8D4A1 /* QuestKeeperWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F7B47EB32FFD02AA00D8D4A1 /* QuestKeeperWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B20C62AA2FFD556F00280BFB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,18 +25,63 @@
 			remoteGlobalIDString = B20C62992FFD556E00280BFB;
 			remoteInfo = QuestKeeper;
 		};
+		F7B47EB12FFD02AA00D8D4A1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B20C62922FFD556D00280BFB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F7B47EB62FFD02AA00D8D4A1;
+			remoteInfo = QuestKeeperWidget;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		B20C629A2FFD556E00280BFB /* QuestKeeper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuestKeeper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20C62A92FFD556F00280BFB /* QuestKeeperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuestKeeperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20C62B32FFD556F00280BFB /* QuestKeeperUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuestKeeperUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F7B47EB32FFD02AA00D8D4A1 /* QuestKeeperWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuestKeeperWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F7B47EB52FFD02AA00D8D4A1 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F7B47EB22FFD02AA00D8D4A1 /* QuestKeeperWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B25B88A72FFE318E00E4B8BE /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F7B47EB62FFD02AA00D8D4A1 /* QuestKeeperWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B20C629C2FFD556E00280BFB /* QuestKeeper */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = QuestKeeper;
+			sourceTree = "<group>";
+		};
+		F7B47EA72FFCBF8B00D8D4A1 /* QuestKeeperShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = QuestKeeperShared;
+			sourceTree = "<group>";
+		};
+		F7B47EB42FFD02AA00D8D4A1 /* QuestKeeperWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B25B88A72FFE318E00E4B8BE /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperWidget" target */,
+			);
+			path = QuestKeeperWidget;
 			sourceTree = "<group>";
 		};
 		B20C62AC2FFD556F00280BFB /* QuestKeeperTests */ = {
@@ -69,6 +118,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F7B47EB82FFD02AA00D8D4A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -76,6 +132,8 @@
 			isa = PBXGroup;
 			children = (
 				B20C629C2FFD556E00280BFB /* QuestKeeper */,
+				F7B47EA72FFCBF8B00D8D4A1 /* QuestKeeperShared */,
+				F7B47EB42FFD02AA00D8D4A1 /* QuestKeeperWidget */,
 				B20C62AC2FFD556F00280BFB /* QuestKeeperTests */,
 				B20C62B62FFD556F00280BFB /* QuestKeeperUITests */,
 				B20C629B2FFD556E00280BFB /* Products */,
@@ -88,6 +146,7 @@
 				B20C629A2FFD556E00280BFB /* QuestKeeper.app */,
 				B20C62A92FFD556F00280BFB /* QuestKeeperTests.xctest */,
 				B20C62B32FFD556F00280BFB /* QuestKeeperUITests.xctest */,
+				F7B47EB32FFD02AA00D8D4A1 /* QuestKeeperWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,13 +161,16 @@
 				B20C62962FFD556E00280BFB /* Sources */,
 				B20C62972FFD556E00280BFB /* Frameworks */,
 				B20C62982FFD556E00280BFB /* Resources */,
+				F7B47EB52FFD02AA00D8D4A1 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F7B47EBA2FFD02AA00D8D4A1 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				B20C629C2FFD556E00280BFB /* QuestKeeper */,
+				F7B47EA72FFCBF8B00D8D4A1 /* QuestKeeperShared */,
 			);
 			name = QuestKeeper;
 			packageProductDependencies = (
@@ -163,6 +225,29 @@
 			productReference = B20C62B32FFD556F00280BFB /* QuestKeeperUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		F7B47EB62FFD02AA00D8D4A1 /* QuestKeeperWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F7B47EBD2FFD02AA00D8D4A1 /* Build configuration list for PBXNativeTarget "QuestKeeperWidget" */;
+			buildPhases = (
+				F7B47EB72FFD02AA00D8D4A1 /* Sources */,
+				F7B47EB82FFD02AA00D8D4A1 /* Frameworks */,
+				F7B47EB92FFD02AA00D8D4A1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F7B47EB42FFD02AA00D8D4A1 /* QuestKeeperWidget */,
+				F7B47EA72FFCBF8B00D8D4A1 /* QuestKeeperShared */,
+			);
+			name = QuestKeeperWidget;
+			packageProductDependencies = (
+			);
+			productName = QuestKeeperWidget;
+			productReference = F7B47EB32FFD02AA00D8D4A1 /* QuestKeeperWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +269,9 @@
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = B20C62992FFD556E00280BFB;
 					};
+					F7B47EB62FFD02AA00D8D4A1 = {
+						CreatedOnToolsVersion = 26.6;
+					};
 				};
 			};
 			buildConfigurationList = B20C62952FFD556E00280BFB /* Build configuration list for PBXProject "QuestKeeper" */;
@@ -203,6 +291,7 @@
 				B20C62992FFD556E00280BFB /* QuestKeeper */,
 				B20C62A82FFD556F00280BFB /* QuestKeeperTests */,
 				B20C62B22FFD556F00280BFB /* QuestKeeperUITests */,
+				F7B47EB62FFD02AA00D8D4A1 /* QuestKeeperWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +312,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B20C62B12FFD556F00280BFB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F7B47EB92FFD02AA00D8D4A1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +349,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F7B47EB72FFD02AA00D8D4A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +368,11 @@
 			isa = PBXTargetDependency;
 			target = B20C62992FFD556E00280BFB /* QuestKeeper */;
 			targetProxy = B20C62B42FFD556F00280BFB /* PBXContainerItemProxy */;
+		};
+		F7B47EBA2FFD02AA00D8D4A1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F7B47EB62FFD02AA00D8D4A1 /* QuestKeeperWidget */;
+			targetProxy = F7B47EB12FFD02AA00D8D4A1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -390,6 +498,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = QuestKeeper/QuestKeeper.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 393JTTV68D;
@@ -434,6 +543,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = QuestKeeper/QuestKeeper.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 393JTTV68D;
@@ -571,6 +681,62 @@
 			};
 			name = Release;
 		};
+		F7B47EBB2FFD02AA00D8D4A1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = QuestKeeperWidget/QuestKeeperWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 393JTTV68D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = QuestKeeperWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kr.donminzzi.QuestKeeper.Widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		F7B47EBC2FFD02AA00D8D4A1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = QuestKeeperWidget/QuestKeeperWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 393JTTV68D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = QuestKeeperWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kr.donminzzi.QuestKeeper.Widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -606,6 +772,15 @@
 			buildConfigurations = (
 				B20C62C42FFD556F00280BFB /* Debug */,
 				B20C62C52FFD556F00280BFB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F7B47EBD2FFD02AA00D8D4A1 /* Build configuration list for PBXNativeTarget "QuestKeeperWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F7B47EBB2FFD02AA00D8D4A1 /* Debug */,
+				F7B47EBC2FFD02AA00D8D4A1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

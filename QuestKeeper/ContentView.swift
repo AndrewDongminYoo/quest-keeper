@@ -26,13 +26,18 @@ struct ContentView: View {
 
     private let notificationService: QuestNotificationService
     private let notificationRouteStore: NotificationRouteStore
+    private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
 
     init(
         notificationService: QuestNotificationService = .shared,
-        notificationRouteStore: NotificationRouteStore = NotificationRouteStore()
+        notificationRouteStore: NotificationRouteStore = NotificationRouteStore(),
+        widgetSnapshotStore: WidgetDungeonSnapshotStore = WidgetDungeonSnapshotStore(),
+        widgetSnapshotWriter: WidgetDungeonSnapshotWriter? = nil
     ) {
         self.notificationService = notificationService
         self.notificationRouteStore = notificationRouteStore
+        self.widgetSnapshotWriter = widgetSnapshotWriter
+            ?? WidgetDungeonSnapshotWriter(snapshotStore: widgetSnapshotStore)
     }
 
     var body: some View {
@@ -95,13 +100,15 @@ struct ContentView: View {
                     QuestEditor(
                         quest: nil,
                         notificationService: notificationService,
-                        onAuthorizationChange: { notificationAuthorization = $0 }
+                        onAuthorizationChange: { notificationAuthorization = $0 },
+                        onSaved: writeWidgetSnapshot(including:)
                     )
                 case .edit(let quest):
                     QuestEditor(
                         quest: quest,
                         notificationService: notificationService,
-                        onAuthorizationChange: { notificationAuthorization = $0 }
+                        onAuthorizationChange: { notificationAuthorization = $0 },
+                        onSaved: writeWidgetSnapshot(including:)
                     )
                 case .dailyGrave(let quest):
                     QuestResolutionView(quest: quest, now: .now) {
@@ -147,6 +154,7 @@ struct ContentView: View {
 
         Task { @MainActor in
             notificationAuthorization = await notificationService.reconcile(quests: quests, now: now)
+            writeWidgetSnapshot()
         }
 
         guard !deaths.isEmpty else { return }
@@ -165,6 +173,7 @@ struct ContentView: View {
     private func complete(_ quest: Quest) {
         let questID = quest.id
         QuestActions.complete(quest, at: .now)
+        writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
         }
@@ -173,6 +182,7 @@ struct ContentView: View {
     private func retryTomorrow(_ quest: Quest) {
         let now = Date.now
         QuestActions.retryTomorrow(quest, now: now)
+        writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             let authorization = await notificationService.sync(quest: quest, now: now)
             notificationAuthorization = authorization
@@ -183,8 +193,32 @@ struct ContentView: View {
         guard QuestActions.canDelete(quest.snapshot, at: .now) else { return }
         let questID = quest.id
         modelContext.delete(quest)
+        writeWidgetSnapshot(excluding: questID)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
+        }
+    }
+
+    private func writeWidgetSnapshot() {
+        let payload = WidgetDungeonPayload.make(from: quests)
+        persistWidgetSnapshot(payload)
+    }
+
+    private func writeWidgetSnapshot(including quest: Quest) {
+        let payload = WidgetDungeonPayload.make(from: quests, including: quest)
+        persistWidgetSnapshot(payload)
+    }
+
+    private func writeWidgetSnapshot(excluding questID: UUID) {
+        let payload = WidgetDungeonPayload.make(from: quests, excluding: questID)
+        persistWidgetSnapshot(payload)
+    }
+
+    private func persistWidgetSnapshot(_ payload: WidgetDungeonPayload) {
+        let snapshotWriter = widgetSnapshotWriter
+
+        Task.detached(priority: .utility) {
+            await snapshotWriter.submit(payload)
         }
     }
 
