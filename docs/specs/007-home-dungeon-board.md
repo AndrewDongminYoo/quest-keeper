@@ -102,7 +102,7 @@ The empty state must be board-native:
 
 ### Accessibility
 
-Rows must remain tappable and swipeable with standard SwiftUI interactions.
+Rows must remain tappable and swipeable with SwiftUI gestures and expose the same completion/deletion actions through accessibility actions.
 Text should remain readable under Dynamic Type within a reasonable range.
 The implementation may use fixed minimum row heights, but must not clip Korean quest titles in normal accessibility sizes.
 
@@ -172,9 +172,9 @@ Manual verification should include:
 - launch app with empty state;
 - create several pending quests with different deadlines;
 - confirm the board is more legible than the old native list;
-- complete a quest by swipe;
+- complete a quest by swiping the custom action rail;
 - retry a daily grave with `내일 도전하기`;
-- delete a quest by swipe;
+- delete a quest by swiping the custom action rail;
 - confirm notification and widget lifecycle still behave as before.
 
 ## Acceptance Criteria

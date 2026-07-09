@@ -24,4 +24,11 @@ struct SwipeRevealStateTests {
         #expect(!SwipeRevealState.isHorizontalDrag(width: 20, height: 80))
         #expect(!SwipeRevealState.isHorizontalDrag(width: 24, height: 24))
     }
+
+    @Test("gesture tracking locks after a horizontal swipe begins")
+    func gestureTrackingLocksAfterHorizontalSwipeBegins() {
+        #expect(SwipeRevealState.shouldTrackDrag(width: 80, height: 20, isTracking: false))
+        #expect(SwipeRevealState.shouldTrackDrag(width: 80, height: 120, isTracking: true))
+        #expect(!SwipeRevealState.shouldTrackDrag(width: 20, height: 80, isTracking: false))
+    }
 }

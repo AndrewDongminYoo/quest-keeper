@@ -374,7 +374,7 @@ git commit -m "feat(ui): add home dungeon board shell"
 **Interfaces:**
 - Consumes: `DungeonPresentation.countdownText(deadline:now:)`
 - Consumes: `DungeonPresentation.urgencyTone(deadline:mobLevel:now:)`
-- Preserves: `QuestListSections` callbacks and swipe actions.
+- Preserves: `QuestListSections` callbacks through a custom swipe action rail.
 
 - [ ] **Step 1: Convert list sections into board groups**
 
@@ -387,20 +387,13 @@ var body: some View {
             BoardSectionTitle(title: "던전", count: pending.count)
             VStack(spacing: 10) {
                 ForEach(pending) { quest in
-                    QuestRow(quest: quest, now: now)
-                        .contentShape(Rectangle())
-                        .onTapGesture { onEdit(quest) }
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button { onComplete(quest) } label: {
-                                Label("완료", systemImage: "checkmark")
-                            }
-                            .tint(.green)
-                        }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) { onDelete(quest) } label: {
-                                Label("삭제", systemImage: "trash")
-                            }
-                        }
+                    SwipeableQuestRow(
+                        quest: quest,
+                        now: now,
+                        onComplete: onComplete,
+                        onDelete: onDelete,
+                        onEdit: onEdit
+                    )
                 }
             }
         }

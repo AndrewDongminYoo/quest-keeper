@@ -79,6 +79,7 @@ private struct SwipeableQuestRow: View {
     let onEdit: (Quest) -> Void
 
     @State private var offset: CGFloat = 0
+    @State private var isTrackingSwipe = false
 
     var body: some View {
         ZStack {
@@ -111,11 +112,13 @@ private struct SwipeableQuestRow: View {
         .simultaneousGesture(
             DragGesture(minimumDistance: 18)
                 .onChanged { value in
-                    guard isHorizontalSwipe(value.translation) else { return }
+                    guard shouldTrackSwipe(value.translation) else { return }
+                    isTrackingSwipe = true
                     offset = SwipeRevealState.offset(for: value.translation.width)
                 }
                 .onEnded { value in
-                    guard isHorizontalSwipe(value.translation) else { return }
+                    guard isTrackingSwipe else { return }
+                    isTrackingSwipe = false
 
                     if let side = SwipeRevealState.revealedSide(for: value.translation.width) {
                         withAnimation(.snappy(duration: 0.18)) {
@@ -142,8 +145,8 @@ private struct SwipeableQuestRow: View {
         .buttonStyle(.plain)
     }
 
-    private func isHorizontalSwipe(_ translation: CGSize) -> Bool {
-        SwipeRevealState.isHorizontalDrag(width: translation.width, height: translation.height)
+    private func shouldTrackSwipe(_ translation: CGSize) -> Bool {
+        SwipeRevealState.shouldTrackDrag(width: translation.width, height: translation.height, isTracking: isTrackingSwipe)
     }
 
     private func reset() {

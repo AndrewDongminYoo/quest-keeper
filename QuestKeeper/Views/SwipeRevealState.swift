@@ -23,6 +23,10 @@ nonisolated enum SwipeRevealState {
         abs(width) > abs(height)
     }
 
+    static func shouldTrackDrag(width: CGFloat, height: CGFloat, isTracking: Bool) -> Bool {
+        isTracking || isHorizontalDrag(width: width, height: height)
+    }
+
     static func restingOffset(for side: SwipeRevealSide) -> CGFloat {
         switch side {
         case .leading: maxOffset
