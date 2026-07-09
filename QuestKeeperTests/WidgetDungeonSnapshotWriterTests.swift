@@ -72,6 +72,89 @@ struct WidgetDungeonSnapshotWriterTests {
         #expect(snapshot.reloadCount == 1)
     }
 
+    @Test("writer ignores older payload submitted after newer payload")
+    func writerIgnoresOlderPayloadSubmittedAfterNewerPayload() async {
+        let oldPayload = payload(title: "old", generatedAt: now)
+        let newPayload = payload(title: "new", generatedAt: now.addingTimeInterval(1))
+        let probe = SnapshotWriterProbe()
+        let writer = WidgetDungeonSnapshotWriter(
+            save: { payload in
+                await probe.recordSaveStart(payload)
+                await probe.recordSaveFinish(payload)
+            },
+            reloadAllTimelines: {
+                Task {
+                    await probe.recordReload()
+                }
+            }
+        )
+
+        await writer.submit(newPayload)
+        await writer.submit(oldPayload)
+
+        await waitForCondition("writer to ignore stale older payload") {
+            let snapshot = await probe.snapshot()
+            return snapshot.finished == [newPayload]
+                && snapshot.reloadCount == 1
+        }
+
+        let snapshot = await probe.snapshot()
+        #expect(snapshot.started == [newPayload])
+        #expect(snapshot.finished == [newPayload])
+        #expect(snapshot.reloadCount == 1)
+    }
+
+    @Test("writer retries a failed latest payload once")
+    func writerRetriesFailedLatestPayloadOnce() async {
+        let latestPayload = payload(title: "retry", generatedAt: now)
+        let probe = SnapshotWriterProbe()
+        let writer = WidgetDungeonSnapshotWriter(
+            save: { payload in
+                await probe.recordSaveStart(payload)
+                if await probe.saveAttemptCount(for: payload) == 1 {
+                    struct SaveFailure: Error {}
+                    throw SaveFailure()
+                }
+                await probe.recordSaveFinish(payload)
+            },
+            reloadAllTimelines: {
+                Task {
+                    await probe.recordReload()
+                }
+            }
+        )
+
+        await writer.submit(latestPayload)
+
+        await waitForCondition("writer to retry failed latest payload") {
+            let snapshot = await probe.snapshot()
+            return snapshot.started == [latestPayload, latestPayload]
+                && snapshot.finished == [latestPayload]
+                && snapshot.reloadCount == 1
+        }
+
+        let snapshot = await probe.snapshot()
+        #expect(snapshot.started == [latestPayload, latestPayload])
+        #expect(snapshot.finished == [latestPayload])
+        #expect(snapshot.reloadCount == 1)
+    }
+
+    private func payload(title: String, generatedAt: Date) -> WidgetDungeonPayload {
+        WidgetDungeonPayload(
+            schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
+            generatedAt: generatedAt,
+            quests: [
+                WidgetQuestPayload(
+                    id: UUID(),
+                    title: title,
+                    deadline: generatedAt.addingTimeInterval(300),
+                    completedAt: nil,
+                    importanceRawValue: 1
+                )
+            ]
+        )
+    }
+
     private func waitForCondition(
         _ description: String,
         timeoutNanoseconds: UInt64 = 2_000_000_000,
@@ -102,6 +185,10 @@ private actor SnapshotWriterProbe {
         started.append(payload)
         firstSaveStartedContinuation?.resume()
         firstSaveStartedContinuation = nil
+    }
+
+    func saveAttemptCount(for payload: WidgetDungeonPayload) -> Int {
+        started.filter { $0 == payload }.count
     }
 
     func recordSaveFinish(_ payload: WidgetDungeonPayload) {

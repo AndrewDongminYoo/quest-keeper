@@ -227,8 +227,8 @@ private struct MobBadge: View {
     }
 
     private var levelColor: Color {
-        if mob.mobLevel >= 9 { return .red }
-        if mob.mobLevel >= 5 { return .orange }
+        if mob.mobLevel >= 4 { return .red }
+        if mob.mobLevel >= 2 { return .orange }
         return .green
     }
 }

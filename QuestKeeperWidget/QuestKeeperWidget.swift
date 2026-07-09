@@ -42,8 +42,7 @@ struct QuestKeeperWidgetProvider: TimelineProvider {
         let entry = QuestKeeperWidgetEntry(date: date, state: state)
         let refreshDate = WidgetDungeonDerivation.nextRefreshDate(
             payload: payload,
-            after: date,
-            calendar: calendar
+            after: date
         )
         completion(Timeline(entries: [entry], policy: .after(refreshDate)))
     }

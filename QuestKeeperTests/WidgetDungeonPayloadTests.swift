@@ -133,11 +133,40 @@ struct WidgetDungeonPayloadTests {
         let state = WidgetDungeonDerivation.derive(payload: payload, at: now)
 
         #expect(state.activeMobs.map(\.id) == [soonID, lateID])
-        #expect(state.activeMobs.first?.mobLevel == 3)
+        #expect(state.activeMobs.first?.mobLevel == 2)
     }
 
-    @Test("late same-day completion remains a daily grave instead of a victory")
-    func lateSameDayCompletionRemainsDailyGrave() {
+    @Test("active mob level matches app derivation formula")
+    func activeMobLevelMatchesAppDerivationFormula() {
+        let questID = UUID()
+        let deadline = now.addingTimeInterval(8 * day)
+        let payload = WidgetDungeonPayload(
+            schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
+            generatedAt: now,
+            quests: [
+                WidgetQuestPayload(
+                    id: questID,
+                    title: "먼 퀘스트",
+                    deadline: deadline,
+                    completedAt: nil,
+                    importanceRawValue: Importance.high.rawValue
+                )
+            ]
+        )
+
+        let state = WidgetDungeonDerivation.derive(payload: payload, at: now)
+        let appSnapshot = QuestSnapshot(
+            id: questID,
+            deadline: deadline,
+            completedAt: nil,
+            importance: .high
+        )
+
+        #expect(state.activeMobs.first?.mobLevel == appSnapshot.mobLevel(at: now))
+    }
+
+    @Test("late same-day completion is excluded from widget mobs and victories")
+    func lateSameDayCompletionIsExcludedFromWidgetMobsAndVictories() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC")!
         let sameDayNow = calendar.date(from: DateComponents(
@@ -169,7 +198,8 @@ struct WidgetDungeonPayloadTests {
         )
 
         #expect(state.totalVictories == 0)
-        #expect(state.dailyGraves.map(\.id) == [lateQuestID])
+        #expect(state.activeMobs.isEmpty)
+        #expect(state.dailyGraves.isEmpty)
     }
 
     @Test("payload factory preserves quest titles and raw facts")

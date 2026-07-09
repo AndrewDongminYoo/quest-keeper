@@ -30,8 +30,10 @@ nonisolated struct WidgetMobState: Sendable, Identifiable, Equatable {
 }
 
 nonisolated enum WidgetDungeonDerivation {
+    static let maxMobLevel = 5
     static let staleSnapshotAge: TimeInterval = 24 * 60 * 60
     static let fallbackRefreshInterval: TimeInterval = 15 * 60
+    static let urgencyHorizon: TimeInterval = 7 * 24 * 60 * 60
     static let urgencyWarningLeadTime: TimeInterval = 6 * 60 * 60
     static let dueSoonLeadTime: TimeInterval = 60 * 60
 
@@ -49,8 +51,10 @@ nonisolated enum WidgetDungeonDerivation {
         var totalVictories = 0
 
         for quest in payload.quests {
-            if let completedAt = quest.completedAt, completedAt <= quest.deadline {
-                totalVictories += 1
+            if let completedAt = quest.completedAt {
+                if completedAt <= quest.deadline {
+                    totalVictories += 1
+                }
                 continue
             }
 
@@ -61,7 +65,11 @@ nonisolated enum WidgetDungeonDerivation {
                 deadline: quest.deadline,
                 importanceRawValue: quest.importanceRawValue,
                 urgencyLevel: urgencyLevel,
-                mobLevel: max(1, quest.importanceRawValue) * urgencyLevel
+                mobLevel: mobLevel(
+                    deadline: quest.deadline,
+                    importanceRawValue: quest.importanceRawValue,
+                    at: date
+                )
             )
 
             if quest.deadline > date {
@@ -94,11 +102,8 @@ nonisolated enum WidgetDungeonDerivation {
 
     static func nextRefreshDate(
         payload: WidgetDungeonPayload,
-        after date: Date,
-        calendar: Calendar = .current
+        after date: Date
     ) -> Date {
-        _ = calendar
-
         let thresholdDates = payload.quests
             .filter { $0.completedAt == nil && $0.deadline > date }
             .flatMap { quest in
@@ -120,6 +125,16 @@ nonisolated enum WidgetDungeonDerivation {
         if remaining <= 60 * 60 { return 3 }
         if remaining <= 6 * 60 * 60 { return 2 }
         return 1
+    }
+
+    private static func mobLevel(deadline: Date, importanceRawValue: Int, at date: Date) -> Int {
+        guard deadline > date else { return 0 }
+        let remaining = deadline.timeIntervalSince(date)
+        guard remaining < urgencyHorizon else { return 0 }
+
+        let urgency = 1 - remaining / urgencyHorizon
+        let raw = Double(importanceRawValue) * urgency
+        return Int((raw / 3.0 * Double(maxMobLevel)).rounded())
     }
 
     private static func isUsablePayload(_ payload: WidgetDungeonPayload) -> Bool {

@@ -142,7 +142,7 @@ The provider should prefer predictable correctness over aggressive refresh frequ
 MVP families:
 
 - `systemSmall`: hero/victory HUD plus the single most urgent active mob.
-- `systemMedium`: hero/victory HUD plus up to three active mobs and today's visible daily graves if there is space.
+- `systemMedium`: hero/victory HUD plus up to three active mobs and safe empty/stale states.
 
 Out of scope for Phase 4:
 
