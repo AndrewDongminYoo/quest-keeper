@@ -17,4 +17,11 @@ struct SwipeRevealStateTests {
         #expect(SwipeRevealState.offset(for: -220) == -SwipeRevealState.maxOffset)
         #expect(SwipeRevealState.offset(for: 44) == 44)
     }
+
+    @Test("gesture tracking ignores vertical scroll movement")
+    func gestureTrackingIgnoresVerticalScrollMovement() {
+        #expect(SwipeRevealState.isHorizontalDrag(width: 80, height: 20))
+        #expect(!SwipeRevealState.isHorizontalDrag(width: 20, height: 80))
+        #expect(!SwipeRevealState.isHorizontalDrag(width: 24, height: 24))
+    }
 }

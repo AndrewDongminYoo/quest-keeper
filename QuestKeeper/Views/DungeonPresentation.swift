@@ -9,7 +9,7 @@ nonisolated enum DungeonUrgencyTone: Equatable {
 nonisolated enum DungeonPresentation {
     static func countdownText(deadline: Date, now: Date) -> String {
         let remaining = deadline.timeIntervalSince(now)
-        guard remaining > 0 else { return "마감 임박" }
+        guard remaining >= 60 else { return "마감 임박" }
 
         let minutes = Int(remaining) / 60
         if minutes >= 1440 { return "\(minutes / 1440)일 남음" }

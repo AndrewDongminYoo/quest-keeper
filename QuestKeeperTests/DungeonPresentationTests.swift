@@ -10,6 +10,7 @@ struct DungeonPresentationTests {
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(2 * 24 * 60 * 60), now: now) == "2일 남음")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(3 * 60 * 60 + 20 * 60), now: now) == "3시간 20분 남음")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(15 * 60), now: now) == "15분 남음")
+        #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(30), now: now) == "마감 임박")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(-60), now: now) == "마감 임박")
     }
 

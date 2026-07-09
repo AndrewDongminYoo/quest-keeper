@@ -66,6 +66,8 @@ private struct BoardSectionTitle: View {
             Spacer()
         }
         .textCase(.uppercase)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -91,6 +93,7 @@ private struct SwipeableQuestRow: View {
                     onDelete(quest)
                 }
             }
+            .frame(maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             QuestRow(quest: quest, now: now)
@@ -105,17 +108,14 @@ private struct SwipeableQuestRow: View {
                 }
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .gesture(
+        .simultaneousGesture(
             DragGesture(minimumDistance: 18)
                 .onChanged { value in
                     guard isHorizontalSwipe(value.translation) else { return }
                     offset = SwipeRevealState.offset(for: value.translation.width)
                 }
                 .onEnded { value in
-                    guard isHorizontalSwipe(value.translation) else {
-                        reset()
-                        return
-                    }
+                    guard isHorizontalSwipe(value.translation) else { return }
 
                     if let side = SwipeRevealState.revealedSide(for: value.translation.width) {
                         withAnimation(.snappy(duration: 0.18)) {
@@ -136,14 +136,14 @@ private struct SwipeableQuestRow: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.white)
                 .frame(width: SwipeRevealState.maxOffset)
-                .frame(minHeight: 92)
+                .frame(maxHeight: .infinity)
                 .background(color)
         }
         .buttonStyle(.plain)
     }
 
     private func isHorizontalSwipe(_ translation: CGSize) -> Bool {
-        abs(translation.width) > abs(translation.height)
+        SwipeRevealState.isHorizontalDrag(width: translation.width, height: translation.height)
     }
 
     private func reset() {

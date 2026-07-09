@@ -35,6 +35,8 @@ struct HomeDungeonBoardView: View {
                             onDelete: onDelete,
                             onEdit: onEdit
                         )
+                        .animation(.default, value: pending.map(\.id))
+                        .animation(.default, value: dailyGraves.map(\.id))
                     }
                 }
                 .padding(.horizontal, 16)
@@ -42,7 +44,6 @@ struct HomeDungeonBoardView: View {
                 .padding(.bottom, 28)
             }
         }
-        .background(Color(red: 0.09, green: 0.08, blue: 0.13))
     }
 }
 
