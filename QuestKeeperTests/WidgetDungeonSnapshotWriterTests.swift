@@ -163,22 +163,28 @@ struct WidgetDungeonSnapshotWriterTests {
             }
         )
 
+        let expectedStarts = Array(
+            repeating: failedPayload,
+            count: WidgetDungeonSnapshotWriter.maximumSaveAttempts
+        ) + [recoveryPayload]
+        let expectedRetryDelayCount = WidgetDungeonSnapshotWriter.maximumSaveAttempts - 1
+
         await writer.submit(failedPayload)
         await writer.submit(recoveryPayload)
 
         await waitForCondition("writer to recover after permanent failure") {
             let snapshot = await probe.snapshot()
-            return snapshot.started == [failedPayload, failedPayload, recoveryPayload]
+            return snapshot.started == expectedStarts
                 && snapshot.finished == [recoveryPayload]
                 && snapshot.reloadCount == 1
-                && snapshot.retryDelayCount == 1
+                && snapshot.retryDelayCount == expectedRetryDelayCount
         }
 
         let snapshot = await probe.snapshot()
-        #expect(snapshot.started == [failedPayload, failedPayload, recoveryPayload])
+        #expect(snapshot.started == expectedStarts)
         #expect(snapshot.finished == [recoveryPayload])
         #expect(snapshot.reloadCount == 1)
-        #expect(snapshot.retryDelayCount == 1)
+        #expect(snapshot.retryDelayCount == expectedRetryDelayCount)
     }
 
     private func payload(title: String, generatedAt: Date) -> WidgetDungeonPayload {

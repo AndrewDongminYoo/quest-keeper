@@ -7,7 +7,7 @@ actor WidgetDungeonSnapshotWriter {
     typealias ReloadAllTimelines = @Sendable () -> Void
     typealias RetryDelay = @Sendable () async -> Void
 
-    private static let maximumSaveAttempts = 2
+    static let maximumSaveAttempts = 2
 
     private let save: Save
     private let reloadAllTimelines: ReloadAllTimelines
