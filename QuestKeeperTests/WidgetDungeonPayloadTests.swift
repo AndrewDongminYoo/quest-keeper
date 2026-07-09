@@ -165,8 +165,8 @@ struct WidgetDungeonPayloadTests {
         #expect(state.activeMobs.first?.mobLevel == appSnapshot.mobLevel(at: now))
     }
 
-    @Test("late same-day completion is excluded from widget mobs and victories")
-    func lateSameDayCompletionIsExcludedFromWidgetMobsAndVictories() {
+    @Test("late same-day completion renders as a daily grave, not a mob or victory")
+    func lateSameDayCompletionRendersAsDailyGrave() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC")!
         let sameDayNow = calendar.date(from: DateComponents(
@@ -199,7 +199,7 @@ struct WidgetDungeonPayloadTests {
 
         #expect(state.totalVictories == 0)
         #expect(state.activeMobs.isEmpty)
-        #expect(state.dailyGraves.isEmpty)
+        #expect(state.dailyGraves.map(\.id) == [lateQuestID])
     }
 
     @Test("payload factory preserves quest titles and raw facts")
