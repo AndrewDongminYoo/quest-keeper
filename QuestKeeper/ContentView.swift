@@ -50,49 +50,20 @@ struct ContentView: View {
                 let pending = quests.filter { $0.snapshot.outcome(at: now) == .pending }
                 let dailyGraves = quests.filter { $0.snapshot.isVisibleDailyGrave(at: now) }
 
-                List {
-                    HeroHeader(state: state, isMourning: !pendingDeaths.isEmpty)
-                    if notificationAuthorization == .denied {
-                        notificationPermissionSection
-                    }
-                    QuestListSections(
-                        pending: pending,
-                        dailyGraves: dailyGraves,
-                        now: now,
-                        onComplete: complete,
-                        onRetryTomorrow: retryTomorrow,
-                        onDelete: delete,
-                        onEdit: { route = .edit($0) }
-                    )
-                }
-                .scrollContentBackground(.hidden)
-                .background(Color(red: 0.11, green: 0.09, blue: 0.15))
-                .overlay {
-                    if pending.isEmpty && dailyGraves.isEmpty {
-                        VStack(spacing: 10) {
-                            Image(systemName: "scroll")
-                                .font(.largeTitle)
-                            Text("퀘스트가 없습니다")
-                                .font(.headline)
-                            Text("오른쪽 위 + 로 오늘의 퀘스트를 추가하세요.")
-                                .font(.caption)
-                        }
-                        .foregroundStyle(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                    }
-                }
-                .listStyle(.plain)
-            }
-            .navigationTitle("QUEST KEEPER")
-            .toolbarBackground(Color(red: 0.11, green: 0.09, blue: 0.15), for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { route = .create } label: {
-                        Label("전투 추가", systemImage: "plus")
-                    }
-                }
+                HomeDungeonBoardView(
+                    state: state,
+                    isMourning: !pendingDeaths.isEmpty,
+                    pending: pending,
+                    dailyGraves: dailyGraves,
+                    now: now,
+                    showsNotificationPermissionBanner: notificationAuthorization == .denied,
+                    onCreate: { route = .create },
+                    onOpenNotificationSettings: openNotificationSettings,
+                    onComplete: complete,
+                    onRetryTomorrow: retryTomorrow,
+                    onDelete: delete,
+                    onEdit: { route = .edit($0) }
+                )
             }
             .sheet(item: $route) { route in
                 switch route {
@@ -131,16 +102,6 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             if phase == .active { onBecameActive(now: .now) }
-        }
-    }
-
-    private var notificationPermissionSection: some View {
-        Section {
-            Button { openNotificationSettings() } label: {
-                Label("알림 꺼짐", systemImage: "bell.slash")
-            }
-        } footer: {
-            Text("마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요.")
         }
     }
 

@@ -30,8 +30,6 @@ struct HeroHeader: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
     }
 }
 

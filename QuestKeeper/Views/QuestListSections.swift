@@ -18,37 +18,140 @@ struct QuestListSections: View {
     let onEdit: (Quest) -> Void
 
     var body: some View {
-        if !pending.isEmpty {
-            Section("던전") {
-                ForEach(pending) { quest in
-                    QuestRow(quest: quest, now: now)
-                        .listRowBackground(Color(red: 0.20, green: 0.19, blue: 0.25))
-                        .contentShape(Rectangle())
-                        .onTapGesture { onEdit(quest) }
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button { onComplete(quest) } label: {
-                                Label("완료", systemImage: "checkmark")
-                            }
-                            .tint(.green)
+        VStack(alignment: .leading, spacing: 12) {
+            if !pending.isEmpty {
+                BoardSectionTitle(title: "던전", count: pending.count)
+                VStack(spacing: 10) {
+                    ForEach(pending) { quest in
+                        SwipeableQuestRow(
+                            quest: quest,
+                            now: now,
+                            onComplete: onComplete,
+                            onDelete: onDelete,
+                            onEdit: onEdit
+                        )
+                    }
+                }
+            }
+
+            if !dailyGraves.isEmpty {
+                BoardSectionTitle(title: "오늘의 무덤", count: dailyGraves.count)
+                VStack(spacing: 10) {
+                    ForEach(dailyGraves) { quest in
+                        DailyGraveRow(quest: quest) {
+                            onRetryTomorrow(quest)
                         }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) { onDelete(quest) } label: {
-                                Label("삭제", systemImage: "trash")
-                            }
-                        }
+                    }
                 }
             }
         }
+    }
+}
 
-        if !dailyGraves.isEmpty {
-            Section("오늘의 무덤") {
-                ForEach(dailyGraves) { quest in
-                    DailyGraveRow(quest: quest) {
-                        onRetryTomorrow(quest)
-                    }
-                    .listRowBackground(Color(red: 0.20, green: 0.19, blue: 0.25))
+private struct BoardSectionTitle: View {
+    let title: String
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.system(.caption, design: .monospaced).weight(.black))
+                .foregroundStyle(.white.opacity(0.82))
+            Text("\(count)")
+                .font(.caption2.monospacedDigit().weight(.bold))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Color.white.opacity(0.12), in: Capsule())
+                .foregroundStyle(.white.opacity(0.72))
+            Spacer()
+        }
+        .textCase(.uppercase)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+private struct SwipeableQuestRow: View {
+    let quest: Quest
+    let now: Date
+    let onComplete: (Quest) -> Void
+    let onDelete: (Quest) -> Void
+    let onEdit: (Quest) -> Void
+
+    @State private var offset: CGFloat = 0
+    @State private var isTrackingSwipe = false
+
+    var body: some View {
+        ZStack {
+            HStack(spacing: 0) {
+                actionButton(title: "완료", systemImage: "checkmark", color: Color(red: 0.18, green: 0.54, blue: 0.29)) {
+                    reset()
+                    onComplete(quest)
+                }
+                Spacer(minLength: 0)
+                actionButton(title: "삭제", systemImage: "trash", color: Color(red: 0.70, green: 0.18, blue: 0.16)) {
+                    reset()
+                    onDelete(quest)
                 }
             }
+            .frame(maxHeight: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            QuestRow(quest: quest, now: now)
+                .offset(x: offset)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if offset == 0 {
+                        onEdit(quest)
+                    } else {
+                        reset()
+                    }
+                }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 18)
+                .onChanged { value in
+                    guard shouldTrackSwipe(value.translation) else { return }
+                    isTrackingSwipe = true
+                    offset = SwipeRevealState.offset(for: value.translation.width)
+                }
+                .onEnded { value in
+                    guard isTrackingSwipe else { return }
+                    isTrackingSwipe = false
+
+                    if let side = SwipeRevealState.revealedSide(for: value.translation.width) {
+                        withAnimation(.snappy(duration: 0.18)) {
+                            offset = SwipeRevealState.restingOffset(for: side)
+                        }
+                    } else {
+                        reset()
+                    }
+                }
+        )
+        .accessibilityAction(named: "완료") { onComplete(quest) }
+        .accessibilityAction(named: "삭제") { onDelete(quest) }
+    }
+
+    private func actionButton(title: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: SwipeRevealState.maxOffset)
+                .frame(maxHeight: .infinity)
+                .background(color)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func shouldTrackSwipe(_ translation: CGSize) -> Bool {
+        SwipeRevealState.shouldTrackDrag(width: translation.width, height: translation.height, isTracking: isTrackingSwipe)
+    }
+
+    private func reset() {
+        withAnimation(.snappy(duration: 0.18)) {
+            offset = 0
         }
     }
 }

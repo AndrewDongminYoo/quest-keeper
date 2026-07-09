@@ -1,0 +1,34 @@
+import CoreGraphics
+import Testing
+@testable import QuestKeeper
+
+struct SwipeRevealStateTests {
+    @Test("horizontal drags reveal the expected quest action")
+    func horizontalDragsRevealExpectedAction() {
+        #expect(SwipeRevealState.revealedSide(for: 90) == .leading)
+        #expect(SwipeRevealState.revealedSide(for: -90) == .trailing)
+        #expect(SwipeRevealState.revealedSide(for: 30) == nil)
+        #expect(SwipeRevealState.revealedSide(for: -30) == nil)
+    }
+
+    @Test("offset clamps to the action rail")
+    func offsetClampsToActionRail() {
+        #expect(SwipeRevealState.offset(for: 220) == SwipeRevealState.maxOffset)
+        #expect(SwipeRevealState.offset(for: -220) == -SwipeRevealState.maxOffset)
+        #expect(SwipeRevealState.offset(for: 44) == 44)
+    }
+
+    @Test("gesture tracking ignores vertical scroll movement")
+    func gestureTrackingIgnoresVerticalScrollMovement() {
+        #expect(SwipeRevealState.isHorizontalDrag(width: 80, height: 20))
+        #expect(!SwipeRevealState.isHorizontalDrag(width: 20, height: 80))
+        #expect(!SwipeRevealState.isHorizontalDrag(width: 24, height: 24))
+    }
+
+    @Test("gesture tracking locks after a horizontal swipe begins")
+    func gestureTrackingLocksAfterHorizontalSwipeBegins() {
+        #expect(SwipeRevealState.shouldTrackDrag(width: 80, height: 20, isTracking: false))
+        #expect(SwipeRevealState.shouldTrackDrag(width: 80, height: 120, isTracking: true))
+        #expect(!SwipeRevealState.shouldTrackDrag(width: 20, height: 80, isTracking: false))
+    }
+}
