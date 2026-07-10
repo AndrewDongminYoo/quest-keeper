@@ -11,9 +11,9 @@ The gamification (deadline miss → the pixel hero dies) is the vehicle that pul
 It defines the phases, success criteria, and the non-negotiable core principle below.
 This file summarizes the parts that shape *how* to write code here; BLUEPRINT owns *what* to build and in *what order*.
 
-**Current state:** the repo is still the stock Xcode SwiftUI+SwiftData template (`Item.swift`, boilerplate `ContentView`).
-Phase 1 has not started.
-Treat `Item` and the template `ContentView` as scaffolding to be replaced, not as established patterns to extend.
+**Current state:** the boilerplate template is gone — `Quest` (`@Model`) replaced `Item`, and `ContentView` is now the Phase 2 dungeon root, not template scaffolding.
+Phases 1–5 are largely implemented: the fact-only SwiftData model (`QuestKeeper/Models/`), the pure derivation layer (`QuestKeeper/Derivation/`), the dungeon UI with completion/retry/daily-grave/edit flows (`QuestKeeper/Views/`), the local-notification lifecycle (`QuestKeeper/Notifications/`), and the WidgetKit App Group snapshot (`QuestKeeperShared/`, `QuestKeeperWidget/`).
+Extend the established per-role layer conventions; `docs/specs/` holds the per-phase contracts.
 
 ## Docs Layout
 
@@ -32,7 +32,7 @@ Every gamification rule must preserve it:
 
 Concrete guardrail: a `@Model` must never contain a derived-state field (`hp`, `isDead`, `mobLevel`, `urgency`).
 If you're tempted to store one, it belongs in a pure derivation function instead.
-Phase 1's `heroState(tasks:now:lastOpened:)` must be a pure function — same inputs, same output (deterministic).
+The derivation entry point `HeroDerivation.state(quests:now:lastOpened:calendar:)` must stay a pure function — same inputs, same output (deterministic).
 
 ## Build, Run, Test
 
@@ -40,13 +40,13 @@ Scheme `QuestKeeper`, project `QuestKeeper.xcodeproj` (no workspace, no SPM/Coco
 
 ```bash
 # Build for simulator
-xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 16'
+xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e'
 
 # Run all tests
-xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 16'
+xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e'
 
 # Run a single unit test (Swift Testing)
-xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 16' \
+xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' \
   -only-testing:QuestKeeperTests/QuestKeeperTests/example
 ```
 
@@ -58,11 +58,10 @@ Day-to-day, building/running in Xcode is expected; use `xcodebuild` for headless
 - **Test framework:** unit tests (`QuestKeeperTests`) use **Swift Testing** (`import Testing`, `@Test`, `#expect`) — not XCTest.
   Only the UI tests (`QuestKeeperUITests`) use XCTest.
   Match the target you're writing in.
-- **Concurrency:** `SWIFT_APPROACHABLE_CONCURRENCY = YES` is already set.
-  The goal is to compile clean under **Swift 6 strict concurrency** (`Sendable`, actors, `async/await`).
-  Note `SWIFT_VERSION` in the pbxproj is still `5.0` from the template — see `docs/specs/001-project-setup.md` before flipping it to 6, since it changes the whole compile contract.
-- **Platform:** scope is **iOS-only** per BLUEPRINT, but the template still ships macOS / visionOS support (`SUPPORTED_PLATFORMS`, `TARGETED_DEVICE_FAMILY = "1,2,7"`, `#if os(macOS)` branches).
-  Treat those branches as template noise to be removed, not a multiplatform requirement (tracked in the setup spec).
+- **Concurrency:** `SWIFT_VERSION = 6.0` and `SWIFT_STRICT_CONCURRENCY = complete` are set on all targets (plus `SWIFT_APPROACHABLE_CONCURRENCY = YES`).
+  Code must compile clean under **Swift 6 strict concurrency** (`Sendable`, actors, `async/await`) with no new warnings.
+- **Platform:** iPhone-only per BLUEPRINT, and the wiring already reflects it — `TARGETED_DEVICE_FAMILY = 1`, `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"`, `IPHONEOS_DEPLOYMENT_TARGET = 26.5`, no `#if os(macOS)` branches.
+  Do not reintroduce macOS / visionOS support.
 - **Dependencies:** minimize third-party deps — building on Apple 1st-party stacks by hand is the point.
   Justify any SPM package against the learning goal before adding it.
   In-scope stacks: SwiftData (`@Model`, `@Query`), UserNotifications (`UNCalendarNotificationTrigger`), WidgetKit + App Group, `TimelineView`.
