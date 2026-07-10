@@ -55,6 +55,7 @@ struct ContentView: View {
                     isMourning: !pendingDeaths.isEmpty,
                     pending: pending,
                     dailyGraves: dailyGraves,
+                    newlyMissedQuestIDs: Set(pendingDeaths),
                     now: now,
                     showsNotificationPermissionBanner: notificationAuthorization == .denied,
                     onCreate: { route = .create },

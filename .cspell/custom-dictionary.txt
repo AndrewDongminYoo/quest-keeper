@@ -16,9 +16,11 @@ simctl
 TIRD
 uitests
 uncomplete
+uturn
 xcodeproj
 xcrun
 xctest
+xmark
 xros
 XROS
 xrsimulator
