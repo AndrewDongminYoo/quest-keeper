@@ -51,6 +51,10 @@ Actionable deadline notifications with inline buttons.
 - **Mob visual tiers (slime → skeleton → dragon):** resolves a BLUEPRINT open question and realizes the `DESIGN.md` monster mapping by rendering `mobLevel` as evolving sprites. More visual polish than OS boundary; pairs with replacing SF Symbol placeholders with real pixel art.
 - **Accessibility & Reduce Motion pass:** audit Dynamic Type, VoiceOver, and the Reduce-Motion fallbacks `DESIGN.md` calls for. Quality track, not a new framework.
 
+## Known limitations (deferred)
+
+- **Editor open across a background→foreground swap (spec 009).** `QuestKeeperApp` recreates the `ModelContainer` on a real foreground-from-background so a warm `@Query` sees widget writes. If the edit sheet is open during that transition, its `Quest` belongs to the pre-swap container. `route` strongly retains that `Quest`, which keeps its old context/container alive, and both containers address the same App Group SQLite file — so an edit still persists correctly; the only cost is the new `@Query` may lag one foreground. Low severity (no crash, no data loss). If it ever surfaces, dismiss the editor on foreground-from-background — but gate it so it does **not** clear a notification-launched route (`ContentView`'s notification routing uses `initial: true`).
+
 ## Open questions carried from BLUEPRINT
 
 - Mob-level normalization: how many visual tiers, and the `importance × urgency` → tier mapping.
