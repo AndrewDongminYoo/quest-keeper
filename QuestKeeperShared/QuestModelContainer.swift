@@ -8,7 +8,9 @@ import SwiftData
 /// the widget cannot reconstruct an implicit default path, so both targets must name the App Group.
 /// Callable off the main actor (the widget intent opens it inside its `@ModelActor`).
 enum QuestModelContainer {
-    static func make() throws -> ModelContainer {
+    /// `nonisolated` so the widget intent can open the store inside its async, off-main `perform()`
+    /// (the module defaults to `@MainActor`); the app's main-actor call site is unaffected.
+    nonisolated static func make() throws -> ModelContainer {
         let schema = Schema([Quest.self])
         let configuration = ModelConfiguration(
             schema: schema,
