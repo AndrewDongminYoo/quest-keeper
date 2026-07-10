@@ -19,7 +19,7 @@ struct ContentView: View {
     @AppStorage("lastOpenedTIRD") private var lastOpenedRaw: Double = 0
 
     /// Transient: the deaths to mourn this activation. Drives the "꿱" frame, then resets.
-    @State private var pendingDeaths: [UUID] = []
+    @State private var pendingDeaths: Set<UUID> = []
     @State private var route: EditorRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
     @State private var mourningTask: Task<Void, Never>?
@@ -55,7 +55,7 @@ struct ContentView: View {
                     isMourning: !pendingDeaths.isEmpty,
                     pending: pending,
                     dailyGraves: dailyGraves,
-                    newlyMissedQuestIDs: Set(pendingDeaths),
+                    newlyMissedQuestIDs: pendingDeaths,
                     now: now,
                     showsNotificationPermissionBanner: notificationAuthorization == .denied,
                     onCreate: { route = .create },
@@ -120,7 +120,7 @@ struct ContentView: View {
         }
 
         guard !deaths.isEmpty else { return }
-        withAnimation { pendingDeaths = deaths }
+        withAnimation { pendingDeaths = Set(deaths) }
         // Play once, then settle — otherwise the mourning frame latches until the next activation.
         mourningTask?.cancel()
         mourningTask = Task { @MainActor in

@@ -72,11 +72,13 @@ struct DailyGraveRow: View {
     let isNewlyMissed: Bool
     let onRetryTomorrow: () -> Void
 
+    private var style: Style { isNewlyMissed ? .mourning : .rest }
+
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: isNewlyMissed ? "exclamationmark.triangle.fill" : "xmark.seal.fill")
+            Image(systemName: style.icon)
                 .font(.title2)
-                .foregroundStyle(isNewlyMissed ? Color(red: 1.0, green: 0.78, blue: 0.38) : Color(red: 0.66, green: 0.67, blue: 0.66))
+                .foregroundStyle(style.iconTint)
                 .frame(width: 34)
             VStack(alignment: .leading, spacing: 6) {
                 Text(quest.title)
@@ -84,9 +86,9 @@ struct DailyGraveRow: View {
                     .strikethrough()
                     .foregroundStyle(.white.opacity(0.62))
                     .lineLimit(2)
-                Text(isNewlyMissed ? "방금 놓친 전투" : "오늘의 무덤")
+                Text(style.caption)
                     .font(.caption.monospaced().weight(.semibold))
-                    .foregroundStyle(isNewlyMissed ? Color(red: 1.0, green: 0.78, blue: 0.38) : Color(red: 0.70, green: 0.72, blue: 0.71))
+                    .foregroundStyle(style.captionTint)
             }
             Spacer(minLength: 10)
             Button(action: onRetryTomorrow) {
@@ -98,18 +100,49 @@ struct DailyGraveRow: View {
         }
         .padding(14)
         .frame(minHeight: 92)
-        .background(
-            (isNewlyMissed ? Color(red: 0.24, green: 0.18, blue: 0.17) : Color(red: 0.17, green: 0.17, blue: 0.22)),
-            in: RoundedRectangle(cornerRadius: 8)
-        )
+        .background(style.background, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(
-                    isNewlyMissed ? Color(red: 1.0, green: 0.78, blue: 0.38).opacity(0.58) : Color(red: 0.55, green: 0.57, blue: 0.56).opacity(0.35),
-                    lineWidth: 1
-                )
+                .stroke(style.borderTint, lineWidth: 1)
         )
-        .accessibilityValue(isNewlyMissed ? "방금 놓친 전투" : "")
+        .accessibilityValue(style.accessibilityValue)
+    }
+}
+
+private extension DailyGraveRow {
+    /// Visual variant of a grave row. Newly-missed quests wear the mourning treatment
+    /// during the transient `pendingDeaths` window; older graves fall back to the rest palette.
+    struct Style {
+        let icon: String
+        let iconTint: Color
+        let caption: String
+        let captionTint: Color
+        let background: Color
+        let borderTint: Color
+        /// Non-visual cue for the mourning state; empty for a plain grave (color is not the only signal).
+        let accessibilityValue: String
+
+        static let mourningAmber = Color(red: 1.0, green: 0.78, blue: 0.38)
+
+        static let mourning = Style(
+            icon: "exclamationmark.triangle.fill",
+            iconTint: mourningAmber,
+            caption: "방금 놓친 전투",
+            captionTint: mourningAmber,
+            background: Color(red: 0.24, green: 0.18, blue: 0.17),
+            borderTint: mourningAmber.opacity(0.58),
+            accessibilityValue: "방금 놓친 전투"
+        )
+
+        static let rest = Style(
+            icon: "xmark.seal.fill",
+            iconTint: Color(red: 0.66, green: 0.67, blue: 0.66),
+            caption: "오늘의 무덤",
+            captionTint: Color(red: 0.70, green: 0.72, blue: 0.71),
+            background: Color(red: 0.17, green: 0.17, blue: 0.22),
+            borderTint: Color(red: 0.55, green: 0.57, blue: 0.56).opacity(0.35),
+            accessibilityValue: ""
+        )
     }
 }
 
