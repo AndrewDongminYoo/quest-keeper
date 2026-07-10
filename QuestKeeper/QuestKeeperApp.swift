@@ -44,24 +44,44 @@ struct QuestKeeperApp: App {
             )
         }
         .modelContainer(sharedModelContainer)
-        .onChange(of: scenePhase) { _, phase in
-            // A warm foreground's `@Query` keeps its own SQLite snapshot and never sees writes the
-            // widget process committed while we were backgrounded — and `rollback()` reuses that same
-            // connection, so it doesn't help. Swapping in a fresh container opens a new connection that
-            // reads the on-disk truth, the way a cold launch already does (verified via spike 009).
-            // Only after a genuine `.background` (where the widget could have written) — not on a
-            // Control Center peek — so we don't needlessly refresh or tear down an open editor sheet.
+        .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
             case .background:
                 didBackground = true
-            case .active where didBackground:
-                didBackground = false
-                if let refreshed = try? QuestModelContainer.make() {
+            case .active:
+                // A warm foreground's `@Query` keeps its own SQLite snapshot and never sees writes the
+                // widget process committed while we were backgrounded — and `rollback()` reuses that
+                // same connection, so it doesn't help. Swapping in a fresh container opens a new
+                // connection that reads the on-disk truth, like a cold launch (verified via spike 009).
+                // Only after a genuine `.background` (where the widget could have written) — not a
+                // Control Center peek — so we don't needlessly refresh or tear down an open editor.
+                let container: ModelContainer
+                if didBackground, let refreshed = try? QuestModelContainer.make() {
+                    didBackground = false
                     sharedModelContainer = refreshed
+                    container = refreshed
+                } else {
+                    container = sharedModelContainer
                 }
+                syncActivation(using: container)
             default:
                 break
             }
+        }
+    }
+
+    /// Reconcile notifications and rewrite the widget snapshot from the *current* (freshly swapped)
+    /// container. This runs here — not in `ContentView.onBecameActive` — because a warm foreground's
+    /// `@Query` is stale, and opening a second container for the same store to read fresh would trap
+    /// in SwiftData. Using the one live container avoids both the staleness and the trap.
+    private func syncActivation(using container: ModelContainer) {
+        let writer = widgetSnapshotWriter
+        Task { @MainActor in
+            guard let quests = try? container.mainContext.fetch(
+                FetchDescriptor<Quest>(sortBy: [SortDescriptor(\.deadline)])
+            ) else { return }
+            _ = await QuestNotificationService.shared.reconcile(quests: quests, now: .now)
+            await writer.submit(WidgetDungeonPayload.make(from: quests))
         }
     }
 }

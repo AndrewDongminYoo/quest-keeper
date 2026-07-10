@@ -114,9 +114,14 @@ struct ContentView: View {
             quests: quests.map(\.snapshot), now: now, previousLastOpened: previous)
         lastOpenedRaw = newLastOpened.timeIntervalSinceReferenceDate
 
+        // Only the permission banner is refreshed here — it needs no quest data, so the `@Query`'s
+        // post-warm-foreground staleness can't affect it. The quest-data-dependent activation sync
+        // (notification reconcile + widget snapshot) runs in `QuestKeeperApp` against the freshly
+        // swapped container: acting on a stale `@Query` here would re-schedule a widget-completed
+        // quest's notifications and overwrite the widget's snapshot, and opening a second container
+        // for the same store in this process traps in SwiftData.
         Task { @MainActor in
-            notificationAuthorization = await notificationService.reconcile(quests: quests, now: now)
-            writeWidgetSnapshot()
+            notificationAuthorization = await notificationService.authorizationStatus()
         }
 
         guard !deaths.isEmpty else { return }
@@ -159,11 +164,6 @@ struct ContentView: View {
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
         }
-    }
-
-    private func writeWidgetSnapshot() {
-        let payload = WidgetDungeonPayload.make(from: quests)
-        persistWidgetSnapshot(payload)
     }
 
     private func writeWidgetSnapshot(including quest: Quest) {
