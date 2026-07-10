@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -215,6 +216,20 @@ private struct MobBadge: View {
             }
 
             Spacer(minLength: 0)
+
+            // One-tap completion — runs CompleteQuestIntent in the widget process (spec 009).
+            Button(intent: CompleteQuestIntent(questID: mob.id)) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: compact ? 13 : 12, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: compact ? 28 : 24, height: compact ? 28 : 24)
+                    .background(
+                        Color(red: 0.18, green: 0.54, blue: 0.29),
+                        in: RoundedRectangle(cornerRadius: 4)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("완료")
         }
         .padding(.vertical, compact ? 7 : 5)
         .padding(.horizontal, 8)
