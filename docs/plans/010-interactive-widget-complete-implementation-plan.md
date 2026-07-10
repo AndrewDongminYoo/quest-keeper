@@ -457,6 +457,8 @@ git commit -m "feat(widget): add CompleteQuestIntent for one-tap completion"
 
 Spike result (Task 1): warm foreground is **stale** — the rendered `@Query` list does not reflect an external write. So the fix must refresh the `@Query`-bound view itself, not merely feed `reconstructOnActivation` a fresh fetch.
 
+> **Resolved:** `rollback()` (Step 1 below) was tried and **rejected** — it reuses the same connection and stays stale. The **shipped** fix recreates the `ModelContainer` on the `.active` transition (in `QuestKeeperApp`, not `ContentView`), gated by a real `.background`. See "Task 8 resolution" at the bottom of this file. Steps 1/3 below are kept as the historical decision trail.
+
 - [ ] **Step 1: Refresh the in-memory context on `.active` so the `@Query` refetches from disk.** The app always saves immediately (no pending unsaved edits), so discarding the cached context state is safe and forces a refault from the store:
 
 ```swift
@@ -557,4 +559,13 @@ Ran 2026-07-10 on `iPhone 17e`.
 
 - **Setup:** app foregrounded with one pending quest (`여유를 만끽하세요`, victory count 1). Backgrounded by foregrounding another app (process kept alive — same PID `77539` before and after, so genuinely warm, not a cold relaunch). While backgrounded, an external process set `completedAt = now` on that quest directly in the shared store (stand-in for the widget's cross-process write).
 - **Observation:** on **warm** foreground the app did **not** reflect the write — the quest still rendered as active in `던전` and the victory count stayed `1`. The countdown kept ticking (35분 → 34분), confirming the `TimelineView` was live; only the `@Query` data was stale. A cold relaunch reads it correctly.
-- **Conclusion:** SwiftData `@Query` does **not** observe external-process writes by default in this configuration. The stale surface is the rendered `@Query`, not just `reconstructOnActivation`'s input — so Task 8 must refresh the context itself (`modelContext.rollback()` on `.active`, escalating to persistent history tracking + `.NSPersistentStoreRemoteChange` if rollback proves insufficient), and Task 8 Step 2 re-runs this harness as the gate. This is new precedent (no prior QuestKeeper rule); capture the working mechanism as a wiki page in Task 10.
+- **Conclusion:** SwiftData `@Query` does **not** observe external-process writes by default in this configuration. The stale surface is the rendered `@Query`, not just `reconstructOnActivation`'s input.
+
+### Task 8 resolution (verified 2026-07-10)
+
+- **`modelContext.rollback()` on `.active` — REJECTED.** Implemented and re-run through this harness: warm foreground stayed stale (`여유를 만끽하세요` still active, victory count unchanged, PID stable = genuinely warm). `rollback()` reuses the same SQLite connection/snapshot, so it never sees the other process's commit. Reverted, not shipped.
+- **Recreating the `ModelContainer` on foreground — WORKS.** Making `sharedModelContainer` a `@State` and assigning a fresh `QuestModelContainer.make()` on the `.active` transition opens a **new** store connection (like a cold launch, which already reflects external writes). Re-run through the harness twice: warm foreground (PID `77594`, then `95060` — same PID before/after each run, so warm) showed the completed quest leave `던전` and the victory count increment `2 → 3`. This is the shipped mechanism; persistent history tracking + `.NSPersistentStoreRemoteChange` was **not** needed.
+- **Refresh is gated by a real `.background`.** A `didBackground` flag ensures the swap fires only after an actual backgrounding (where the widget could have written), not on a Control Center / banner peek (`.inactive` → `.active`) — avoiding needless refreshes, flicker, and tearing down an open editor sheet.
+- **Ordering (container swap vs. `reconstructOnActivation`) is cosmetic.** `reconstructOnActivation` persists only `newLastOpened` (always `now`, correct regardless of data freshness); `deaths` is transient animation and the dungeon/victory render is time-derived. No cross-component sequencing is built. In the primary case (completing a future-deadline quest) the death path isn't even reached.
+
+This is new precedent (no prior QuestKeeper rule); capture the working mechanism as a wiki page in Task 10.
