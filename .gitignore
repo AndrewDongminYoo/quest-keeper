@@ -1,1 +1,5 @@
 .worktrees/
+
+# Xcode build output
+build/
+DerivedData/

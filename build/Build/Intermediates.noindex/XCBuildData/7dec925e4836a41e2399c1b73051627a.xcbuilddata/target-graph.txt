@@ -1,4 +1,0 @@
-Target dependency graph (2 targets)
-Target 'QuestKeeper' in project 'QuestKeeper'
-➜ Explicit dependency on target 'QuestKeeperWidget' in project 'QuestKeeper'
-Target 'QuestKeeperWidget' in project 'QuestKeeper' (no dependencies)
