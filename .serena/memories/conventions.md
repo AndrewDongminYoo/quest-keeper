@@ -24,7 +24,7 @@ Soft-wrapped prose, one sentence per line. Every fenced code block gets a langua
 
 ## Commits
 
-Conventional commits, English, grouped by concern. No Co-Author lines. Do NOT append the `Claude-Session:` trailer (per user global rules).
+Conventional commits, English, grouped by concern. No Co-Author lines.
 
 ## Naming / structure
 

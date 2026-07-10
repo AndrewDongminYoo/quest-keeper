@@ -2,8 +2,9 @@
 
 Run before considering a coding task done:
 
-1. Unit-test gate (Swift Testing):
+1. Focused unit gate (Swift Testing, `QuestKeeperTests` only — not full-suite coverage):
    `xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:QuestKeeperTests`
+   For UI-affecting or scheme/target changes, also exercise `QuestKeeperUITests` (XCTest) and build the `QuestKeeperWidget` scheme.
 2. If persistence (`QuestKeeper/Models/`) changed, run the derived-state guard — it MUST return nothing:
    `! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/`
 3. If target/signing/entitlements/App Group wiring changed, also run the build gate:
