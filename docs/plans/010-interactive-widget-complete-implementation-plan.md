@@ -455,27 +455,34 @@ git commit -m "feat(widget): add CompleteQuestIntent for one-tap completion"
 **Interfaces:**
 - Consumes: the spike's decision (Task 1). Ensures a warm foreground reflects widget writes before `reconstructOnActivation`.
 
-- [ ] **Step 1: Apply the spike-chosen mechanism in `onBecameActive(now:)`.** If the spike showed warm staleness, refetch fresh before replay rather than reading the possibly-stale `@Query`:
+Spike result (Task 1): warm foreground is **stale** — the rendered `@Query` list does not reflect an external write. So the fix must refresh the `@Query`-bound view itself, not merely feed `reconstructOnActivation` a fresh fetch.
+
+- [ ] **Step 1: Refresh the in-memory context on `.active` so the `@Query` refetches from disk.** The app always saves immediately (no pending unsaved edits), so discarding the cached context state is safe and forces a refault from the store:
 
 ```swift
-private func onBecameActive(now: Date) {
-    // Force a fresh read so a widget-committed completion is visible warm, not only after relaunch.
-    let fresh = (try? modelContext.fetch(FetchDescriptor<Quest>())) ?? quests
-    let previous = lastOpenedRaw == 0 ? nil : Date(timeIntervalSinceReferenceDate: lastOpenedRaw)
-    let (deaths, newLastOpened) = reconstructOnActivation(
-        quests: fresh.map(\.snapshot), now: now, previousLastOpened: previous)
-    // …unchanged below…
+.onChange(of: scenePhase, initial: true) { _, phase in
+    if phase == .active {
+        modelContext.rollback()   // drop cached state so @Query re-reads widget-committed writes
+        onBecameActive(now: .now)
+    }
 }
 ```
 
-If the spike showed the `@Query` already refreshes warm, keep reading `quests` and add only a comment citing the spike; if it needs an explicit context refresh, apply that instead. Do not guess — implement what Task 1 observed.
+`reconstructOnActivation` then reads the refreshed `quests`. Keep its body unchanged.
 
-- [ ] **Step 2: Build and run the unit suite.**
+- [ ] **Step 2: Re-run the Task 1 spike harness to VERIFY the warm case now updates.** Rebuild/install, launch (PID_A), background via another app, external `completedAt` write, warm foreground (confirm same PID), screenshot: the completed quest must now leave the pending list and the victory count increment.
+
+Run the same background→write→foreground→screenshot sequence from Task 1.
+Expected: warm foreground reflects the write.
+
+- [ ] **Step 3: If `rollback()` is insufficient, escalate — do not ship a warm-stale build.** Enable persistent history tracking on `QuestModelContainer` and observe `.NSPersistentStoreRemoteChange` to trigger the refresh; re-run the harness. Record whichever mechanism worked in the Spike Result section.
+
+- [ ] **Step 4: Build and run the unit suite.**
 
 Run: `xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:QuestKeeperTests -quiet`
 Expected: PASS (`reconstructOnActivation` is already covered; this only changes the input source).
 
-- [ ] **Step 3: Commit.**
+- [ ] **Step 5: Commit.**
 
 ```bash
 git add -A
@@ -541,3 +548,13 @@ Expected: all pass; guard returns nothing.
 - [ ] **Step 3: Adversarial re-check.** Run an `advisor` pass on the finished diff focused on cross-process write coordination and the notification lifecycle (per the spec's routed correctness check), then capture the resulting rule as a knowledge-wiki page (new precedent).
 
 - [ ] **Step 4: Open the PR** once green.
+
+---
+
+## Spike Result (Task 1)
+
+Ran 2026-07-10 on `iPhone 17e`.
+
+- **Setup:** app foregrounded with one pending quest (`여유를 만끽하세요`, victory count 1). Backgrounded by foregrounding another app (process kept alive — same PID `77539` before and after, so genuinely warm, not a cold relaunch). While backgrounded, an external process set `completedAt = now` on that quest directly in the shared store (stand-in for the widget's cross-process write).
+- **Observation:** on **warm** foreground the app did **not** reflect the write — the quest still rendered as active in `던전` and the victory count stayed `1`. The countdown kept ticking (35분 → 34분), confirming the `TimelineView` was live; only the `@Query` data was stale. A cold relaunch reads it correctly.
+- **Conclusion:** SwiftData `@Query` does **not** observe external-process writes by default in this configuration. The stale surface is the rendered `@Query`, not just `reconstructOnActivation`'s input — so Task 8 must refresh the context itself (`modelContext.rollback()` on `.active`, escalating to persistent history tracking + `.NSPersistentStoreRemoteChange` if rollback proves insufficient), and Task 8 Step 2 re-runs this harness as the gate. This is new precedent (no prior QuestKeeper rule); capture the working mechanism as a wiki page in Task 10.
