@@ -69,13 +69,14 @@ struct QuestRow: View {
 /// A daily grave — temporary presentation with recovery action.
 struct DailyGraveRow: View {
     let quest: Quest
+    let isNewlyMissed: Bool
     let onRetryTomorrow: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "xmark.seal.fill")
+            Image(systemName: isNewlyMissed ? "exclamationmark.triangle.fill" : "xmark.seal.fill")
                 .font(.title2)
-                .foregroundStyle(Color(red: 0.66, green: 0.67, blue: 0.66))
+                .foregroundStyle(isNewlyMissed ? Color(red: 1.0, green: 0.78, blue: 0.38) : Color(red: 0.66, green: 0.67, blue: 0.66))
                 .frame(width: 34)
             VStack(alignment: .leading, spacing: 6) {
                 Text(quest.title)
@@ -83,9 +84,9 @@ struct DailyGraveRow: View {
                     .strikethrough()
                     .foregroundStyle(.white.opacity(0.62))
                     .lineLimit(2)
-                Text("오늘의 무덤")
+                Text(isNewlyMissed ? "방금 놓친 전투" : "오늘의 무덤")
                     .font(.caption.monospaced().weight(.semibold))
-                    .foregroundStyle(Color(red: 0.70, green: 0.72, blue: 0.71))
+                    .foregroundStyle(isNewlyMissed ? Color(red: 1.0, green: 0.78, blue: 0.38) : Color(red: 0.70, green: 0.72, blue: 0.71))
             }
             Spacer(minLength: 10)
             Button(action: onRetryTomorrow) {
@@ -97,11 +98,18 @@ struct DailyGraveRow: View {
         }
         .padding(14)
         .frame(minHeight: 92)
-        .background(Color(red: 0.17, green: 0.17, blue: 0.22), in: RoundedRectangle(cornerRadius: 8))
+        .background(
+            (isNewlyMissed ? Color(red: 0.24, green: 0.18, blue: 0.17) : Color(red: 0.17, green: 0.17, blue: 0.22)),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color(red: 0.55, green: 0.57, blue: 0.56).opacity(0.35), lineWidth: 1)
+                .stroke(
+                    isNewlyMissed ? Color(red: 1.0, green: 0.78, blue: 0.38).opacity(0.58) : Color(red: 0.55, green: 0.57, blue: 0.56).opacity(0.35),
+                    lineWidth: 1
+                )
         )
+        .accessibilityValue(isNewlyMissed ? "방금 놓친 전투" : "")
     }
 }
 

@@ -5,6 +5,7 @@ struct HomeDungeonBoardView: View {
     let isMourning: Bool
     let pending: [Quest]
     let dailyGraves: [Quest]
+    let newlyMissedQuestIDs: Set<UUID>
     let now: Date
     let showsNotificationPermissionBanner: Bool
     let onCreate: () -> Void
@@ -29,6 +30,7 @@ struct HomeDungeonBoardView: View {
                         QuestListSections(
                             pending: pending,
                             dailyGraves: dailyGraves,
+                            newlyMissedQuestIDs: newlyMissedQuestIDs,
                             now: now,
                             onComplete: onComplete,
                             onRetryTomorrow: onRetryTomorrow,

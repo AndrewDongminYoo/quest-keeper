@@ -11,6 +11,7 @@ import SwiftUI
 struct QuestListSections: View {
     let pending: [Quest]
     let dailyGraves: [Quest]
+    let newlyMissedQuestIDs: Set<UUID>
     let now: Date
     let onComplete: (Quest, Date) -> Void
     let onRetryTomorrow: (Quest) -> Void
@@ -38,7 +39,7 @@ struct QuestListSections: View {
                 BoardSectionTitle(title: "오늘의 무덤", count: dailyGraves.count)
                 VStack(spacing: 10) {
                     ForEach(dailyGraves) { quest in
-                        DailyGraveRow(quest: quest) {
+                        DailyGraveRow(quest: quest, isNewlyMissed: newlyMissedQuestIDs.contains(quest.id)) {
                             onRetryTomorrow(quest)
                         }
                     }
