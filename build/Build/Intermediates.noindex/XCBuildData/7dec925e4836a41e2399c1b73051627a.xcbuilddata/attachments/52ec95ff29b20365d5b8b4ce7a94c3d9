@@ -66,16 +66,6 @@
     "swift-dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestOutcome.swiftdeps",
     "swiftmodule" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestOutcome~partial.swiftmodule"
   },
-  "/Users/dongminyu/Development/01_personal/QuestKeeper/QuestKeeper/Models/Quest.swift" : {
-    "const-values" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.swiftconstvalues",
-    "dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.d",
-    "diagnostics" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.dia",
-    "index-unit-output-path" : "/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.o",
-    "llvm-bc" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.bc",
-    "object" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.o",
-    "swift-dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.swiftdeps",
-    "swiftmodule" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest~partial.swiftmodule"
-  },
   "/Users/dongminyu/Development/01_personal/QuestKeeper/QuestKeeper/Models/QuestSnapshot.swift" : {
     "const-values" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestSnapshot.swiftconstvalues",
     "dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestSnapshot.d",
@@ -275,6 +265,26 @@
     "object" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/WidgetDungeonSnapshotWriter.o",
     "swift-dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/WidgetDungeonSnapshotWriter.swiftdeps",
     "swiftmodule" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/WidgetDungeonSnapshotWriter~partial.swiftmodule"
+  },
+  "/Users/dongminyu/Development/01_personal/QuestKeeper/QuestKeeperShared/Quest.swift" : {
+    "const-values" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.swiftconstvalues",
+    "dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.d",
+    "diagnostics" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.dia",
+    "index-unit-output-path" : "/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.o",
+    "llvm-bc" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.bc",
+    "object" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.o",
+    "swift-dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest.swiftdeps",
+    "swiftmodule" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/Quest~partial.swiftmodule"
+  },
+  "/Users/dongminyu/Development/01_personal/QuestKeeper/QuestKeeperShared/QuestModelContainer.swift" : {
+    "const-values" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestModelContainer.swiftconstvalues",
+    "dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestModelContainer.d",
+    "diagnostics" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestModelContainer.dia",
+    "index-unit-output-path" : "/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestModelContainer.o",
+    "llvm-bc" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestModelContainer.bc",
+    "object" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestModelContainer.o",
+    "swift-dependencies" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestModelContainer.swiftdeps",
+    "swiftmodule" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/QuestModelContainer~partial.swiftmodule"
   },
   "/Users/dongminyu/Development/01_personal/QuestKeeper/QuestKeeperShared/WidgetDungeonDerivation.swift" : {
     "const-values" : "/Users/dongminyu/Development/01_personal/QuestKeeper/build/Build/Intermediates.noindex/QuestKeeper.build/Debug-iphonesimulator/QuestKeeper.build/Objects-normal/arm64/WidgetDungeonDerivation.swiftconstvalues",

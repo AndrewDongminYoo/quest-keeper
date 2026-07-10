@@ -18,15 +18,15 @@
 		</data>
 		<key>PlugIns/QuestKeeperWidget.appex/QuestKeeperWidget</key>
 		<data>
-		d34I6gjs5OB9fy4hx4z8Xnhh9VM=
+		GP/n7oh/eIKdbAolOzo7liVA9lQ=
 		</data>
 		<key>PlugIns/QuestKeeperWidget.appex/QuestKeeperWidget.debug.dylib</key>
 		<data>
-		5F21sPVxLigQ2MKY2ERXocGsPTY=
+		75tpOJX/+Lz/S/iwQYvWpVDjzvk=
 		</data>
 		<key>PlugIns/QuestKeeperWidget.appex/_CodeSignature/CodeResources</key>
 		<data>
-		pWxPFBXOsbBA/z78jkaMfeWbV1Y=
+		ny02+Iculmat07mUn20QxZA/CXg=
 		</data>
 		<key>PlugIns/QuestKeeperWidget.appex/__preview.dylib</key>
 		<data>
@@ -34,7 +34,7 @@
 		</data>
 		<key>QuestKeeper.debug.dylib</key>
 		<data>
-		lepG5bfB8S9TVHaBvNEKqgwcO4E=
+		tadV4ZKBrOvvy+4GyMwu0Td1o0c=
 		</data>
 		<key>__preview.dylib</key>
 		<data>
@@ -54,21 +54,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			o30+5h9ZyV/D+iT/Y+b/4If1rKbRO5Gc1akV1AeQq9A=
+			3MM61EvW8R5gH6M0AZ7mQjGIbXkmqhnpfS8Sc4Q6F1k=
 			</data>
 		</dict>
 		<key>PlugIns/QuestKeeperWidget.appex/QuestKeeperWidget.debug.dylib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			mIjWRJOvc4K2BZPMga6nvbENPtq6BAMsMuZaVjXmkwo=
+			Xly/jBcvzoTCm5pHKO9sKlhgrgxVeUDu9cIfkbkHRAI=
 			</data>
 		</dict>
 		<key>PlugIns/QuestKeeperWidget.appex/_CodeSignature/CodeResources</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			8nbmfWgcU30LfP9+0UdZSZo5gQwqdZz+PDDdleCxgT0=
+			bc1q4+JVCMhpzAJUGwhzYUM8H/hc/W2oLPWXR/Od9AI=
 			</data>
 		</dict>
 		<key>PlugIns/QuestKeeperWidget.appex/__preview.dylib</key>
@@ -82,7 +82,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			oDxN+uWOpA2m4ndcFFRcV2HMLZh7nTiDrNPbEP/J8wA=
+			xGKaqKTZlasP8HvNGVlkxI3YS4cdCDDN2AyBE0pjIIU=
 			</data>
 		</dict>
 		<key>__preview.dylib</key>
