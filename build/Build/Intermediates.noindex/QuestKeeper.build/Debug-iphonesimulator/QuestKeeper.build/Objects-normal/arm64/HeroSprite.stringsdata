@@ -1,0 +1,24 @@
+{
+  "source": "/Users/dongminyu/Development/01_personal/QuestKeeper/QuestKeeper/Views/HeroSprite.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "쓰러진 용사",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 20
+        }
+      },
+      {
+        "comment": "",
+        "key": "용사",
+        "location": {
+          "startingColumn": 67,
+          "startingLine": 20
+        }
+      }
+    ]
+  },
+  "version": 1
+}

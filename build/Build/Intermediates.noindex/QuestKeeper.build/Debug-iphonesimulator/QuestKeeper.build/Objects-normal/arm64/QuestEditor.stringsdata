@@ -1,0 +1,120 @@
+{
+  "source": "/Users/dongminyu/Development/01_personal/QuestKeeper/QuestKeeper/Views/QuestEditor.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "새 퀘스트",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "퀘스트 편집",
+        "location": {
+          "startingColumn": 63,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "너무 큰 퀘스트예요",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 64
+        }
+      },
+      {
+        "comment": "",
+        "key": "제목",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 45
+        }
+      },
+      {
+        "comment": "",
+        "key": "마감",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "중요도",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 47
+        }
+      },
+      {
+        "comment": "",
+        "key": "낮음",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "보통",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 49
+        }
+      },
+      {
+        "comment": "",
+        "key": "높음",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 50
+        }
+      },
+      {
+        "comment": "",
+        "key": "취소",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 57
+        }
+      },
+      {
+        "comment": "",
+        "key": "저장",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 60
+        }
+      },
+      {
+        "comment": "",
+        "key": "작게 쪼개기",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 65
+        }
+      },
+      {
+        "comment": "",
+        "key": "그래도 진행",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "작게 쪼개면 몹도 작아져요.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 70
+        }
+      }
+    ]
+  },
+  "version": 1
+}

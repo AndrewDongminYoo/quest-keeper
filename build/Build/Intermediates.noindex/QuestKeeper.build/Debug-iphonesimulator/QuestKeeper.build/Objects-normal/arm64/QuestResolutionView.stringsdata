@@ -1,0 +1,56 @@
+{
+  "source": "/Users/dongminyu/Development/01_personal/QuestKeeper/QuestKeeper/Views/QuestResolutionView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "퀘스트 기록",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "퀘스트",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 26
+        }
+      },
+      {
+        "comment": "",
+        "key": "상태",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 28
+        }
+      },
+      {
+        "comment": "",
+        "key": "마감",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 29
+        }
+      },
+      {
+        "comment": "",
+        "key": "내일 도전하기",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 37
+        }
+      },
+      {
+        "comment": "",
+        "key": "닫기",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 46
+        }
+      }
+    ]
+  },
+  "version": 1
+}
