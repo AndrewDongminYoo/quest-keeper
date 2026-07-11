@@ -48,7 +48,7 @@ struct QuestRow: View {
                         .foregroundStyle(DungeonPalette.victory)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.22), in: Capsule())
+                        .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 2))
                         .transition(.scale.combined(with: .opacity))
                 } else {
                     MobLevelBadge(level: level)
@@ -58,10 +58,10 @@ struct QuestRow: View {
         }
         .padding(14)
         .frame(minHeight: 92)
-        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 8))
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(tone.tint.opacity(0.38), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 2)
+                .stroke(tone.tint.opacity(0.45), lineWidth: 2)  // chunky pixel border
         )
     }
 }
@@ -94,20 +94,17 @@ struct DailyGraveRow: View {
             Button(action: onRetryTomorrow) {
                 Label("내일 도전하기", systemImage: "arrow.uturn.forward")
                     .labelStyle(.titleAndIcon)
-                    .font(.footnote.weight(.semibold))
                     .lineLimit(1)
                     .fixedSize()
             }
-            .buttonStyle(.borderedProminent)
-            .tint(DungeonPalette.hero)
-            .controlSize(.small)
+            .buttonStyle(.pixel)
         }
         .padding(14)
         .frame(minHeight: 92)
-        .background(style.background, in: RoundedRectangle(cornerRadius: 8))
+        .background(style.background, in: RoundedRectangle(cornerRadius: 2))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(style.borderTint, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 2)
+                .stroke(style.borderTint, lineWidth: 2)  // chunky pixel border
         )
         .accessibilityValue(style.accessibilityValue)
     }
@@ -167,7 +164,7 @@ private struct ImportancePip: View {
             .font(.caption2.weight(.black))
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(DungeonPalette.ink.opacity(0.10), in: Capsule())
+            .background(DungeonPalette.ink.opacity(0.10), in: RoundedRectangle(cornerRadius: 2))
             .foregroundStyle(DungeonPalette.ink.opacity(0.72))
     }
 }
@@ -181,7 +178,7 @@ struct MobLevelBadge: View {
             .font(.caption2.bold().monospacedDigit())
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(tint.opacity(0.2), in: Capsule())
+            .background(tint.opacity(0.2), in: RoundedRectangle(cornerRadius: 2))
             .foregroundStyle(tint)
     }
 

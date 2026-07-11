@@ -59,3 +59,33 @@ enum MobVisual {
         }
     }
 }
+
+/// Shared pixel geometry — square-ish chunky corners instead of soft iOS rounding.
+enum PixelStyle {
+    static let corner: CGFloat = 2
+    static let border: CGFloat = 2
+}
+
+/// A flat, chunky, square-bordered action button — the pixel-dungeon counterpart to the
+/// system `.borderedProminent` (whose soft capsule reads as native-iOS, not game).
+struct PixelButtonStyle: ButtonStyle {
+    var fill: Color = DungeonPalette.hero
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.footnote.weight(.black))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(fill, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
+            .overlay(
+                RoundedRectangle(cornerRadius: PixelStyle.corner)
+                    .stroke(DungeonPalette.ink.opacity(0.25), lineWidth: PixelStyle.border)
+            )
+            .opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
+
+extension ButtonStyle where Self == PixelButtonStyle {
+    static var pixel: PixelButtonStyle { PixelButtonStyle() }
+}

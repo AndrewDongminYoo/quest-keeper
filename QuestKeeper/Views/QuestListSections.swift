@@ -62,7 +62,7 @@ private struct BoardSectionTitle: View {
                 .font(.caption2.monospacedDigit().weight(.bold))
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
-                .background(DungeonPalette.ink.opacity(0.12), in: Capsule())
+                .background(DungeonPalette.ink.opacity(0.12), in: RoundedRectangle(cornerRadius: 2))
                 .foregroundStyle(DungeonPalette.ink.opacity(0.72))
             Spacer()
         }
@@ -99,7 +99,7 @@ private struct SwipeableQuestRow: View {
                 }
             }
             .frame(maxHeight: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: 2))
 
             QuestRow(quest: quest, now: now, battlePhase: battlePhase)
                 .offset(x: offset)
@@ -113,7 +113,7 @@ private struct SwipeableQuestRow: View {
                     }
                 }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 2))
         .simultaneousGesture(
             DragGesture(minimumDistance: 18)
                 .onChanged { value in

@@ -20,7 +20,7 @@ struct HomeDungeonBoardView: View {
             DungeonBackground()
             ScrollView {
                 LazyVStack(spacing: 14) {
-                    BoardHUD(state: state, isMourning: isMourning, onCreate: onCreate)
+                    BoardHUD(state: state, isMourning: isMourning, activeQuestCount: pending.count, onCreate: onCreate)
                     if showsNotificationPermissionBanner {
                         NotificationPermissionBanner(onOpenSettings: onOpenNotificationSettings)
                     }
@@ -60,25 +60,37 @@ private struct DungeonBackground: View {
 private struct BoardHUD: View {
     let state: HeroState
     let isMourning: Bool
+    let activeQuestCount: Int
     let onCreate: () -> Void
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            HeroHeader(state: state, isMourning: isMourning)
-            Button(action: onCreate) {
-                Image(systemName: "plus")
-                    .font(.headline.weight(.bold))
-                    .frame(width: 42, height: 42)
-                    .background(DungeonPalette.hero, in: Circle())
-                    .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("QUEST KEEPER")
+                    .font(.title3.weight(.black).monospaced())
+                    .foregroundStyle(DungeonPalette.ink)
+                Spacer(minLength: 8)
+                Button(action: onCreate) {
+                    Image(systemName: "plus")
+                        .font(.headline.weight(.black))
+                        .frame(width: 36, height: 36)
+                        // Chunky square pixel button rather than a soft circle.
+                        .background(DungeonPalette.hero, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PixelStyle.corner)
+                                .stroke(DungeonPalette.ink.opacity(0.25), lineWidth: PixelStyle.border)
+                        )
+                        .foregroundStyle(.white)
+                }
+                .accessibilityLabel("전투 추가")
             }
-            .accessibilityLabel("전투 추가")
+            HeroHeader(state: state, isMourning: isMourning, activeQuestCount: activeQuestCount)
         }
-        .padding(16)
-        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 8))
+        .padding(14)
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(DungeonPalette.ink.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 2)
+                .stroke(DungeonPalette.ink.opacity(0.18), lineWidth: 2)  // chunky pixel border
         )
     }
 }
@@ -100,13 +112,12 @@ private struct EmptyDungeonState: View {
             Button(action: onCreate) {
                 Label("전투 추가", systemImage: "plus")
             }
-            .buttonStyle(.borderedProminent)
-            .tint(DungeonPalette.hero)
+            .buttonStyle(.pixel)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 34)
         .padding(.horizontal, 18)
-        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 8))
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
     }
 }
 
@@ -120,7 +131,7 @@ private struct NotificationPermissionBanner: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(DungeonPalette.danger, in: RoundedRectangle(cornerRadius: 8))
+                .background(DungeonPalette.danger, in: RoundedRectangle(cornerRadius: 2))
         }
     }
 }
