@@ -51,15 +51,9 @@ struct HomeDungeonBoardView: View {
 
 private struct DungeonBackground: View {
     var body: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.10, green: 0.08, blue: 0.14),
-                Color(red: 0.14, green: 0.13, blue: 0.19)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        // Flat dungeon fill — DESIGN.md: "Do not add decorative glow blobs or gradients as filler."
+        DungeonPalette.dungeon
+            .ignoresSafeArea()
     }
 }
 
@@ -75,16 +69,16 @@ private struct BoardHUD: View {
                 Image(systemName: "plus")
                     .font(.headline.weight(.bold))
                     .frame(width: 42, height: 42)
-                    .background(Color(red: 0.24, green: 0.44, blue: 0.84), in: Circle())
+                    .background(DungeonPalette.hero, in: Circle())
                     .foregroundStyle(.white)
             }
             .accessibilityLabel("전투 추가")
         }
         .padding(16)
-        .background(Color(red: 0.13, green: 0.11, blue: 0.18).opacity(0.92), in: RoundedRectangle(cornerRadius: 8))
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                .stroke(DungeonPalette.ink.opacity(0.12), lineWidth: 1)
         )
     }
 }
@@ -96,22 +90,23 @@ private struct EmptyDungeonState: View {
         VStack(spacing: 12) {
             Image(systemName: "flag.checkered")
                 .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.35))
+                .foregroundStyle(DungeonPalette.victory)
             Text("오늘의 던전이 비었습니다")
                 .font(.headline.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(DungeonPalette.ink)
             Text("작은 전투 하나를 추가해 시작하세요.")
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(DungeonPalette.ink.opacity(0.7))
             Button(action: onCreate) {
                 Label("전투 추가", systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
+            .tint(DungeonPalette.hero)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 34)
         .padding(.horizontal, 18)
-        .background(Color(red: 0.17, green: 0.16, blue: 0.22), in: RoundedRectangle(cornerRadius: 8))
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -125,7 +120,7 @@ private struct NotificationPermissionBanner: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(Color(red: 0.40, green: 0.16, blue: 0.14), in: RoundedRectangle(cornerRadius: 8))
+                .background(DungeonPalette.danger, in: RoundedRectangle(cornerRadius: 8))
         }
     }
 }

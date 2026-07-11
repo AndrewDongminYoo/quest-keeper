@@ -57,13 +57,13 @@ private struct BoardSectionTitle: View {
         HStack(spacing: 8) {
             Text(title)
                 .font(.system(.caption, design: .monospaced).weight(.black))
-                .foregroundStyle(.white.opacity(0.82))
+                .foregroundStyle(DungeonPalette.ink.opacity(0.82))
             Text("\(count)")
                 .font(.caption2.monospacedDigit().weight(.bold))
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
-                .background(Color.white.opacity(0.12), in: Capsule())
-                .foregroundStyle(.white.opacity(0.72))
+                .background(DungeonPalette.ink.opacity(0.12), in: Capsule())
+                .foregroundStyle(DungeonPalette.ink.opacity(0.72))
             Spacer()
         }
         .textCase(.uppercase)
@@ -88,11 +88,11 @@ private struct SwipeableQuestRow: View {
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                actionButton(title: "완료", systemImage: "checkmark", color: Color(red: 0.18, green: 0.54, blue: 0.29)) {
+                actionButton(title: "완료", systemImage: "checkmark", color: DungeonPalette.hero) {
                     completeWithBattle()
                 }
                 Spacer(minLength: 0)
-                actionButton(title: "삭제", systemImage: "trash", color: Color(red: 0.70, green: 0.18, blue: 0.16)) {
+                actionButton(title: "삭제", systemImage: "trash", color: DungeonPalette.danger) {
                     guard !isResolvingBattle else { return }
                     reset()
                     onDelete(quest)

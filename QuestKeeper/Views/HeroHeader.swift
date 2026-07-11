@@ -15,18 +15,18 @@ struct HeroHeader: View {
         VStack(spacing: 12) {
             Text("QUEST KEEPER")
                 .font(.title.bold().monospaced())
-                .foregroundStyle(.white)
+                .foregroundStyle(DungeonPalette.ink)
             HeroSprite(isMourning: isMourning)
             HStack(spacing: 12) {
                 Text("HERO: Leo")
                 Text("|")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DungeonPalette.grave)
                 Label("\(state.totalVictories)", systemImage: "trophy.fill")
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(DungeonPalette.victory)
                     .accessibilityLabel("승리 \(state.totalVictories)")
             }
             .font(.caption.bold().monospacedDigit())
-            .foregroundStyle(.white)
+            .foregroundStyle(DungeonPalette.ink)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)

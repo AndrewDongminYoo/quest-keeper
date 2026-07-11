@@ -14,7 +14,7 @@ struct HeroSprite: View {
     var body: some View {
         Image(systemName: isMourning ? "figure.fall" : "figure.stand")
             .font(.system(size: 64))
-            .foregroundStyle(isMourning ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+            .foregroundStyle(isMourning ? DungeonPalette.grave : DungeonPalette.hero)
             .contentTransition(.symbolEffect(.replace))
             .frame(height: 80)
             .accessibilityLabel(isMourning ? "쓰러진 용사" : "용사")
