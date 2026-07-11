@@ -94,12 +94,13 @@ Avoid a one-note brown/orange screen; the dungeon can be dark, but state colors 
 The **light** column was reworked from the original draft; the dark column is the original spec, unchanged.
 Two corrections, both forced by legibility:
 
-1. `dungeon`/`stone` light are now true light surfaces. The draft reused near-black surfaces in the light
-   column, dropping `ink` text below ~1.3:1 contrast. Light mode now inverts surface, not just text.
-2. `torch`/`victory`/`danger`/`grave` light are **deepened** accents. Because state tints render as small text
-   on the light `stone` surface (countdowns, mob levels, grave captions), the draft's bright accents fell to
-   ~1.5–3.6:1 — below "state colors must be legible". The deepened values clear ~4.5:1 as on-surface text while
-   still working as fills/strokes/icons. In dark mode the accents stay bright (high contrast on the dark surface).
+1. `dungeon`/`stone` light are now true light surfaces.
+   The draft reused near-black surfaces in the light column, dropping `ink` text below ~1.3:1 contrast.
+   Light mode now inverts surface, not just text.
+2. `torch`/`victory`/`danger`/`grave` light are **deepened** accents.
+   Because state tints render as small text on the light `stone` surface (countdowns, mob levels, grave captions), the draft's bright accents fell to ~1.5–3.6:1 — below "state colors must be legible".
+   The deepened values clear ~4.5:1 as on-surface text while still working as fills/strokes/icons.
+   In dark mode the accents stay bright (high contrast on the dark surface).
 
 Accent colors carry meaning only, and they climb with state rather than decorating it:
 the "calm" urgency step and low-level mobs carry **no accent** (muted `ink`), so `guide`/`torch`/`danger` stay meaningful.
