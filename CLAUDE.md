@@ -38,20 +38,35 @@ The derivation entry point `HeroDerivation.state(quests:now:lastOpened:calendar:
 
 Scheme `QuestKeeper`, project `QuestKeeper.xcodeproj` (no workspace, no SPM/CocoaPods yet).
 
-```bash
-# Build for simulator
-xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e'
+**Prefer the XcodeBuildMCP tools (`mcp__xcodebuild__*`) over raw `xcodebuild` for all headless build/run/test/screenshot work.**
+Raw `xcodebuild -destination 'platform=iOS Simulator,name=iPhone 17e'` spins up a fresh ephemeral test clone per run and, because a duplicate device named `iPhone 17e` exists, hits destination-name ambiguity — together these exhaust simulator memory and wedge the runtime (repeated `server died` / `crashed before establishing connection`).
+XcodeBuildMCP avoids both: it reuses one dedicated workspace and pins the simulator by **UDID**.
 
-# Run all tests
-xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e'
+Session defaults are already set and persisted (`.xcodebuildmcp/config.yaml`, git-ignored):
+project `QuestKeeper.xcodeproj`, scheme `QuestKeeper`, configuration `Debug`, simulator UDID `7ED9020C-A21E-425F-AF74-C71C40DA0A13` (`iPhone 17e`).
 
-# Run a single unit test (Swift Testing)
-xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' \
-  -only-testing:QuestKeeperTests/QuestKeeperTests/example
+```text
+# Once per session, confirm defaults (required before the first build/run/test):
+mcp__xcodebuild__session_show_defaults
+
+# Then, with no args (uses the pinned defaults):
+mcp__xcodebuild__build_run_sim          # build + install + launch on the sim
+mcp__xcodebuild__test_sim               # run the test suite
+mcp__xcodebuild__test_sim  extraArgs: ["-only-testing:QuestKeeperTests"]                 # unit tests only (Swift Testing)
+mcp__xcodebuild__test_sim  extraArgs: ["-only-testing:QuestKeeperTests/DerivationTests/determinism"]  # a single test
+mcp__xcodebuild__screenshot             # capture the running sim
 ```
 
-Adjust the simulator `name` to an installed device (`xcrun simctl list devices available`).
-Day-to-day, building/running in Xcode is expected; use `xcodebuild` for headless verification.
+Fallback only if the MCP is unavailable — always target the device by **id (UDID), never `name`**, to dodge the duplicate-name ambiguity:
+
+```bash
+xcodebuild test -scheme QuestKeeper \
+  -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' \
+  -only-testing:QuestKeeperTests
+```
+
+Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP for headless verification.
+Confirm the UDID against your machine with `xcrun simctl list devices available` if the pinned simulator is missing.
 
 ## Conventions & Constraints
 
