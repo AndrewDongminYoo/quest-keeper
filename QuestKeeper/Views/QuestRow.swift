@@ -94,6 +94,9 @@ struct DailyGraveRow: View {
             Button(action: onRetryTomorrow) {
                 Label("내일 도전하기", systemImage: "arrow.uturn.forward")
                     .labelStyle(.titleAndIcon)
+                    .font(.footnote.weight(.semibold))
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .buttonStyle(.borderedProminent)
             .tint(DungeonPalette.hero)
