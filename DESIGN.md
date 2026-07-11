@@ -82,16 +82,27 @@ Avoid a one-note brown/orange screen; the dungeon can be dark, but state colors 
 | Token | Light | Dark | Meaning |
 | --- | --- | --- | --- |
 | `ink` | `#17151D` | `#F2EDF7` | Primary text |
-| `dungeon` | `#2B2735` | `#17131F` | Main background |
-| `stone` | `#6E7485` | `#414758` | Floor tiles |
-| `torch` | `#F2A03D` | `#FFB14A` | Warm dungeon light |
+| `dungeon` | `#E9E5EF` | `#17131F` | Main background |
+| `stone` | `#F7F5FA` | `#414758` | Floor tiles / elevated surfaces |
+| `torch` | `#A85E0A` | `#FFB14A` | Warm dungeon light / warning step |
 | `hero` | `#3A73D9` | `#6FA0FF` | Hero / primary action |
-| `victory` | `#F4C542` | `#FFD95A` | Coins, stars, completed state |
-| `danger` | `#D9573F` | `#FF705A` | Urgency and high-level monsters |
-| `grave` | `#8B9290` | `#A5AAA8` | Today's missed quest marker |
+| `victory` | `#85690C` | `#FFD95A` | Coins, stars, completed state |
+| `danger` | `#C0392B` | `#FF705A` | Urgency and high-level monsters |
+| `grave` | `#5E6462` | `#A5AAA8` | Today's missed quest marker |
 | `guide` | `#5CC9B5` | `#7FE0D0` | Elder guide / safe advice |
 
-Accent colors carry meaning only.
+The **light** column was reworked from the original draft; the dark column is the original spec, unchanged.
+Two corrections, both forced by legibility:
+
+1. `dungeon`/`stone` light are now true light surfaces. The draft reused near-black surfaces in the light
+   column, dropping `ink` text below ~1.3:1 contrast. Light mode now inverts surface, not just text.
+2. `torch`/`victory`/`danger`/`grave` light are **deepened** accents. Because state tints render as small text
+   on the light `stone` surface (countdowns, mob levels, grave captions), the draft's bright accents fell to
+   ~1.5–3.6:1 — below "state colors must be legible". The deepened values clear ~4.5:1 as on-surface text while
+   still working as fills/strokes/icons. In dark mode the accents stay bright (high contrast on the dark surface).
+
+Accent colors carry meaning only, and they climb with state rather than decorating it:
+the "calm" urgency step and low-level mobs carry **no accent** (muted `ink`), so `guide`/`torch`/`danger` stay meaningful.
 Do not add decorative glow blobs or gradients as filler.
 
 ## Type
