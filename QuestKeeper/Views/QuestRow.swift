@@ -195,23 +195,14 @@ struct MonsterGlyph: View {
     }
 
     var body: some View {
-        Image(systemName: symbol)
-            .font(.title3)
-            .foregroundStyle(tint)
-            .frame(width: 28, height: 28)
-            .scaleEffect(battlePhase == .striking ? 1.22 : battlePhase == .defeated ? 0.82 : 1)
-            .rotationEffect(.degrees(battlePhase == .striking ? -8 : battlePhase == .defeated ? 10 : 0))
-            .opacity(battlePhase == .defeated ? 0.35 : 1)
-            .accessibilityLabel("몹 레벨 \(level)")
+        PixelSprite(
+            rows: DungeonSprites.monster(level: level),
+            palette: ["#": MobVisual.tint(level: level), "o": DungeonPalette.stone]
+        )
+        .frame(width: 30, height: 30)
+        .scaleEffect(battlePhase == .striking ? 1.22 : battlePhase == .defeated ? 0.82 : 1)
+        .rotationEffect(.degrees(battlePhase == .striking ? -8 : battlePhase == .defeated ? 10 : 0))
+        .opacity(battlePhase == .defeated ? 0.35 : 1)
+        .accessibilityLabel("몹 레벨 \(level)")
     }
-
-    private var symbol: String {
-        switch level {
-        case ..<2: "circle.hexagongrid.fill"
-        case 2..<4: "figure.fencing"
-        default: "flame.fill"
-        }
-    }
-
-    private var tint: Color { MobVisual.tint(level: level) }
 }
