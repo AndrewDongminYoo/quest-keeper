@@ -2,28 +2,40 @@
 //  HeroSprite.swift
 //  QuestKeeper
 //
-//  Phase 2 — minimal two-state hero. Real pixel art is deferred (spec 003 §5);
-//  the contract is the swap driven by `isMourning`, not the art. SF Symbols stand in for frames.
+//  Phase 2 / DESIGN.md step 5 — a small drawn pixel hero. The contract is the state swap driven
+//  by `isMourning`: standing (hero-tinted) vs knocked over (grave-tinted, rotated). One bitmap
+//  serves both; only color and rotation change.
+//
+//  It is an inline HUD glyph, not a centerpiece: the dungeon floors (quest rows) are the primary
+//  surface per DESIGN.md, so the hero stays small and only its state carries meaning.
 //
 
 import SwiftUI
 
 struct HeroSprite: View {
     let isMourning: Bool
+    var size: CGFloat = 22
 
     var body: some View {
-        Image(systemName: isMourning ? "figure.fall" : "figure.stand")
-            .font(.system(size: 64))
-            .foregroundStyle(isMourning ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
-            .contentTransition(.symbolEffect(.replace))
-            .frame(height: 80)
-            .accessibilityLabel(isMourning ? "쓰러진 용사" : "용사")
+        PixelSprite(
+            rows: DungeonSprites.hero,
+            palette: [
+                "#": isMourning ? DungeonPalette.grave : DungeonPalette.hero,
+                "o": DungeonPalette.stone
+            ]
+        )
+        .frame(width: size, height: size)
+        .rotationEffect(.degrees(isMourning ? 90 : 0))  // knocked over on a mourning activation
+        .animation(.snappy(duration: 0.25), value: isMourning)
+        .accessibilityLabel(isMourning ? "쓰러진 용사" : "용사")
     }
 }
 
 #Preview {
-    VStack(spacing: 40) {
-        HeroSprite(isMourning: false)
-        HeroSprite(isMourning: true)
+    HStack(spacing: 24) {
+        HeroSprite(isMourning: false, size: 64)
+        HeroSprite(isMourning: true, size: 64)
     }
+    .padding()
+    .background(DungeonPalette.stone)
 }

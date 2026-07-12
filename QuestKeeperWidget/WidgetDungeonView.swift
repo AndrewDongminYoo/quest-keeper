@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -7,9 +8,7 @@ struct WidgetDungeonView: View {
     let entry: QuestKeeperWidgetEntry
 
     var body: some View {
-        ZStack {
-            DungeonBackdrop()
-
+        Group {
             switch family {
             case .systemSmall:
                 smallLayout
@@ -17,7 +16,8 @@ struct WidgetDungeonView: View {
                 mediumLayout
             }
         }
-        .containerBackground(.black, for: .widget)
+        // Token background so the widget tracks light/dark like the app, instead of forcing black.
+        .containerBackground(DungeonPalette.dungeon, for: .widget)
     }
 
     private var smallLayout: some View {
@@ -67,15 +67,15 @@ struct WidgetDungeonView: View {
         VStack(alignment: .leading, spacing: 3) {
             Text("QUEST")
                 .font(.system(size: 16, weight: .black, design: .monospaced))
-                .foregroundStyle(.white)
+                .foregroundStyle(DungeonPalette.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
             HStack(spacing: 6) {
-                StatPill(label: "승리", value: "\(entry.state.totalVictories)", tint: .yellow)
+                StatPill(label: "승리", value: "\(entry.state.totalVictories)", tint: DungeonPalette.victory)
 
                 if !entry.state.dailyGraves.isEmpty {
-                    StatPill(label: "묘비", value: "\(entry.state.dailyGraves.count)", tint: .red)
+                    StatPill(label: "묘비", value: "\(entry.state.dailyGraves.count)", tint: DungeonPalette.grave)
                 }
             }
         }
@@ -88,7 +88,7 @@ struct WidgetDungeonView: View {
         } else if entry.state.activeMobs.isEmpty {
             StatusText("던전이 조용합니다", tone: .muted)
         } else if let mob = entry.state.activeMobs.first {
-            StatusText(deadlineText(for: mob), tone: .color(urgencyTone(for: mob)))
+            StatusText(deadlineText(for: mob), tone: .color(urgencyTint(for: mob)))
         }
     }
 
@@ -98,21 +98,21 @@ struct WidgetDungeonView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("오늘의 묘비")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(DungeonPalette.ink.opacity(0.72))
                     .lineLimit(1)
 
                 Text(grave.title)
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.88))
+                    .foregroundStyle(DungeonPalette.ink.opacity(0.88))
                     .lineLimit(2)
                     .minimumScaleFactor(0.75)
             }
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 4))
+            .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
             .overlay {
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(.white.opacity(0.12), lineWidth: 1)
+                RoundedRectangle(cornerRadius: PixelStyle.corner)
+                    .stroke(DungeonPalette.ink.opacity(0.14), lineWidth: 1)
             }
         }
     }
@@ -121,23 +121,23 @@ struct WidgetDungeonView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(entry.state.isStale ? "던전 정보가 오래됐습니다" : "활성 퀘스트가 없습니다")
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.84))
+                .foregroundStyle(DungeonPalette.ink.opacity(0.84))
                 .lineLimit(2)
                 .minimumScaleFactor(0.78)
 
             Text(entry.state.isStale ? "앱을 열어 다시 동기화하세요" : "새 퀘스트를 추가해 던전을 채우세요")
                 .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.62))
+                .foregroundStyle(DungeonPalette.ink.opacity(0.62))
                 .lineLimit(2)
                 .minimumScaleFactor(0.76)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
-        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 4))
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
         .overlay {
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: PixelStyle.corner)
+                .stroke(DungeonPalette.ink.opacity(0.14), lineWidth: 1)
         }
     }
 
@@ -145,11 +145,11 @@ struct WidgetDungeonView: View {
         HStack(spacing: 6) {
             Image(systemName: entry.state.isStale ? "exclamationmark.triangle.fill" : "shield.lefthalf.filled")
                 .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(entry.state.isStale ? .orange : .green)
+                .foregroundStyle(entry.state.isStale ? DungeonPalette.torch : DungeonPalette.guide)
 
             Text(entry.state.generatedAt, style: .time)
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.62))
+                .foregroundStyle(DungeonPalette.ink.opacity(0.62))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -165,14 +165,12 @@ struct WidgetDungeonView: View {
         return "\(formatter.localizedString(for: mob.deadline, relativeTo: entry.state.date)) 남음"
     }
 
-    private func urgencyTone(for mob: WidgetMobState) -> Color {
+    /// Urgency tint from the widget's derived `urgencyLevel`, aligned with the app's accent ramp.
+    private func urgencyTint(for mob: WidgetMobState) -> Color {
         switch mob.urgencyLevel {
-        case 3...:
-            return .red.opacity(0.92)
-        case 2:
-            return .orange.opacity(0.92)
-        default:
-            return .green.opacity(0.88)
+        case 3...: DungeonPalette.danger
+        case 2: DungeonPalette.torch
+        default: DungeonPalette.ink.opacity(0.7)
         }
     }
 }
@@ -183,31 +181,27 @@ private struct MobBadge: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(levelColor)
-                    .frame(width: compact ? 28 : 24, height: compact ? 28 : 24)
-
-                Text("\(mob.mobLevel)")
-                    .font(.system(size: compact ? 13 : 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black.opacity(0.82))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
+            // Pixel monster — same sprite + tier tint the app renders (shared PixelSprite).
+            PixelSprite(
+                rows: DungeonSprites.monster(level: mob.mobLevel),
+                palette: ["#": MobVisual.tint(level: mob.mobLevel), "o": DungeonPalette.stone]
+            )
+            .frame(width: compact ? 28 : 24, height: compact ? 28 : 24)
+            .accessibilityLabel("몹 레벨 \(mob.mobLevel)")
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(mob.title)
                     .font(.system(size: compact ? 12 : 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(DungeonPalette.ink)
                     .lineLimit(compact ? 2 : 1)
                     .minimumScaleFactor(0.74)
 
                 HStack(spacing: 6) {
                     Text("기한")
-                        .foregroundStyle(.white.opacity(0.56))
+                        .foregroundStyle(DungeonPalette.ink.opacity(0.56))
 
                     Text(mob.deadline, style: .timer)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(DungeonPalette.ink.opacity(0.9))
                 }
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
                 .lineLimit(1)
@@ -215,21 +209,29 @@ private struct MobBadge: View {
             }
 
             Spacer(minLength: 0)
+
+            // One-tap completion — runs CompleteQuestIntent in the widget process (spec 009).
+            Button(intent: CompleteQuestIntent(questID: mob.id)) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: compact ? 13 : 12, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: compact ? 28 : 24, height: compact ? 28 : 24)
+                    .background(
+                        DungeonPalette.hero,
+                        in: RoundedRectangle(cornerRadius: PixelStyle.corner)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("완료")
         }
         .padding(.vertical, compact ? 7 : 5)
         .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 4))
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
         .overlay {
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(.white.opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: PixelStyle.corner)
+                .stroke(DungeonPalette.ink.opacity(0.16), lineWidth: 1)
         }
-    }
-
-    private var levelColor: Color {
-        if mob.mobLevel >= 4 { return .red }
-        if mob.mobLevel >= 2 { return .orange }
-        return .green
     }
 }
 
@@ -249,7 +251,7 @@ private struct StatPill: View {
         .minimumScaleFactor(0.75)
         .padding(.vertical, 3)
         .padding(.horizontal, 6)
-        .background(tint.opacity(0.14), in: Capsule())
+        .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: PixelStyle.corner))
     }
 }
 
@@ -278,27 +280,9 @@ private struct StatusText: View {
     private var foregroundColor: Color {
         switch tone {
         case .muted:
-            return .white.opacity(0.7)
+            DungeonPalette.ink.opacity(0.7)
         case let .color(color):
-            return color
-        }
-    }
-}
-
-private struct DungeonBackdrop: View {
-    var body: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.07, green: 0.07, blue: 0.12),
-                Color(red: 0.15, green: 0.15, blue: 0.20),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(.black.opacity(0.24))
-                .frame(height: 18)
+            color
         }
     }
 }

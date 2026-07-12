@@ -11,7 +11,13 @@ import UserNotifications
 
 @main
 struct QuestKeeperApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var notificationRouteStore: NotificationRouteStore
+    /// Recreated on a real foreground-from-background so `@Query` re-reads from a fresh connection.
+    @State private var sharedModelContainer: ModelContainer
+    /// True once we've actually been backgrounded — gates the container swap so a mere Control
+    /// Center / notification-banner peek (`.inactive` → `.active`, never `.background`) doesn't refresh.
+    @State private var didBackground = false
     private let notificationDelegate: NotificationDelegate
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
 
@@ -23,20 +29,12 @@ struct QuestKeeperApp: App {
         notificationDelegate = delegate
         widgetSnapshotWriter = snapshotWriter
         UNUserNotificationCenter.current().delegate = delegate
-    }
-
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Quest.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            _sharedModelContainer = State(initialValue: try QuestModelContainer.make())
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -46,5 +44,44 @@ struct QuestKeeperApp: App {
             )
         }
         .modelContainer(sharedModelContainer)
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            switch phase {
+            case .background:
+                didBackground = true
+            case .active:
+                // A warm foreground's `@Query` keeps its own SQLite snapshot and never sees writes the
+                // widget process committed while we were backgrounded — and `rollback()` reuses that
+                // same connection, so it doesn't help. Swapping in a fresh container opens a new
+                // connection that reads the on-disk truth, like a cold launch (verified via spike 009).
+                // Only after a genuine `.background` (where the widget could have written) — not a
+                // Control Center peek — so we don't needlessly refresh or tear down an open editor.
+                let container: ModelContainer
+                if didBackground, let refreshed = try? QuestModelContainer.make() {
+                    didBackground = false
+                    sharedModelContainer = refreshed
+                    container = refreshed
+                } else {
+                    container = sharedModelContainer
+                }
+                syncActivation(using: container)
+            default:
+                break
+            }
+        }
+    }
+
+    /// Reconcile notifications and rewrite the widget snapshot from the *current* (freshly swapped)
+    /// container. This runs here — not in `ContentView.onBecameActive` — because a warm foreground's
+    /// `@Query` is stale, and opening a second container for the same store to read fresh would trap
+    /// in SwiftData. Using the one live container avoids both the staleness and the trap.
+    private func syncActivation(using container: ModelContainer) {
+        let writer = widgetSnapshotWriter
+        Task { @MainActor in
+            guard let quests = try? container.mainContext.fetch(
+                FetchDescriptor<Quest>(sortBy: [SortDescriptor(\.deadline)])
+            ) else { return }
+            _ = await QuestNotificationService.shared.reconcile(quests: quests, now: .now)
+            await writer.submit(WidgetDungeonPayload.make(from: quests))
+        }
     }
 }

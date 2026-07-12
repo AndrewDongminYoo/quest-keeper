@@ -1,8 +1,9 @@
 import Foundation
 
 extension WidgetDungeonPayload {
-    @MainActor
-    static func make(
+    /// `nonisolated` so both the app's `@MainActor` snapshot writer and the widget's `@ModelActor`
+    /// intent can call it synchronously over quests bound to their own context (no cross-actor transfer).
+    nonisolated static func make(
         from quests: [Quest],
         including changedQuest: Quest? = nil,
         excluding excludedQuestID: UUID? = nil,

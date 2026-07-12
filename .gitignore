@@ -1,1 +1,8 @@
 .worktrees/
+
+# Xcode build output
+build/
+DerivedData/
+
+# XcodeBuildMCP local session config (machine-specific simulator UDID / paths)
+.xcodebuildmcp/

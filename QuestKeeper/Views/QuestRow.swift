@@ -30,13 +30,13 @@ struct QuestRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(quest.title)
                     .font(.body.weight(.bold))
-                    .foregroundStyle(isDefeated ? .white.opacity(0.58) : .white)
+                    .foregroundStyle(isDefeated ? DungeonPalette.ink.opacity(0.58) : DungeonPalette.ink)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     Text(DungeonPresentation.countdownText(deadline: quest.deadline, now: now))
                         .font(.caption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(isDefeated ? Color.white.opacity(0.48) : tone.tint)
+                        .foregroundStyle(isDefeated ? DungeonPalette.ink.opacity(0.48) : tone.tint)
                     ImportancePip(importance: quest.importance)
                 }
             }
@@ -45,10 +45,10 @@ struct QuestRow: View {
                 if battlePhase == .defeated {
                     Text("VICTORY +1")
                         .font(.caption2.monospaced().weight(.black))
-                        .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.35))
+                        .foregroundStyle(DungeonPalette.victory)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.22), in: Capsule())
+                        .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 2))
                         .transition(.scale.combined(with: .opacity))
                 } else {
                     MobLevelBadge(level: level)
@@ -58,10 +58,10 @@ struct QuestRow: View {
         }
         .padding(14)
         .frame(minHeight: 92)
-        .background(Color(red: 0.20, green: 0.20, blue: 0.27), in: RoundedRectangle(cornerRadius: 8))
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(tone.tint.opacity(0.38), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 2)
+                .stroke(tone.tint.opacity(0.45), lineWidth: 2)  // chunky pixel border
         )
     }
 }
@@ -84,7 +84,7 @@ struct DailyGraveRow: View {
                 Text(quest.title)
                     .font(.body.weight(.bold))
                     .strikethrough()
-                    .foregroundStyle(.white.opacity(0.62))
+                    .foregroundStyle(DungeonPalette.ink.opacity(0.62))
                     .lineLimit(2)
                 Text(style.caption)
                     .font(.caption.monospaced().weight(.semibold))
@@ -94,16 +94,17 @@ struct DailyGraveRow: View {
             Button(action: onRetryTomorrow) {
                 Label("내일 도전하기", systemImage: "arrow.uturn.forward")
                     .labelStyle(.titleAndIcon)
+                    .lineLimit(1)
+                    .fixedSize()
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
+            .buttonStyle(.pixel)
         }
         .padding(14)
         .frame(minHeight: 92)
-        .background(style.background, in: RoundedRectangle(cornerRadius: 8))
+        .background(style.background, in: RoundedRectangle(cornerRadius: 2))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(style.borderTint, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 2)
+                .stroke(style.borderTint, lineWidth: 2)  // chunky pixel border
         )
         .accessibilityValue(style.accessibilityValue)
     }
@@ -122,25 +123,24 @@ private extension DailyGraveRow {
         /// Non-visual cue for the mourning state; empty for a plain grave (color is not the only signal).
         let accessibilityValue: String
 
-        static let mourningAmber = Color(red: 1.0, green: 0.78, blue: 0.38)
-
+        // A just-missed grave wears the warm `torch` alarm; an older grave settles into muted `grave`.
         static let mourning = Style(
             icon: "exclamationmark.triangle.fill",
-            iconTint: mourningAmber,
+            iconTint: DungeonPalette.torch,
             caption: "방금 놓친 전투",
-            captionTint: mourningAmber,
-            background: Color(red: 0.24, green: 0.18, blue: 0.17),
-            borderTint: mourningAmber.opacity(0.58),
+            captionTint: DungeonPalette.torch,
+            background: DungeonPalette.stone,
+            borderTint: DungeonPalette.torch.opacity(0.58),
             accessibilityValue: "방금 놓친 전투"
         )
 
         static let rest = Style(
             icon: "xmark.seal.fill",
-            iconTint: Color(red: 0.66, green: 0.67, blue: 0.66),
+            iconTint: DungeonPalette.grave,
             caption: "오늘의 무덤",
-            captionTint: Color(red: 0.70, green: 0.72, blue: 0.71),
-            background: Color(red: 0.17, green: 0.17, blue: 0.22),
-            borderTint: Color(red: 0.55, green: 0.57, blue: 0.56).opacity(0.35),
+            captionTint: DungeonPalette.grave,
+            background: DungeonPalette.stone,
+            borderTint: DungeonPalette.grave.opacity(0.35),
             accessibilityValue: ""
         )
     }
@@ -164,8 +164,8 @@ private struct ImportancePip: View {
             .font(.caption2.weight(.black))
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(Color.white.opacity(0.10), in: Capsule())
-            .foregroundStyle(.white.opacity(0.72))
+            .background(DungeonPalette.ink.opacity(0.10), in: RoundedRectangle(cornerRadius: 2))
+            .foregroundStyle(DungeonPalette.ink.opacity(0.72))
     }
 }
 
@@ -178,21 +178,11 @@ struct MobLevelBadge: View {
             .font(.caption2.bold().monospacedDigit())
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(tint.opacity(0.2), in: Capsule())
+            .background(tint.opacity(0.2), in: RoundedRectangle(cornerRadius: 2))
             .foregroundStyle(tint)
     }
 
-    private var tint: Color { level.mobLevelTint }
-}
-
-private extension Int {
-    var mobLevelTint: Color {
-        switch self {
-        case ..<2: .green
-        case 2..<4: .orange
-        default: .red
-        }
-    }
+    private var tint: Color { MobVisual.tint(level: level) }
 }
 
 struct MonsterGlyph: View {
@@ -205,33 +195,14 @@ struct MonsterGlyph: View {
     }
 
     var body: some View {
-        Image(systemName: symbol)
-            .font(.title3)
-            .foregroundStyle(tint)
-            .frame(width: 28, height: 28)
-            .scaleEffect(battlePhase == .striking ? 1.22 : battlePhase == .defeated ? 0.82 : 1)
-            .rotationEffect(.degrees(battlePhase == .striking ? -8 : battlePhase == .defeated ? 10 : 0))
-            .opacity(battlePhase == .defeated ? 0.35 : 1)
-            .accessibilityLabel("몹 레벨 \(level)")
-    }
-
-    private var symbol: String {
-        switch level {
-        case ..<2: "circle.hexagongrid.fill"
-        case 2..<4: "figure.fencing"
-        default: "flame.fill"
-        }
-    }
-
-    private var tint: Color { level.mobLevelTint }
-}
-
-private extension DungeonUrgencyTone {
-    var tint: Color {
-        switch self {
-        case .calm: Color(red: 0.46, green: 0.86, blue: 0.62)
-        case .warning: Color(red: 1.0, green: 0.70, blue: 0.29)
-        case .danger: Color(red: 1.0, green: 0.43, blue: 0.35)
-        }
+        PixelSprite(
+            rows: DungeonSprites.monster(level: level),
+            palette: ["#": MobVisual.tint(level: level), "o": DungeonPalette.stone]
+        )
+        .frame(width: 30, height: 30)
+        .scaleEffect(battlePhase == .striking ? 1.22 : battlePhase == .defeated ? 0.82 : 1)
+        .rotationEffect(.degrees(battlePhase == .striking ? -8 : battlePhase == .defeated ? 10 : 0))
+        .opacity(battlePhase == .defeated ? 0.35 : 1)
+        .accessibilityLabel("몹 레벨 \(level)")
     }
 }
