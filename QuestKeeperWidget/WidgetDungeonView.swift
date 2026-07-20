@@ -143,9 +143,10 @@ struct WidgetDungeonView: View {
 
     private var footer: some View {
         HStack(spacing: 6) {
-            Image(systemName: entry.state.isStale ? "exclamationmark.triangle.fill" : "shield.lefthalf.filled")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(entry.state.isStale ? DungeonPalette.torch : DungeonPalette.guide)
+            WidgetArtworkView(
+                artwork: entry.state.isStale ? .staleWarning : .protectionShield,
+                size: 12
+            )
 
             Text(entry.state.generatedAt, style: .time)
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
@@ -212,9 +213,7 @@ private struct MobBadge: View {
 
             // One-tap completion — runs CompleteQuestIntent in the widget process (spec 009).
             Button(intent: CompleteQuestIntent(questID: mob.id)) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: compact ? 13 : 12, weight: .bold))
-                    .foregroundStyle(.white)
+                WidgetArtworkView(artwork: .complete, size: compact ? 13 : 12)
                     .frame(width: compact ? 28 : 24, height: compact ? 28 : 24)
                     .background(
                         DungeonPalette.hero,
@@ -232,6 +231,25 @@ private struct MobBadge: View {
             RoundedRectangle(cornerRadius: PixelStyle.corner)
                 .stroke(DungeonPalette.ink.opacity(0.16), lineWidth: 1)
         }
+    }
+}
+
+private enum WidgetArtwork: String {
+    case complete = "icon-complete"
+    case staleWarning = "icon-stale-warning"
+    case protectionShield = "icon-protection-shield"
+}
+
+private struct WidgetArtworkView: View {
+    let artwork: WidgetArtwork
+    let size: CGFloat
+
+    var body: some View {
+        Image(decorative: artwork.rawValue)
+            .resizable()
+            .interpolation(.none)
+            .scaledToFit()
+            .frame(width: size, height: size)
     }
 }
 
