@@ -88,11 +88,11 @@ private struct SwipeableQuestRow: View {
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                actionButton(title: "완료", systemImage: "checkmark", color: DungeonPalette.hero) {
+                actionButton(title: "완료", artwork: .complete, color: DungeonPalette.hero) {
                     completeWithBattle()
                 }
                 Spacer(minLength: 0)
-                actionButton(title: "삭제", systemImage: "trash", color: DungeonPalette.danger) {
+                actionButton(title: "삭제", artwork: .delete, color: DungeonPalette.danger) {
                     guard !isResolvingBattle else { return }
                     reset()
                     onDelete(quest)
@@ -152,9 +152,13 @@ private struct SwipeableQuestRow: View {
         }
     }
 
-    private func actionButton(title: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
+    private func actionButton(title: String, artwork: DungeonArtwork, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
+            Label {
+                Text(title)
+            } icon: {
+                DungeonArtworkView(artwork: artwork, size: 14)
+            }
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.white)
                 .frame(width: SwipeRevealState.maxOffset)
