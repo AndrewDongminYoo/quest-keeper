@@ -2,10 +2,6 @@
 //  HeroSprite.swift
 //  QuestKeeper
 //
-//  Phase 2 / DESIGN.md step 5 — a small drawn pixel hero. The contract is the state swap driven
-//  by `isMourning`: standing (hero-tinted) vs knocked over (grave-tinted, rotated). One bitmap
-//  serves both; only color and rotation change.
-//
 //  It is an inline HUD glyph, not a centerpiece: the dungeon floors (quest rows) are the primary
 //  surface per DESIGN.md, so the hero stays small and only its state carries meaning.
 //
@@ -16,17 +12,18 @@ struct HeroSprite: View {
     let isMourning: Bool
     var size: CGFloat = 22
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        PixelSprite(
-            rows: DungeonSprites.hero,
-            palette: [
-                "#": isMourning ? DungeonPalette.grave : DungeonPalette.hero,
-                "o": DungeonPalette.stone
-            ]
+        DungeonArtworkView(
+            artwork: isMourning ? .heroMourning : .heroIdle,
+            size: size
         )
-        .frame(width: size, height: size)
-        .rotationEffect(.degrees(isMourning ? 90 : 0))  // knocked over on a mourning activation
-        .animation(.snappy(duration: 0.25), value: isMourning)
+        .scaleEffect(reduceMotion ? 1 : isMourning ? 0.92 : 1)
+        .rotationEffect(.degrees(reduceMotion ? 0 : isMourning ? 4 : 0))
+        .offset(y: reduceMotion ? 0 : isMourning ? size * 0.08 : 0)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: isMourning)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(isMourning ? "쓰러진 용사" : "용사")
     }
 }
