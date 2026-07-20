@@ -14,6 +14,8 @@ struct QuestRow: View {
     let now: Date
     let battlePhase: QuestBattlePhase
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     init(quest: Quest, now: Date, battlePhase: QuestBattlePhase = .idle) {
         self.quest = quest
         self.now = now
@@ -43,13 +45,16 @@ struct QuestRow: View {
             Spacer(minLength: 10)
             VStack(alignment: .trailing, spacing: 8) {
                 if battlePhase == .defeated {
-                    Text("VICTORY +1")
-                        .font(.caption2.monospaced().weight(.black))
-                        .foregroundStyle(DungeonPalette.victory)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 2))
-                        .transition(.scale.combined(with: .opacity))
+                    HStack(spacing: 4) {
+                        DungeonArtworkView(artwork: .victoryReward, size: 14)
+                        Text("VICTORY +1")
+                    }
+                    .font(.caption2.monospaced().weight(.black))
+                    .foregroundStyle(DungeonPalette.victory)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 2))
+                    .transition(reduceMotion ? .identity : .scale.combined(with: .opacity))
                 } else {
                     MobLevelBadge(level: level)
                 }
@@ -76,10 +81,7 @@ struct DailyGraveRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: style.icon)
-                .font(.title2)
-                .foregroundStyle(style.iconTint)
-                .frame(width: 34)
+            DungeonArtworkView(artwork: .dailyGrave, size: 34)
             VStack(alignment: .leading, spacing: 6) {
                 Text(quest.title)
                     .font(.body.weight(.bold))
@@ -114,8 +116,6 @@ private extension DailyGraveRow {
     /// Visual variant of a grave row. Newly-missed quests wear the mourning treatment
     /// during the transient `pendingDeaths` window; older graves fall back to the rest palette.
     struct Style {
-        let icon: String
-        let iconTint: Color
         let caption: String
         let captionTint: Color
         let background: Color
@@ -125,8 +125,6 @@ private extension DailyGraveRow {
 
         // A just-missed grave wears the warm `torch` alarm; an older grave settles into muted `grave`.
         static let mourning = Style(
-            icon: "exclamationmark.triangle.fill",
-            iconTint: DungeonPalette.torch,
             caption: "방금 놓친 전투",
             captionTint: DungeonPalette.torch,
             background: DungeonPalette.stone,
@@ -135,8 +133,6 @@ private extension DailyGraveRow {
         )
 
         static let rest = Style(
-            icon: "xmark.seal.fill",
-            iconTint: DungeonPalette.grave,
             caption: "오늘의 무덤",
             captionTint: DungeonPalette.grave,
             background: DungeonPalette.stone,
@@ -189,20 +185,31 @@ struct MonsterGlyph: View {
     let level: Int
     let battlePhase: QuestBattlePhase
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     init(level: Int, battlePhase: QuestBattlePhase = .idle) {
         self.level = level
         self.battlePhase = battlePhase
     }
 
     var body: some View {
-        PixelSprite(
-            rows: DungeonSprites.monster(level: level),
-            palette: ["#": MobVisual.tint(level: level), "o": DungeonPalette.stone]
-        )
-        .frame(width: 30, height: 30)
-        .scaleEffect(battlePhase == .striking ? 1.22 : battlePhase == .defeated ? 0.82 : 1)
-        .rotationEffect(.degrees(battlePhase == .striking ? -8 : battlePhase == .defeated ? 10 : 0))
+        ZStack {
+            if battlePhase == .striking {
+                DungeonArtworkView(artwork: .battleImpact, size: 34)
+                    .transition(.opacity)
+            }
+            DungeonArtworkView(artwork: .monster(level: level), size: 30)
+        }
+        .frame(width: 34, height: 34)
+        .scaleEffect(reduceMotion ? 1 : battlePhase == .striking ? 1.22 : battlePhase == .defeated ? 0.82 : 1)
+        .rotationEffect(.degrees(reduceMotion ? 0 : battlePhase == .striking ? -8 : battlePhase == .defeated ? 10 : 0))
         .opacity(battlePhase == .defeated ? 0.35 : 1)
+        .transaction { transaction in
+            if reduceMotion {
+                transaction.animation = nil
+            }
+        }
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("몹 레벨 \(level)")
     }
 }

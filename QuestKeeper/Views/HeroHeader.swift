@@ -14,19 +14,38 @@ struct HeroHeader: View {
     let isMourning: Bool
     let activeQuestCount: Int
 
+    @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 20
+
     var body: some View {
-        HStack(spacing: 14) {
-            HStack(spacing: 5) {
-                HeroSprite(isMourning: isMourning, size: 20)
-                Text("용사")
-                    .foregroundStyle(DungeonPalette.ink)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) {
+                hero
+                stats
+                Spacer(minLength: 0)
             }
-            HeroStat(icon: "flag.checkered", label: "전투", value: activeQuestCount, tint: DungeonPalette.hero)
-            HeroStat(icon: "trophy.fill", label: "승리", value: state.totalVictories, tint: DungeonPalette.victory)
-            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 10) {
+                hero
+                stats
+            }
         }
         .font(.caption.bold().monospacedDigit())
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var hero: some View {
+        HStack(spacing: 5) {
+            HeroSprite(isMourning: isMourning, size: heroSize)
+            Text("용사")
+                .foregroundStyle(DungeonPalette.ink)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var stats: some View {
+        HStack(spacing: 14) {
+            HeroStat(icon: "flag.checkered", label: "전투", value: activeQuestCount, tint: DungeonPalette.hero)
+            HeroStat(icon: "trophy.fill", label: "승리", value: state.totalVictories, tint: DungeonPalette.victory)
+        }
     }
 }
 
@@ -46,6 +65,7 @@ private struct HeroStat: View {
             Text("\(value)")
                 .foregroundStyle(DungeonPalette.ink)
         }
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) \(value)")
     }
