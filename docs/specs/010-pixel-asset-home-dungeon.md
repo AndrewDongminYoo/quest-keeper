@@ -1,6 +1,6 @@
 # Spec 010 — Pixel Asset Home Dungeon
 
-Status: awaiting written-spec review
+Status: approved
 Depends on: 007 (home dungeon board), 008 (row battle transition)
 Tracks: AND-42
 
