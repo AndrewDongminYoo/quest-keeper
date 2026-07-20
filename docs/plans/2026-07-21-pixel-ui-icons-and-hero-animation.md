@@ -129,9 +129,14 @@ Record both values for the generation note.
 Run:
 
 ```bash
-python /Users/dongminyu/.codex/skills/.system/imagegen/scripts/remove_chroma_key.py \
+python3 /Users/dongminyu/.codex/skills/.system/imagegen/scripts/remove_chroma_key.py \
   --input tmp/imagegen/and-44-source.png \
-  --output tmp/imagegen/and-44-transparent.png
+  --out tmp/imagegen/and-44-transparent.png \
+  --auto-key border \
+  --soft-matte \
+  --transparent-threshold 12 \
+  --opaque-threshold 220 \
+  --despill
 ```
 
 Expected: an RGBA PNG with transparent cell backgrounds and no visible magenta fringe.
