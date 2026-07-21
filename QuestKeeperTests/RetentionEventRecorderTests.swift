@@ -10,6 +10,30 @@ struct RetentionEventRecorderTests {
     private let questID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
     private let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
+    @Test("independent callers converge on one persisted installation identity")
+    nonisolated func installationIdentityIsRaceSafe() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileURL = directory.appending(path: "retention-installation-id-v1")
+
+        let identities = try await withThrowingTaskGroup(of: UUID.self) { group in
+            for _ in 0..<8 {
+                group.addTask {
+                    try RetentionInstallationIdentityStore(fileURL: fileURL).loadOrCreate()
+                }
+            }
+            var result: Set<UUID> = []
+            while let identity = try await group.next() {
+                result.insert(identity)
+            }
+            return result
+        }
+
+        #expect(identities.count == 1)
+    }
+
     @Test("recorder creates one stable installation and deduplicates each canonical key")
     func recorderDeduplicatesCanonicalKeys() throws {
         let container = try measurementContainer()

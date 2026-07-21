@@ -24,6 +24,7 @@ Status: complete.
 - Forbidden scenario keys: 0.
 - Unsupported rows: 0.
 - Orphan completions: 0.
+- Pre-activation creations: 0.
 - Pre-measurement rows: 0.
 - Future rows: 0.
 

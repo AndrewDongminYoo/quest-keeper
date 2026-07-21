@@ -97,14 +97,72 @@ struct RetentionReportTests {
             source: "app",
             at: "2026-07-14T15:00:00Z"
         )
+        let widgetCreation = rawEvent(
+            id: 205,
+            key: "widget-creation",
+            name: "quest_created",
+            source: "widget",
+            at: "2026-07-08T03:00:00Z",
+            questID: RetentionBaselineFixture.questA
+        )
+        let activationWithQuest = rawEvent(
+            id: 206,
+            key: "activation-with-quest",
+            name: "app_activated",
+            source: "app",
+            at: "2026-07-08T03:00:00Z",
+            questID: RetentionBaselineFixture.questA
+        )
+        let completionWithoutQuest = rawEvent(
+            id: 207,
+            key: "completion-without-quest",
+            name: "quest_completed",
+            source: "app",
+            at: "2026-07-08T03:00:00Z"
+        )
         let report = makeReport(events: RetentionBaselineFixture.events + [
             unknownName, unknownSource, beforeMeasurement, future,
+            widgetCreation, activationWithQuest, completionWithoutQuest,
         ])
 
-        #expect(report.dataQuality.unsupportedCount == 2)
+        #expect(report.dataQuality.unsupportedCount == 5)
         #expect(report.dataQuality.preMeasurementCount == 1)
         #expect(report.dataQuality.futureCount == 1)
         #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("creation before first activation is reported as an ordering failure")
+    func creationBeforeActivation() {
+        let installationID = RetentionBaselineFixture.uuid(30)
+        let installation = RetentionInstallationSnapshot(
+            schemaVersion: 1,
+            installationID: installationID,
+            measurementStartedAt: RetentionBaselineFixture.date("2026-07-10T15:00:00Z")
+        )
+        let creation = RetentionBaselineFixture.event(
+            501,
+            "creation-before-activation",
+            .questCreated,
+            installationID,
+            "2026-07-10T15:01:00Z",
+            RetentionBaselineFixture.uuid(301)
+        )
+        let activation = RetentionBaselineFixture.event(
+            502,
+            "activation-after-creation",
+            .appActivated,
+            installationID,
+            "2026-07-10T15:02:00Z"
+        )
+        let report = makeReport(
+            installations: RetentionBaselineFixture.installations + [installation],
+            events: RetentionBaselineFixture.events + [creation, activation],
+            expectation: nil
+        )
+
+        #expect(report.dataQuality.preActivationCreationCount == 1)
+        #expect(report.dataQuality.status == .partial)
+        #expect(report.firstValue == RetentionRate(achieved: 3, eligible: 5))
     }
 
     @Test("completion before creation is orphaned and receives no funnel credit")
@@ -193,7 +251,8 @@ struct RetentionReportTests {
         key: String,
         name: String,
         source: String,
-        at: String
+        at: String,
+        questID: UUID? = nil
     ) -> RetentionEventSnapshot {
         RetentionEventSnapshot(
             id: RetentionBaselineFixture.uuid(id),
@@ -202,7 +261,7 @@ struct RetentionReportTests {
             installationID: RetentionBaselineFixture.installationA,
             occurredAt: RetentionBaselineFixture.date(at),
             sourceRawValue: source,
-            questID: nil,
+            questID: questID,
             deduplicationKey: key
         )
     }

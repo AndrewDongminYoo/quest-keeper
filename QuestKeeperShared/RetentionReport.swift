@@ -21,6 +21,7 @@ nonisolated struct RetentionDataQuality: Codable, Equatable, Sendable {
     let forbiddenCount: Int
     let unsupportedCount: Int
     let orphanCompletionCount: Int
+    let preActivationCreationCount: Int
     let preMeasurementCount: Int
     let futureCount: Int
 }
@@ -77,8 +78,9 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
         var validEvents: [RetentionEventSnapshot] = []
         for event in events {
             guard event.schemaVersion == RetentionEvent.currentSchemaVersion,
-                  event.name != nil,
-                  event.source != nil,
+                  let name = event.name,
+                  let source = event.source,
+                  isValidCombination(name: name, source: source, questID: event.questID),
                   let installation = supportedInstallations[event.installationID]
             else {
                 unsupportedCount += 1
@@ -117,6 +119,7 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
         var firstValueAchieved = 0
         var firstCompletionAchieved = 0
         var orphanCompletionCount = 0
+        var preActivationCreationCount = 0
         var d1Eligible = 0
         var d1Achieved = 0
         var d7Eligible = 0
@@ -129,7 +132,13 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
                 if !hasEarlierCreation { orphanCompletionCount += 1 }
             }
 
-            guard let activationIndex = ordered.firstIndex(where: { $0.name == .appActivated }) else { continue }
+            let activationIndex = ordered.firstIndex(where: { $0.name == .appActivated })
+            if let activationIndex {
+                preActivationCreationCount += ordered[..<activationIndex].count { $0.name == .questCreated }
+            } else {
+                preActivationCreationCount += ordered.count { $0.name == .questCreated }
+            }
+            guard let activationIndex else { continue }
             firstValueEligible += 1
             let activation = ordered[activationIndex]
 
@@ -185,6 +194,7 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
             || forbiddenCount > 0
             || unsupportedCount > 0
             || orphanCompletionCount > 0
+            || preActivationCreationCount > 0
             || preMeasurementCount > 0
             || futureCount > 0
 
@@ -209,6 +219,7 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
                 forbiddenCount: forbiddenCount,
                 unsupportedCount: unsupportedCount,
                 orphanCompletionCount: orphanCompletionCount,
+                preActivationCreationCount: preActivationCreationCount,
                 preMeasurementCount: preMeasurementCount,
                 futureCount: futureCount
             ),
@@ -248,6 +259,7 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
             "- Forbidden scenario keys: \(dataQuality.forbiddenCount).",
             "- Unsupported rows: \(dataQuality.unsupportedCount).",
             "- Orphan completions: \(dataQuality.orphanCompletionCount).",
+            "- Pre-activation creations: \(dataQuality.preActivationCreationCount).",
             "- Pre-measurement rows: \(dataQuality.preMeasurementCount).",
             "- Future rows: \(dataQuality.futureCount).",
             "",
@@ -269,6 +281,21 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
 
     private static func iso8601(_ date: Date) -> String {
         ISO8601DateFormatter().string(from: date)
+    }
+}
+
+private nonisolated func isValidCombination(
+    name: RetentionEventName,
+    source: RetentionEventSource,
+    questID: UUID?
+) -> Bool {
+    switch name {
+    case .appActivated:
+        source == .app && questID == nil
+    case .questCreated, .questRetried:
+        source == .app && questID != nil
+    case .questCompleted:
+        questID != nil
     }
 }
 

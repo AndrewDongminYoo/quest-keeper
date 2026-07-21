@@ -1,6 +1,49 @@
+import Darwin
 import Foundation
 import OSLog
 import SwiftData
+
+nonisolated struct RetentionInstallationIdentityStore: Sendable {
+    let fileURL: URL
+
+    static func appGroup() throws -> RetentionInstallationIdentityStore {
+        guard let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: WidgetDungeonSnapshotStore.appGroupIdentifier
+        ) else {
+            throw RetentionBaselineStoreError.appGroupUnavailable
+        }
+        return RetentionInstallationIdentityStore(
+            fileURL: containerURL.appending(path: "retention-installation-id-v1")
+        )
+    }
+
+    func loadOrCreate() throws -> UUID {
+        try FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let lockURL = fileURL.appendingPathExtension("lock")
+        let descriptor = open(lockURL.path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+        guard descriptor >= 0 else { throw posixError() }
+        defer { close(descriptor) }
+        guard flock(descriptor, LOCK_EX) == 0 else { throw posixError() }
+        defer { flock(descriptor, LOCK_UN) }
+
+        if let data = try? Data(contentsOf: fileURL),
+           let value = String(data: data, encoding: .utf8),
+           let installationID = UUID(uuidString: value) {
+            return installationID
+        }
+
+        let installationID = UUID()
+        try Data(installationID.uuidString.utf8).write(to: fileURL, options: .atomic)
+        return installationID
+    }
+
+    private func posixError() -> NSError {
+        NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
+    }
+}
 
 nonisolated enum RetentionRecordResult: Equatable, Sendable {
     case inserted
@@ -93,7 +136,11 @@ nonisolated enum RetentionEventRecorder {
             if let existing = try context.fetch(installationDescriptor).first {
                 installation = existing
             } else {
-                let created = RetentionInstallation(measurementStartedAt: occurredAt)
+                let installationID = try RetentionInstallationIdentityStore.appGroup().loadOrCreate()
+                let created = RetentionInstallation(
+                    installationID: installationID,
+                    measurementStartedAt: occurredAt
+                )
                 context.insert(created)
                 installation = created
             }
