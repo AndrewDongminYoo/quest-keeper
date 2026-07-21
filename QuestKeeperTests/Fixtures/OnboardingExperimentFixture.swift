@@ -97,7 +97,16 @@ enum OnboardingExperimentFixture {
         key: String? = nil,
         schemaVersion: Int = 1
     ) -> RetentionEventSnapshot {
-        RetentionEventSnapshot(
+        let defaultComponent: String
+        switch name {
+        case .experimentExposed:
+            defaultComponent = OnboardingExperiment.key
+        case .questCreationStarted, .onboardingDeferred:
+            defaultComponent = "\(OnboardingExperiment.key):\(id)"
+        default:
+            defaultComponent = String(id)
+        }
+        return RetentionEventSnapshot(
             id: uuid(1_000 + id),
             schemaVersion: schemaVersion,
             nameRawValue: name.rawValue,
@@ -105,7 +114,8 @@ enum OnboardingExperimentFixture {
             occurredAt: date(occurredAt),
             sourceRawValue: source.rawValue,
             questID: questID,
-            deduplicationKey: key ?? "\(name.rawValue)-\(id)"
+            deduplicationKey: key
+                ?? "\(name.rawValue):\(installationID.uuidString):\(defaultComponent)"
         )
     }
 

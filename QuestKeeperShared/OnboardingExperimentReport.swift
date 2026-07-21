@@ -62,16 +62,15 @@ nonisolated struct OnboardingExperimentReport: Codable, Equatable, Sendable {
                 $0.schemaVersion == ExperimentAssignment.currentSchemaVersion && $0.variant != nil
             }
             quality.unsupportedCount += rows.count - supportedRows.count
-            guard supportedRows.count == 1 else {
-                if supportedRows.count > 1 {
-                    if supportedRows.dropFirst().allSatisfy({ $0 == supportedRows[0] }) {
-                        quality.duplicateAssignmentCount += supportedRows.count - 1
-                    } else {
-                        quality.conflictingAssignmentCount += 1
-                    }
+            guard rows.count == 1 else {
+                if rows.dropFirst().allSatisfy({ $0 == rows[0] }) {
+                    quality.duplicateAssignmentCount += rows.count - 1
+                } else {
+                    quality.conflictingAssignmentCount += 1
                 }
                 continue
             }
+            guard supportedRows.count == 1 else { continue }
             supportedAssignments.append(supportedRows[0])
         }
 
@@ -93,18 +92,33 @@ nonisolated struct OnboardingExperimentReport: Codable, Equatable, Sendable {
             eligibleInstallations[assignment.installationID] = supportedRows[0]
         }
 
+        let eligibleAssignmentsByID = Dictionary(
+            uniqueKeysWithValues: eligibleAssignments.map { ($0.installationID, $0) }
+        )
         let knownInstallationIDs = Set(installations.map(\.installationID))
+        var contaminatedInstallationIDs: Set<UUID> = []
         var validEvents: [RetentionEventSnapshot] = []
         for event in events {
+            let eventExperimentKey = event.experimentKeyComponent
+            if event.name?.isExperimentSpecific == true {
+                guard let eventExperimentKey else {
+                    if eligibleAssignmentsByID[event.installationID] != nil {
+                        quality.unsupportedCount += 1
+                        contaminatedInstallationIDs.insert(event.installationID)
+                    }
+                    continue
+                }
+                guard eventExperimentKey == OnboardingExperiment.key else { continue }
+            }
             guard allExperimentInstallationIDs.contains(event.installationID) else {
-                if !knownInstallationIDs.contains(event.installationID) {
+                if eventExperimentKey == OnboardingExperiment.key
+                    || !knownInstallationIDs.contains(event.installationID) {
                     quality.crossInstallationMismatchCount += 1
                 }
                 continue
             }
-            guard let assignment = eligibleAssignments.first(where: {
-                $0.installationID == event.installationID
-            }), let installation = eligibleInstallations[event.installationID] else {
+            guard let assignment = eligibleAssignmentsByID[event.installationID],
+                  let installation = eligibleInstallations[event.installationID] else {
                 continue
             }
             guard event.schemaVersion == RetentionEvent.currentSchemaVersion,
@@ -112,15 +126,20 @@ nonisolated struct OnboardingExperimentReport: Codable, Equatable, Sendable {
                   let source = event.source,
                   validCombination(name: name, source: source, questID: event.questID) else {
                 quality.unsupportedCount += 1
+                contaminatedInstallationIDs.insert(event.installationID)
                 continue
             }
             guard name != .onboardingDeferred || assignment.variant == .guided else {
                 quality.unsupportedCount += 1
+                contaminatedInstallationIDs.insert(event.installationID)
                 continue
             }
             guard event.occurredAt >= installation.measurementStartedAt,
                   event.occurredAt >= assignment.assignedAt else {
-                quality.orderingFailureCount += 1
+                if name.isOnboardingProgress {
+                    quality.orderingFailureCount += 1
+                    contaminatedInstallationIDs.insert(event.installationID)
+                }
                 continue
             }
             guard event.occurredAt <= asOf else { continue }
@@ -133,6 +152,9 @@ nonisolated struct OnboardingExperimentReport: Codable, Equatable, Sendable {
                 for duplicate in sorted.dropFirst() {
                     quality.duplicateCountsByEvent[duplicate.nameRawValue, default: 0] += 1
                 }
+                if sorted.count > 1 {
+                    contaminatedInstallationIDs.formUnion(sorted.map(\.installationID))
+                }
                 return sorted.first
             }
             .sorted(by: eventOrdering)
@@ -141,14 +163,17 @@ nonisolated struct OnboardingExperimentReport: Codable, Equatable, Sendable {
         var control = VariantAccumulator()
         var guided = VariantAccumulator()
         for assignment in eligibleAssignments.sorted(by: assignmentOrdering) {
+            guard !contaminatedInstallationIDs.contains(assignment.installationID) else {
+                continue
+            }
             let assignmentEvents = eventsByInstallation[assignment.installationID] ?? []
-            let journey = makeJourney(
+            guard let journey = makeJourney(
                 assignment: assignment,
                 events: assignmentEvents,
                 asOf: asOf,
                 calendar: calendar,
                 quality: &quality
-            )
+            ) else { continue }
             guard let variant = assignment.variant else { continue }
             switch variant {
             case .control:
@@ -359,31 +384,32 @@ private nonisolated func makeJourney(
     asOf: Date,
     calendar: Calendar,
     quality: inout QualityAccumulator
-) -> OnboardingJourney {
+) -> OnboardingJourney? {
     let ordered = events.sorted(by: eventOrdering)
     guard let exposureIndex = ordered.firstIndex(where: { $0.name == .experimentExposed }) else {
         quality.missingExposureCount += 1
-        return emptyJourney
+        return nil
     }
 
     let exposure = ordered[exposureIndex]
     let eventsBeforeExposure = ordered[..<exposureIndex].filter {
-        $0.name != .appActivated && $0.name != .questRetried
+        $0.name?.isOnboardingProgress == true
     }
     quality.orderingFailureCount += eventsBeforeExposure.count
+    guard eventsBeforeExposure.isEmpty else { return nil }
 
     let laterEvents = ordered.dropFirst(exposureIndex + 1)
-    let creationStartIndex = laterEvents.firstIndex(where: { $0.name == .questCreationStarted })
-    let creationStart = creationStartIndex.map { laterEvents[$0] }
-    let eventsAfterStart = creationStartIndex.map { laterEvents.dropFirst(laterEvents.distance(from: laterEvents.startIndex, to: $0) + 1) } ?? []
-    let firstCreation = eventsAfterStart.first(where: { $0.name == .questCreated })
-    let firstCompletion = firstCreation.flatMap { creation in
-        eventsAfterStart.first {
-            $0.name == .questCompleted
-                && $0.questID == creation.questID
-                && eventOrdering(creation, $0)
-        }
+    let creationStart = laterEvents.first(where: { $0.name == .questCreationStarted })
+    let firstCreation = laterEvents.first(where: { $0.name == .questCreated })
+    let completions = laterEvents.filter { $0.name == .questCompleted }
+    let contradictoryCompletions = completions.filter { completion in
+        guard let firstCreation else { return true }
+        return completion.questID != firstCreation.questID
+            || !eventOrdering(firstCreation, completion)
     }
+    quality.orderingFailureCount += contradictoryCompletions.count
+    guard contradictoryCompletions.isEmpty else { return nil }
+    let firstCompletion = completions.first
     let boundary = exposure.occurredAt.addingTimeInterval(120)
     let d1 = retention(
         dayOffset: 1,
@@ -416,22 +442,6 @@ private nonisolated func makeJourney(
         timeToFirstValue: firstCreation.map { $0.occurredAt.timeIntervalSince(exposure.occurredAt) }
     )
 }
-
-private nonisolated let emptyJourney = OnboardingJourney(
-    exposed: false,
-    creationStarted: false,
-    firstValueAt: nil,
-    firstCompletionAt: nil,
-    twoMinuteWindowMatured: false,
-    firstValueWithinTwoMinutes: false,
-    firstSuccessWithinTwoMinutes: false,
-    returnedD1: false,
-    d1Eligible: false,
-    returnedD7: false,
-    d7Eligible: false,
-    deferred: false,
-    timeToFirstValue: nil
-)
 
 private nonisolated func retention(
     dayOffset: Int,

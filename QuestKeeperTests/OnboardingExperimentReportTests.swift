@@ -76,7 +76,7 @@ struct OnboardingExperimentReportTests {
         #expect(afterTargetDay.control.d1 == RetentionRate(achieved: 0, eligible: 1))
     }
 
-    @Test("completion for another quest receives no credit")
+    @Test("completion for another quest excludes the contaminated installation")
     func differentQuestCompletion() {
         var events = OnboardingExperimentFixture.events.filter { $0.id != OnboardingExperimentFixture.uuid(1_012) }
         events.append(OnboardingExperimentFixture.event(
@@ -89,11 +89,13 @@ struct OnboardingExperimentReportTests {
 
         let report = makeReport(events: events)
 
-        #expect(report.guided.funnel.firstCompletion == 0)
-        #expect(report.guided.firstSuccessWithinTwoMinutes == RetentionRate(achieved: 0, eligible: 2))
+        #expect(report.guided.funnel.exposed == 1)
+        #expect(report.guided.funnel.firstValue == 1)
+        #expect(report.dataQuality.orderingFailureCount == 1)
+        #expect(report.dataQuality.status == .partial)
     }
 
-    @Test("duplicate event keys are reported and count once")
+    @Test("duplicate event keys exclude the contaminated installation")
     func duplicateEvents() {
         let original = OnboardingExperimentFixture.events[10]
         let duplicate = RetentionEventSnapshot(
@@ -109,8 +111,129 @@ struct OnboardingExperimentReportTests {
 
         let report = makeReport(events: OnboardingExperimentFixture.events + [duplicate])
 
-        #expect(report.guided.funnel.firstValue == 2)
+        #expect(report.guided.funnel.exposed == 1)
+        #expect(report.guided.funnel.firstValue == 1)
         #expect(report.dataQuality.duplicateCountsByEvent[RetentionEventName.questCreated.rawValue] == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("first value remains independent when creation start is missing")
+    func creationWithoutStart() {
+        let events = OnboardingExperimentFixture.events.filter {
+            $0.id != OnboardingExperimentFixture.uuid(1_010)
+        }
+
+        let report = makeReport(events: events)
+
+        #expect(report.guided.funnel.exposed == 2)
+        #expect(report.guided.funnel.creationStarted == 1)
+        #expect(report.guided.funnel.firstValue == 2)
+        #expect(report.guided.funnel.firstCompletion == 1)
+    }
+
+    @Test("a supported assignment beside an unsupported row is excluded")
+    func mixedSupportedAndUnsupportedAssignments() {
+        let unsupported = ExperimentAssignmentSnapshot(
+            schemaVersion: 2,
+            experimentKey: OnboardingExperiment.key,
+            installationID: OnboardingExperimentFixture.controlA,
+            variantRawValue: OnboardingExperimentVariant.control.rawValue,
+            assignedAt: OnboardingExperimentFixture.assignments[0].assignedAt
+        )
+
+        let report = makeReport(assignments: OnboardingExperimentFixture.assignments + [unsupported])
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.unsupportedCount == 1)
+        #expect(report.dataQuality.conflictingAssignmentCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("another experiment exposure cannot enter the AND-34 cohort")
+    func differentExperimentExposure() {
+        let events = OnboardingExperimentFixture.events.map { event in
+            guard event.installationID == OnboardingExperimentFixture.controlA,
+                  event.name == .experimentExposed else {
+                return event
+            }
+            return RetentionEventSnapshot(
+                id: event.id,
+                schemaVersion: event.schemaVersion,
+                nameRawValue: event.nameRawValue,
+                installationID: event.installationID,
+                occurredAt: event.occurredAt,
+                sourceRawValue: event.sourceRawValue,
+                questID: event.questID,
+                deduplicationKey: "experiment_exposed:\(event.installationID.uuidString):another-experiment"
+            )
+        }
+
+        let report = makeReport(events: events)
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.missingExposureCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("completion before first creation excludes the contaminated installation")
+    func completionBeforeCreation() {
+        var events = OnboardingExperimentFixture.events.filter {
+            $0.id != OnboardingExperimentFixture.uuid(1_004)
+        }
+        events.append(OnboardingExperimentFixture.event(
+            304,
+            .questCompleted,
+            OnboardingExperimentFixture.controlA,
+            "2026-07-01T15:00:30Z",
+            OnboardingExperimentFixture.controlQuest
+        ))
+
+        let report = makeReport(events: events)
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.orderingFailureCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("an unsupported event excludes its assigned installation")
+    func unsupportedEventContamination() {
+        var events = OnboardingExperimentFixture.events
+        events.append(OnboardingExperimentFixture.event(
+            305,
+            .appActivated,
+            OnboardingExperimentFixture.guidedA,
+            "2026-07-03T16:00:00Z",
+            schemaVersion: 2
+        ))
+
+        let report = makeReport(events: events)
+
+        #expect(report.guided.funnel.exposed == 1)
+        #expect(report.dataQuality.unsupportedCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("an AND-34 event without an assignment is reported")
+    func missingAssignmentEvent() {
+        let installationID = OnboardingExperimentFixture.uuid(306)
+        let installation = RetentionInstallationSnapshot(
+            schemaVersion: 1,
+            installationID: installationID,
+            measurementStartedAt: OnboardingExperimentFixture.cohort.start
+        )
+        let exposure = OnboardingExperimentFixture.event(
+            306,
+            .experimentExposed,
+            installationID,
+            "2026-07-01T15:00:00Z"
+        )
+
+        let report = makeReport(
+            installations: OnboardingExperimentFixture.installations + [installation],
+            events: OnboardingExperimentFixture.events + [exposure]
+        )
+
+        #expect(report.dataQuality.crossInstallationMismatchCount == 1)
         #expect(report.dataQuality.status == .partial)
     }
 

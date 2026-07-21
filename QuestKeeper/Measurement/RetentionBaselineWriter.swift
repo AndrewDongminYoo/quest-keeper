@@ -58,13 +58,10 @@ final class RetentionBaselineWriter {
                 let assignments = try container.mainContext.fetch(
                     FetchDescriptor<ExperimentAssignment>(sortBy: [SortDescriptor(\.assignedAt)])
                 ).map(\.snapshot)
-                let supportedAssignments = assignments.filter {
-                    $0.schemaVersion == ExperimentAssignment.currentSchemaVersion
-                        && $0.experimentKey == OnboardingExperiment.key
-                        && $0.variant != nil
-                        && $0.assignedAt < now
+                let cohortAssignments = assignments.filter {
+                    $0.experimentKey == OnboardingExperiment.key && $0.assignedAt < now
                 }
-                guard let cohortStart = supportedAssignments.first?.assignedAt else { return }
+                guard let cohortStart = cohortAssignments.first?.assignedAt else { return }
                 let experimentReport = OnboardingExperimentReport.make(
                     assignments: assignments,
                     installations: installations,

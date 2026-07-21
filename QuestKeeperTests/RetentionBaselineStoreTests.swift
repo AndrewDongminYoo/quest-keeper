@@ -98,6 +98,54 @@ struct RetentionBaselineStoreTests {
         #expect(store.load()?.weeklyActiveInstallations == 1)
     }
 
+    @MainActor
+    @Test("writer reports an unsupported-only onboarding assignment")
+    func unsupportedOnlyAssignmentWritesPartialReport() throws {
+        let schema = Schema([
+            Quest.self,
+            RetentionInstallation.self,
+            RetentionEvent.self,
+            ExperimentAssignment.self,
+        ])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+        let experimentStore = OnboardingExperimentStore(
+            fileURL: temporaryDirectory().appending(path: OnboardingExperimentStore.fileName)
+        )
+        let writer = RetentionBaselineWriter(
+            store: RetentionBaselineStore(
+                fileURL: temporaryDirectory().appending(path: RetentionBaselineStore.fileName)
+            ),
+            onboardingStore: experimentStore
+        )
+        let now = RetentionBaselineFixture.date("2026-07-08T01:00:00Z")
+        let assignedAt = now.addingTimeInterval(-1)
+        let installationID = RetentionBaselineFixture.uuid(504)
+        container.mainContext.insert(RetentionInstallation(
+            installationID: installationID,
+            measurementStartedAt: assignedAt
+        ))
+        container.mainContext.insert(ExperimentAssignment(
+            schemaVersion: 2,
+            installationID: installationID,
+            variant: .control,
+            assignedAt: assignedAt
+        ))
+        try container.mainContext.save()
+
+        writer.recordActivationAndWrite(
+            sessionID: RetentionBaselineFixture.uuid(505),
+            at: now,
+            using: container,
+            calendar: RetentionBaselineFixture.calendar
+        )
+
+        #expect(experimentStore.load()?.dataQuality.unsupportedCount == 1)
+        #expect(experimentStore.load()?.dataQuality.status == .partial)
+    }
+
     @Test("store round-trips stable sorted ISO-8601 JSON")
     func storeRoundTripsStableJSON() throws {
         let fileURL = temporaryDirectory().appending(path: RetentionBaselineStore.fileName)
