@@ -1,0 +1,273 @@
+import Foundation
+import Testing
+@testable import QuestKeeper
+
+struct OnboardingExperimentReportTests {
+    @Test("fixture produces approved variant funnels and rates")
+    func fixtureMetrics() {
+        let report = makeReport()
+
+        #expect(report.control.funnel == OnboardingExperimentFixture.expectedControlFunnel)
+        #expect(report.guided.funnel == OnboardingExperimentFixture.expectedGuidedFunnel)
+        #expect(report.control.onboardingCompletionWithinTwoMinutes == RetentionRate(achieved: 1, eligible: 2))
+        #expect(report.guided.onboardingCompletionWithinTwoMinutes == RetentionRate(achieved: 1, eligible: 2))
+        #expect(report.control.firstSuccessWithinTwoMinutes == RetentionRate(achieved: 0, eligible: 2))
+        #expect(report.guided.firstSuccessWithinTwoMinutes == RetentionRate(achieved: 1, eligible: 2))
+        #expect(report.control.firstQuestCompletion == RetentionRate(achieved: 1, eligible: 1))
+        #expect(report.guided.firstQuestCompletion == RetentionRate(achieved: 1, eligible: 2))
+        #expect(report.control.medianTimeToFirstValueSeconds == 60)
+        #expect(report.guided.medianTimeToFirstValueSeconds == 120)
+        #expect(report.control.d1 == RetentionRate(achieved: 1, eligible: 2))
+        #expect(report.guided.d1 == RetentionRate(achieved: 1, eligible: 2))
+        #expect(report.control.d7 == RetentionRate(achieved: 1, eligible: 1))
+        #expect(report.guided.d7 == RetentionRate(achieved: 0, eligible: 1))
+        #expect(report.guidedDeferral == RetentionRate(achieved: 1, eligible: 2))
+        #expect(report.dataQuality.status == .complete)
+    }
+
+    @Test("two minute boundary is inclusive and immature exposures are excluded")
+    func twoMinuteBoundary() {
+        let installationID = OnboardingExperimentFixture.uuid(20)
+        let assignment = OnboardingExperimentFixture.assignment(installationID, .control, "2026-07-01T15:00:00Z")
+        let installation = installation(for: assignment)
+        let exposure = OnboardingExperimentFixture.event(201, .experimentExposed, installationID, "2026-07-01T15:00:00Z")
+        let start = OnboardingExperimentFixture.event(202, .questCreationStarted, installationID, "2026-07-01T15:00:01Z")
+        let creation = OnboardingExperimentFixture.event(203, .questCreated, installationID, "2026-07-01T15:02:00Z", OnboardingExperimentFixture.uuid(220))
+
+        let mature = makeReport(
+            assignments: [assignment],
+            installations: [installation],
+            events: [exposure, start, creation],
+            asOf: OnboardingExperimentFixture.date("2026-07-01T15:02:00Z")
+        )
+        let immature = makeReport(
+            assignments: [assignment],
+            installations: [installation],
+            events: [exposure, start],
+            asOf: OnboardingExperimentFixture.date("2026-07-01T15:01:59Z")
+        )
+
+        #expect(mature.control.onboardingCompletionWithinTwoMinutes == RetentionRate(achieved: 1, eligible: 1))
+        #expect(immature.control.onboardingCompletionWithinTwoMinutes == RetentionRate(achieved: 0, eligible: 0))
+    }
+
+    @Test("D1 requires the complete local target day and does not backfill late activation")
+    func localDayRetention() {
+        let installationID = OnboardingExperimentFixture.uuid(21)
+        let assignment = OnboardingExperimentFixture.assignment(installationID, .control, "2026-07-01T16:00:00Z")
+        let installation = installation(for: assignment)
+        let exposure = OnboardingExperimentFixture.event(211, .experimentExposed, installationID, "2026-07-01T16:00:00Z")
+        let lateActivation = OnboardingExperimentFixture.event(212, .appActivated, installationID, "2026-07-03T16:00:00Z")
+
+        let beforeTargetDayEnds = makeReport(
+            assignments: [assignment],
+            installations: [installation],
+            events: [exposure],
+            asOf: OnboardingExperimentFixture.date("2026-07-02T14:59:59Z")
+        )
+        let afterTargetDay = makeReport(
+            assignments: [assignment],
+            installations: [installation],
+            events: [exposure, lateActivation],
+            asOf: OnboardingExperimentFixture.date("2026-07-03T15:00:00Z")
+        )
+
+        #expect(beforeTargetDayEnds.control.d1 == RetentionRate(achieved: 0, eligible: 0))
+        #expect(afterTargetDay.control.d1 == RetentionRate(achieved: 0, eligible: 1))
+    }
+
+    @Test("completion for another quest receives no credit")
+    func differentQuestCompletion() {
+        var events = OnboardingExperimentFixture.events.filter { $0.id != OnboardingExperimentFixture.uuid(1_012) }
+        events.append(OnboardingExperimentFixture.event(
+            301,
+            .questCompleted,
+            OnboardingExperimentFixture.guidedA,
+            "2026-07-01T15:01:40Z",
+            OnboardingExperimentFixture.uuid(999)
+        ))
+
+        let report = makeReport(events: events)
+
+        #expect(report.guided.funnel.firstCompletion == 0)
+        #expect(report.guided.firstSuccessWithinTwoMinutes == RetentionRate(achieved: 0, eligible: 2))
+    }
+
+    @Test("duplicate event keys are reported and count once")
+    func duplicateEvents() {
+        let original = OnboardingExperimentFixture.events[10]
+        let duplicate = RetentionEventSnapshot(
+            id: OnboardingExperimentFixture.uuid(9_001),
+            schemaVersion: original.schemaVersion,
+            nameRawValue: original.nameRawValue,
+            installationID: original.installationID,
+            occurredAt: original.occurredAt.addingTimeInterval(1),
+            sourceRawValue: original.sourceRawValue,
+            questID: original.questID,
+            deduplicationKey: original.deduplicationKey
+        )
+
+        let report = makeReport(events: OnboardingExperimentFixture.events + [duplicate])
+
+        #expect(report.guided.funnel.firstValue == 2)
+        #expect(report.dataQuality.duplicateCountsByEvent[RetentionEventName.questCreated.rawValue] == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("missing exposure excludes the assignment from funnel denominators")
+    func missingExposure() {
+        let events = OnboardingExperimentFixture.events.filter {
+            !($0.installationID == OnboardingExperimentFixture.controlB && $0.name == .experimentExposed)
+        }
+        let report = makeReport(events: events)
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.missingExposureCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("conflicting assignments are excluded")
+    func conflictingAssignments() {
+        let conflict = ExperimentAssignmentSnapshot(
+            schemaVersion: 1,
+            experimentKey: OnboardingExperiment.key,
+            installationID: OnboardingExperimentFixture.controlA,
+            variantRawValue: OnboardingExperimentVariant.guided.rawValue,
+            assignedAt: OnboardingExperimentFixture.assignments[0].assignedAt
+        )
+        let report = makeReport(assignments: OnboardingExperimentFixture.assignments + [conflict])
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.conflictingAssignmentCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("identical duplicate assignments are excluded and reported")
+    func duplicateAssignments() {
+        let duplicate = OnboardingExperimentFixture.assignments[0]
+        let report = makeReport(assignments: OnboardingExperimentFixture.assignments + [duplicate])
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.duplicateAssignmentCount == 1)
+    }
+
+    @Test("unsupported assignment variants and schema versions are excluded")
+    func unsupportedAssignments() {
+        let unsupportedVariant = ExperimentAssignmentSnapshot(
+            schemaVersion: 1,
+            experimentKey: OnboardingExperiment.key,
+            installationID: OnboardingExperimentFixture.uuid(31),
+            variantRawValue: "unknown",
+            assignedAt: OnboardingExperimentFixture.cohort.start
+        )
+        let unsupportedSchema = ExperimentAssignmentSnapshot(
+            schemaVersion: 2,
+            experimentKey: OnboardingExperiment.key,
+            installationID: OnboardingExperimentFixture.uuid(32),
+            variantRawValue: OnboardingExperimentVariant.control.rawValue,
+            assignedAt: OnboardingExperimentFixture.cohort.start
+        )
+        let report = makeReport(assignments: OnboardingExperimentFixture.assignments + [unsupportedVariant, unsupportedSchema])
+
+        #expect(report.dataQuality.unsupportedCount == 2)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("exposure before assignment is an ordering failure")
+    func exposureBeforeAssignment() {
+        var events = OnboardingExperimentFixture.events.filter { $0.id != OnboardingExperimentFixture.uuid(1_001) }
+        events.append(OnboardingExperimentFixture.event(
+            401,
+            .experimentExposed,
+            OnboardingExperimentFixture.controlA,
+            "2026-07-01T14:59:59Z"
+        ))
+        let report = makeReport(events: events)
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.orderingFailureCount == 1)
+    }
+
+    @Test("event and installation mismatches are excluded")
+    func crossInstallationMismatch() {
+        let unmatched = OnboardingExperimentFixture.event(
+            411,
+            .experimentExposed,
+            OnboardingExperimentFixture.uuid(999),
+            "2026-07-01T15:00:00Z"
+        )
+        let report = makeReport(events: OnboardingExperimentFixture.events + [unmatched])
+
+        #expect(report.dataQuality.crossInstallationMismatchCount == 1)
+    }
+
+    @Test("out of cohort assignments are ignored")
+    func outOfCohortAssignment() {
+        let installationID = OnboardingExperimentFixture.uuid(41)
+        let assignment = OnboardingExperimentFixture.assignment(installationID, .guided, "2026-07-08T15:00:00Z")
+        let exposure = OnboardingExperimentFixture.event(421, .experimentExposed, installationID, "2026-07-08T15:00:00Z")
+        let report = makeReport(
+            assignments: OnboardingExperimentFixture.assignments + [assignment],
+            installations: OnboardingExperimentFixture.installations + [installation(for: assignment)],
+            events: OnboardingExperimentFixture.events + [exposure]
+        )
+
+        #expect(report.guided.funnel.exposed == 2)
+        #expect(report.dataQuality.status == .complete)
+    }
+
+    @Test("empty input produces unavailable rates")
+    func emptyRates() {
+        let report = makeReport(assignments: [], installations: [], events: [])
+
+        #expect(report.control.onboardingCompletionWithinTwoMinutes.value == nil)
+        #expect(report.guided.firstSuccessWithinTwoMinutes.value == nil)
+        #expect(report.guidedDeferral.value == nil)
+    }
+
+    @Test("Markdown is deterministic and contains no private quest content")
+    func deterministicSafeMarkdown() {
+        let report = makeReport()
+        let markdown = report.renderMarkdown()
+
+        #expect(markdown == report.renderMarkdown())
+        #expect(markdown.contains("QuestKeeper Synthetic Onboarding Experiment Baseline"))
+        #expect(markdown.localizedCaseInsensitiveContains("synthetic"))
+        #expect(!markdown.contains("물 한 잔 마시기"))
+        #expect(!markdown.contains(OnboardingExperimentFixture.controlA.uuidString))
+    }
+
+    @Test("checked-in synthetic baseline matches the deterministic renderer")
+    func checkedInBaselineMatchesRenderer() throws {
+        let noteURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "docs/notes/013-onboarding-experiment-baseline.md")
+
+        #expect(try String(contentsOf: noteURL, encoding: .utf8) == makeReport().renderMarkdown())
+    }
+
+    private func makeReport(
+        assignments: [ExperimentAssignmentSnapshot] = OnboardingExperimentFixture.assignments,
+        installations: [RetentionInstallationSnapshot] = OnboardingExperimentFixture.installations,
+        events: [RetentionEventSnapshot] = OnboardingExperimentFixture.events,
+        asOf: Date = OnboardingExperimentFixture.asOf
+    ) -> OnboardingExperimentReport {
+        OnboardingExperimentReport.make(
+            assignments: assignments,
+            installations: installations,
+            events: events,
+            asOf: asOf,
+            calendar: OnboardingExperimentFixture.calendar,
+            cohort: OnboardingExperimentFixture.cohort
+        )
+    }
+
+    private func installation(for assignment: ExperimentAssignmentSnapshot) -> RetentionInstallationSnapshot {
+        RetentionInstallationSnapshot(
+            schemaVersion: 1,
+            installationID: assignment.installationID,
+            measurementStartedAt: assignment.assignedAt
+        )
+    }
+}
