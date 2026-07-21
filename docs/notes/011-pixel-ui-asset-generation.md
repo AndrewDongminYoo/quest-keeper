@@ -89,6 +89,15 @@ The `1448×1086` source divides evenly into a four-column by three-row grid.
 Extraction therefore used the exact x-boundaries `0, 362, 724, 1086, 1448` and y-boundaries `0, 362, 724, 1086` without resampling or boundary correction.
 Every extracted image was placed on a `362×362` transparent canvas with no offset change because each source cell was already square.
 
+## Victory Trophy Crop Correction
+
+The first simulator review showed detached hero and flag pixels at the top of the second-row icons because the source artwork crossed the row boundary before exact grid extraction.
+The corrected unsplit sheet was approved before re-extraction and is stored at `/Users/dongminyu/.codex/generated_images/019f7fc6-192b-76a2-ad97-41b557c30b75/exec-ffa12349-a7e8-4508-8468-7a45f8d2909b.png` with SHA-256 `8211ccef99f610e5dcd90d21160400c11b0830d4cc431da0e1fa758d0a7ff1c0`.
+The second-row icons were re-extracted, and their top 64 pixels were fixed as transparent safe margins without moving or resampling the intended artwork.
+The corrected SHA-256 values are `16c52c152c33d7fa360ba33d25b6e71483f215c3e871c566d516ae041fd06dc3` for `icon-victory-trophy.png`, `2de0d061e8becfe8983a9d025fd7f6390bee72f99f4cc3943fa053aa67795190` for `icon-add.png`, `d7ab457c8f85091629c210feda5eb32fc000cffa650c138a93cbc450e236279b` for `icon-notifications-disabled.png`, and `fc027adad220f694c3a89dfcae401ab6d5a5a47d4f4764c83f3b621121b890fd` for `icon-retry.png`.
+Final runtime review also found isolated source-edge pixels beside the breathing-in hero and daily grave.
+Their left 32 pixels were fixed as transparent safe margins without changing any decoded pixel outside that margin; the corrected SHA-256 values are `742097f5f199c017818bcad74f35e3aae5a7c47f8ba19946fad1903bafc9ff03` for `sprite-hero-breathe-in.png` and `62f9f1654f1f4703d0ad86382ca7f7b59e84f7293fabc51f72ef0f88a9862c5b` for `sprite-daily-grave.png`.
+
 The app catalog receives the three hero frames and seven app icons.
 The widget catalog receives completion, stale-warning, and protection-shield icons.
 The same approved completion pixels are present in both target-specific catalogs.

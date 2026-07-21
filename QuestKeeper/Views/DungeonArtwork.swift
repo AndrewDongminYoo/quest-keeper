@@ -19,6 +19,15 @@ nonisolated enum DungeonArtwork: String, CaseIterable, Sendable {
     case complete = "icon-complete"
     case delete = "icon-delete"
 
+    var contentScale: CGFloat {
+        switch self {
+        case .battleFlag, .victoryTrophy, .add, .notificationsDisabled, .retry, .complete, .delete:
+            1.5
+        default:
+            1
+        }
+    }
+
     static func monster(level: Int) -> DungeonArtwork {
         switch level {
         case ..<2: .slime
@@ -57,5 +66,6 @@ struct DungeonArtworkView: View {
             .interpolation(.none)
             .scaledToFit()
             .frame(width: size, height: size)
+            .scaleEffect(artwork.contentScale)
     }
 }

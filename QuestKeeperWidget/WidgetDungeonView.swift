@@ -250,6 +250,7 @@ private struct WidgetArtworkView: View {
             .interpolation(.none)
             .scaledToFit()
             .frame(width: size, height: size)
+            .scaleEffect(1.5)
     }
 }
 
