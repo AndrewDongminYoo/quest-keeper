@@ -26,6 +26,16 @@ struct CompleteQuestIntent: AppIntent {
         let wrote = try await store.complete(id: id, now: .now)
         guard wrote else { return .result() } // already completed / missing — nothing else to do
 
+        let payload = try await store.snapshotPayload(generatedAt: .now)
+        if let completed = payload.quests.first(where: { $0.id == id }) {
+            await AnalyticsRecorder.widget.recordCompletion(
+                id: id,
+                source: "widget",
+                deadline: completed.deadline,
+                now: completed.completedAt ?? .now
+            )
+        }
+
         // Best-effort: never let a cancellation failure block the committed fact.
         UNUserNotificationCenter.current().removePendingNotificationRequests(
             withIdentifiers: QuestNotificationKind.allCases.map { $0.identifier(for: id) }
@@ -36,7 +46,6 @@ struct CompleteQuestIntent: AppIntent {
         // quest until the next app-side write. Retry, and reload only after the snapshot is on disk;
         // if every attempt fails, the `completedAt` fact is still committed and the app's next
         // foreground rewrites the snapshot — so we log rather than surface an error to the tap.
-        let payload = try await store.snapshotPayload(generatedAt: .now)
         let snapshotStore = WidgetDungeonSnapshotStore()
         var saved = false
         for _ in 0..<2 {

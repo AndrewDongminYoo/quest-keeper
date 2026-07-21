@@ -18,6 +18,7 @@ struct QuestKeeperApp: App {
     /// True once we've actually been backgrounded — gates the container swap so a mere Control
     /// Center / notification-banner peek (`.inactive` → `.active`, never `.background`) doesn't refresh.
     @State private var didBackground = false
+    @State private var hasActivated = false
     private let notificationDelegate: NotificationDelegate
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
 
@@ -55,15 +56,25 @@ struct QuestKeeperApp: App {
                 // connection that reads the on-disk truth, like a cold launch (verified via spike 009).
                 // Only after a genuine `.background` (where the widget could have written) — not a
                 // Control Center peek — so we don't needlessly refresh or tear down an open editor.
+                let activationType = hasActivated ? "warm" : "cold"
+                let startsNewSession = didBackground
+                didBackground = false
+                hasActivated = true
                 let container: ModelContainer
-                if didBackground, let refreshed = try? QuestModelContainer.make() {
-                    didBackground = false
+                if startsNewSession, let refreshed = try? QuestModelContainer.make() {
                     sharedModelContainer = refreshed
                     container = refreshed
                 } else {
                     container = sharedModelContainer
                 }
                 syncActivation(using: container)
+                Task {
+                    await AnalyticsRecorder.shared.recordActivation(
+                        type: activationType,
+                        entrySource: notificationRouteStore.pendingQuestID == nil ? "app" : "notification",
+                        startsNewSession: startsNewSession
+                    )
+                }
             default:
                 break
             }

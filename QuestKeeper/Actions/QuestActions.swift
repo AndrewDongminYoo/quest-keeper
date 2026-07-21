@@ -19,8 +19,11 @@ enum QuestActions {
     }
 
     /// Completion writes a fact; it is not deletion. Main-actor (mutates the `@Model`).
-    static func complete(_ quest: Quest, at now: Date) {
+    @discardableResult
+    static func complete(_ quest: Quest, at now: Date) -> Bool {
+        guard quest.completedAt == nil else { return false }
         quest.completedAt = now
+        return true
     }
 
     /// Clear the completion fact, reverting the quest toward `.pending`.

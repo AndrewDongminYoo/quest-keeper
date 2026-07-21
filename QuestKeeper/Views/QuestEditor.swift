@@ -15,8 +15,10 @@ struct QuestEditor: View {
     /// `nil` = create a new quest; non-nil = edit this existing one.
     let quest: Quest?
     let notificationService: QuestNotificationService
+    let analyticsRecorder: AnalyticsRecorder
     let onAuthorizationChange: (QuestNotificationAuthorization) -> Void
     let onSaved: (Quest) -> Void
+    let onCreated: (Quest) -> Void
 
     @State private var title: String
     @State private var deadline: Date
@@ -26,13 +28,17 @@ struct QuestEditor: View {
     init(
         quest: Quest?,
         notificationService: QuestNotificationService = .shared,
+        analyticsRecorder: AnalyticsRecorder = .shared,
         onAuthorizationChange: @escaping (QuestNotificationAuthorization) -> Void = { _ in },
-        onSaved: @escaping (Quest) -> Void = { _ in }
+        onSaved: @escaping (Quest) -> Void = { _ in },
+        onCreated: @escaping (Quest) -> Void = { _ in }
     ) {
         self.quest = quest
         self.notificationService = notificationService
+        self.analyticsRecorder = analyticsRecorder
         self.onAuthorizationChange = onAuthorizationChange
         self.onSaved = onSaved
+        self.onCreated = onCreated
         _title = State(initialValue: quest?.title ?? "")
         let fallbackDeadline = Date().addingTimeInterval(60 * 60)
         _deadline = State(initialValue: max(quest?.deadline ?? fallbackDeadline, Date.now))
@@ -93,10 +99,25 @@ struct QuestEditor: View {
             modelContext.insert(newQuest)
             savedQuest = newQuest
         }
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            return
+        }
         onSaved(savedQuest)
+        if quest == nil { onCreated(savedQuest) }
         dismiss()
 
         Task { @MainActor in
+            if quest == nil {
+                await analyticsRecorder.recordQuestCreated(
+                    id: savedQuest.id,
+                    importance: savedQuest.importance,
+                    deadline: savedQuest.deadline,
+                    now: .now
+                )
+            }
             let authorization = await notificationService.sync(quest: savedQuest, now: .now)
             onAuthorizationChange(authorization)
         }

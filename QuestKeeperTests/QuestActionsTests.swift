@@ -63,6 +63,22 @@ struct QuestActionsTests {
         #expect(quest.snapshot.outcome(at: deadline.addingTimeInterval(1)) == .victory)
     }
 
+    @Test("complete does not mutate or report a second completion")
+    func completeIsIdempotent() {
+        let firstCompletion = now.addingTimeInterval(-1)
+        let quest = Quest(
+            title: "연타 방지",
+            deadline: now.addingTimeInterval(day),
+            importance: .medium,
+            completedAt: firstCompletion
+        )
+
+        let wrote = QuestActions.complete(quest, at: now)
+
+        #expect(wrote == false)
+        #expect(quest.completedAt == firstCompletion)
+    }
+
     // 3
     @Test("delete is raw cleanup, not a permanent grave rule")
     func canDeleteIsNotPermanentGraveRule() {

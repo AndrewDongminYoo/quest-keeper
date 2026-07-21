@@ -23,6 +23,7 @@ struct ContentView: View {
     @State private var route: EditorRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
     @State private var mourningTask: Task<Void, Never>?
+    @State private var firstValueCandidate: UUID?
 
     private let notificationService: QuestNotificationService
     private let notificationRouteStore: NotificationRouteStore
@@ -73,7 +74,8 @@ struct ContentView: View {
                         quest: nil,
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
-                        onSaved: writeWidgetSnapshot(including:)
+                        onSaved: writeWidgetSnapshot(including:),
+                        onCreated: { firstValueCandidate = $0.id }
                     )
                 case .edit(let quest):
                     QuestEditor(
@@ -99,6 +101,18 @@ struct ContentView: View {
             }
             .onChange(of: quests.map(\.id), initial: true) { _, _ in
                 consumeNotificationRoute(notificationRouteStore.pendingQuestID)
+                recordFirstValueIfRendered()
+            }
+            .toolbar {
+                if let exportURL = AnalyticsRecorder.defaultFileURL,
+                   FileManager.default.fileExists(atPath: exportURL.path) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: exportURL) {
+                            Label("진단 데이터 내보내기", systemImage: "square.and.arrow.up")
+                        }
+                        .accessibilityIdentifier("analytics-export")
+                    }
+                }
             }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
@@ -138,19 +152,45 @@ struct ContentView: View {
     // MARK: - Fact mutations
 
     private func complete(_ quest: Quest, at completedAt: Date = .now) {
+        guard QuestActions.complete(quest, at: completedAt) else { return }
         let questID = quest.id
-        QuestActions.complete(quest, at: completedAt)
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            return
+        }
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
+            await AnalyticsRecorder.shared.recordCompletion(
+                id: questID,
+                source: "app",
+                deadline: quest.deadline,
+                now: completedAt
+            )
             await notificationService.cancel(questID: questID)
         }
     }
 
     private func retryTomorrow(_ quest: Quest) {
         let now = Date.now
+        let daysSinceDeadline = max(0, Calendar.current.dateComponents(
+            [.day], from: quest.deadline, to: now
+        ).day ?? 0)
         QuestActions.retryTomorrow(quest, now: now)
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            return
+        }
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
+            let questKey = await AnalyticsRecorder.shared.questKey(for: quest.id)
+            await AnalyticsRecorder.shared.record(AnalyticsEvent(name: .questRetried, properties: [
+                "quest_key": .string(questKey),
+                "days_since_deadline": .integer(daysSinceDeadline)
+            ]))
             let authorization = await notificationService.sync(quest: quest, now: now)
             notificationAuthorization = authorization
         }
@@ -182,6 +222,13 @@ struct ContentView: View {
         Task.detached(priority: .utility) {
             await snapshotWriter.submit(payload)
         }
+    }
+
+    private func recordFirstValueIfRendered() {
+        guard let id = firstValueCandidate,
+              quests.contains(where: { $0.id == id && $0.completedAt == nil }) else { return }
+        firstValueCandidate = nil
+        Task { await AnalyticsRecorder.shared.recordFirstValue(id: id) }
     }
 
     private func consumeNotificationRoute(_ questID: UUID?) {
