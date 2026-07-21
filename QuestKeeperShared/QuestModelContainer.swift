@@ -11,7 +11,12 @@ enum QuestModelContainer {
     /// `nonisolated` so the widget intent can open the store inside its async, off-main `perform()`
     /// (the module defaults to `@MainActor`); the app's main-actor call site is unaffected.
     nonisolated static func make(storeURL: URL? = nil) throws -> ModelContainer {
-        let schema = Schema([Quest.self, RetentionInstallation.self, RetentionEvent.self])
+        let schema = Schema([
+            Quest.self,
+            RetentionInstallation.self,
+            RetentionEvent.self,
+            ExperimentAssignment.self,
+        ])
         let configuration: ModelConfiguration
         if let storeURL {
             configuration = ModelConfiguration(schema: schema, url: storeURL)
