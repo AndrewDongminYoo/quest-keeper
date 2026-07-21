@@ -71,7 +71,8 @@ private struct BoardHUD: View {
                     .foregroundStyle(DungeonPalette.ink)
                 Spacer(minLength: 8)
                 Button(action: onCreate) {
-                    DungeonArtworkView(artwork: .add, size: 18)
+                    Image(systemName: "plus")
+                        .font(.headline.weight(.black))
                         .frame(width: 36, height: 36)
                         // Chunky square pixel button rather than a soft circle.
                         .background(DungeonPalette.hero, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
@@ -79,6 +80,7 @@ private struct BoardHUD: View {
                             RoundedRectangle(cornerRadius: PixelStyle.corner)
                                 .stroke(DungeonPalette.ink.opacity(0.25), lineWidth: PixelStyle.border)
                         )
+                        .foregroundStyle(.white)
                 }
                 .accessibilityLabel("전투 추가")
             }
@@ -106,11 +108,7 @@ private struct EmptyDungeonState: View {
                 .font(.caption)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.7))
             Button(action: onCreate) {
-                Label {
-                    Text("전투 추가")
-                } icon: {
-                    DungeonArtworkView(artwork: .add, size: 16)
-                }
+                Label("전투 추가", systemImage: "plus")
             }
             .buttonStyle(.pixel)
         }

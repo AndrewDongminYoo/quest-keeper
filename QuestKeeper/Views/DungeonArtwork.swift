@@ -13,7 +13,6 @@ nonisolated enum DungeonArtwork: String, CaseIterable, Sendable {
     case battleImpact = "sprite-battle-impact"
     case battleFlag = "icon-battle-flag"
     case victoryTrophy = "icon-victory-trophy"
-    case add = "icon-add"
     case notificationsDisabled = "icon-notifications-disabled"
     case retry = "icon-retry"
     case complete = "icon-complete"
@@ -21,7 +20,7 @@ nonisolated enum DungeonArtwork: String, CaseIterable, Sendable {
 
     var contentScale: CGFloat {
         switch self {
-        case .battleFlag, .victoryTrophy, .add, .notificationsDisabled, .retry, .complete, .delete:
+        case .battleFlag, .victoryTrophy, .notificationsDisabled, .retry, .complete, .delete:
             1.5
         default:
             1

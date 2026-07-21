@@ -24,7 +24,6 @@ struct DungeonArtworkTests {
         let icons: [DungeonArtwork] = [
             .battleFlag,
             .victoryTrophy,
-            .add,
             .notificationsDisabled,
             .retry,
             .complete,
@@ -38,7 +37,7 @@ struct DungeonArtworkTests {
     @Test("second-row icons have clear top margins")
     func secondRowIconsHaveClearTopMargins() throws {
         let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-        let assetNames = ["icon-victory-trophy", "icon-add", "icon-notifications-disabled", "icon-retry"]
+        let assetNames = ["icon-victory-trophy", "icon-notifications-disabled", "icon-retry"]
 
         for assetName in assetNames {
             let imageURL = testsDirectory
