@@ -63,4 +63,44 @@ struct QuestKeeperAppTests {
             didBackground: didBackground
         ) == expected)
     }
+
+    @Test(
+        "onboarding exposure waits for the first active scene",
+        arguments: [
+            (true, false, true, true),
+            (true, false, false, false),
+            (true, true, true, false),
+            (false, false, true, false),
+        ]
+    )
+    func onboardingExposureGate(
+        hasAssignment: Bool,
+        hasAttempted: Bool,
+        isActive: Bool,
+        expected: Bool
+    ) {
+        #expect(shouldAttemptOnboardingExposure(
+            hasAssignment: hasAssignment,
+            hasAttempted: hasAttempted,
+            isActive: isActive
+        ) == expected)
+    }
+
+    @Test("failed exposure save rolls back pending measurement")
+    func exposureSaveRollback() {
+        var didRollback = false
+
+        let available = persistOnboardingExposure(
+            record: { .inserted },
+            save: { throw ExposureSaveError.failed },
+            rollback: { didRollback = true }
+        )
+
+        #expect(!available)
+        #expect(didRollback)
+    }
+
+    private enum ExposureSaveError: Error {
+        case failed
+    }
 }

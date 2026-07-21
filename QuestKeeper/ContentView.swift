@@ -164,7 +164,12 @@ struct ContentView: View {
     // MARK: - Fact mutations
 
     private func beginQuestCreation(draft: QuestEditorDraft?) {
-        if let assignment = onboardingAssignment, onboardingMeasurementAvailable {
+        if OnboardingFlowState.shouldRecordCreationStarted(
+            assignment: onboardingAssignment,
+            events: retentionEvents.map(\.snapshot),
+            hasExistingQuests: !quests.isEmpty,
+            measurementAvailable: onboardingMeasurementAvailable
+        ), let assignment = onboardingAssignment {
             _ = RetentionEventRecorder.recordQuestCreationStarted(
                 experimentKey: assignment.experimentKey,
                 actionID: UUID(),

@@ -59,6 +59,43 @@ struct OnboardingFlowStateTests {
         ) == .guidedOffer)
     }
 
+    @Test("a pending quest stays visible when its creation event is missing")
+    func pendingQuestWithoutCreationEvent() {
+        #expect(makeState(
+            events: [exposure()],
+            pending: [questID],
+            deferred: false
+        ) == .standard)
+    }
+
+    @Test("creation start is recorded only before first value")
+    func creationStartGate() {
+        #expect(OnboardingFlowState.shouldRecordCreationStarted(
+            assignment: assignment(variant: .control),
+            events: [exposure()],
+            hasExistingQuests: false,
+            measurementAvailable: true
+        ))
+        #expect(OnboardingFlowState.shouldRecordCreationStarted(
+            assignment: assignment(),
+            events: [exposure(), creationStarted()],
+            hasExistingQuests: false,
+            measurementAvailable: true
+        ))
+        #expect(!OnboardingFlowState.shouldRecordCreationStarted(
+            assignment: assignment(),
+            events: [exposure(), creation()],
+            hasExistingQuests: true,
+            measurementAvailable: true
+        ))
+        #expect(!OnboardingFlowState.shouldRecordCreationStarted(
+            assignment: assignment(),
+            events: [exposure()],
+            hasExistingQuests: false,
+            measurementAvailable: false
+        ))
+    }
+
     @Test("control unsupported missing and unavailable measurement stay standard")
     func unsupportedInputs() {
         let control = assignment(variant: .control)
@@ -183,7 +220,16 @@ struct OnboardingFlowStateTests {
         at occurredAt: Date,
         questID: UUID? = nil
     ) -> RetentionEventSnapshot {
-        RetentionEventSnapshot(
+        let component: String
+        switch name {
+        case .experimentExposed:
+            component = OnboardingExperiment.key
+        case .questCreationStarted, .onboardingDeferred:
+            component = "\(OnboardingExperiment.key):\(id)"
+        default:
+            component = String(id)
+        }
+        return RetentionEventSnapshot(
             id: UUID(uuidString: String(format: "00000000-0000-0000-0001-%012d", id))!,
             schemaVersion: 1,
             nameRawValue: name.rawValue,
@@ -191,7 +237,7 @@ struct OnboardingFlowStateTests {
             occurredAt: occurredAt,
             sourceRawValue: RetentionEventSource.app.rawValue,
             questID: questID,
-            deduplicationKey: "\(name.rawValue)-\(id)"
+            deduplicationKey: "\(name.rawValue):\(installationID.uuidString):\(component)"
         )
     }
 }

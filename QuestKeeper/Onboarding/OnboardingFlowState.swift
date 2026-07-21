@@ -23,15 +23,7 @@ nonisolated enum OnboardingFlowState {
             return .standard
         }
 
-        let validEvents = events.filter {
-            $0.installationID == assignment.installationID
-                && $0.schemaVersion == RetentionEvent.currentSchemaVersion
-                && $0.occurredAt >= assignment.assignedAt
-                && validCombination($0)
-        }
-        let canonicalEvents = Dictionary(grouping: validEvents, by: \.deduplicationKey)
-            .compactMap { _, rows in rows.sorted(by: eventOrdering).first }
-            .sorted(by: eventOrdering)
+        let canonicalEvents = canonicalEvents(for: assignment, events: events)
 
         guard !canonicalEvents.isEmpty else {
             return deferredThisRun ? .standard : .guidedOffer
@@ -53,6 +45,7 @@ nonisolated enum OnboardingFlowState {
         let laterEvents = canonicalEvents.dropFirst(exposureIndex + 1)
         guard let firstCreation = laterEvents.first(where: { $0.name == .questCreated }),
               let firstQuestID = firstCreation.questID else {
+            if !pendingQuestIDs.isEmpty { return .standard }
             return deferredThisRun ? .standard : .guidedOffer
         }
 
@@ -67,6 +60,45 @@ nonisolated enum OnboardingFlowState {
             return .guidedCompletion(firstQuestID)
         }
         return .standard
+    }
+
+    static func shouldRecordCreationStarted(
+        assignment: ExperimentAssignmentSnapshot?,
+        events: [RetentionEventSnapshot],
+        hasExistingQuests: Bool,
+        measurementAvailable: Bool
+    ) -> Bool {
+        guard !hasExistingQuests,
+              measurementAvailable,
+              let assignment,
+              assignment.schemaVersion == ExperimentAssignment.currentSchemaVersion,
+              assignment.experimentKey == OnboardingExperiment.key,
+              assignment.variant != nil else {
+            return false
+        }
+        let events = canonicalEvents(for: assignment, events: events)
+        guard let exposureIndex = events.firstIndex(where: { $0.name == .experimentExposed }) else {
+            return false
+        }
+        let laterEvents = events.dropFirst(exposureIndex + 1)
+        return !laterEvents.contains { $0.name == .questCreated }
+    }
+
+    private static func canonicalEvents(
+        for assignment: ExperimentAssignmentSnapshot,
+        events: [RetentionEventSnapshot]
+    ) -> [RetentionEventSnapshot] {
+        let validEvents = events.filter {
+            $0.installationID == assignment.installationID
+                && $0.schemaVersion == RetentionEvent.currentSchemaVersion
+                && $0.occurredAt >= assignment.assignedAt
+                && validCombination($0)
+                && (!$0.name!.isExperimentSpecific
+                    || $0.experimentKeyComponent == assignment.experimentKey)
+        }
+        return Dictionary(grouping: validEvents, by: \.deduplicationKey)
+            .compactMap { _, rows in rows.sorted(by: eventOrdering).first }
+            .sorted(by: eventOrdering)
     }
 
     private static func validCombination(_ event: RetentionEventSnapshot) -> Bool {

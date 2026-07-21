@@ -21,11 +21,12 @@ struct QuestKeeperApp: App {
     @State private var hasRecordedRetentionActivation = false
     @State private var retentionActivationSessionID = UUID()
     @State private var hasDeferredOnboardingThisRun = false
+    @State private var hasAttemptedOnboardingExposure = false
+    @State private var onboardingMeasurementAvailable = false
     private let notificationDelegate: NotificationDelegate
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     private let retentionBaselineWriter: RetentionBaselineWriter
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
-    private let onboardingMeasurementAvailable: Bool
     private let onboardingSessionID = UUID()
 
     init() {
@@ -66,19 +67,7 @@ struct QuestKeeperApp: App {
 #endif
             }
 
-            if let assignment = enrollment.assignment,
-               RetentionEventRecorder.recordExperimentExposed(
-                   experimentKey: assignment.experimentKey,
-                   at: .now,
-                   in: container.mainContext
-               ) != .failed,
-               (try? container.mainContext.save()) != nil {
-                onboardingAssignment = assignment
-                onboardingMeasurementAvailable = true
-            } else {
-                onboardingAssignment = nil
-                onboardingMeasurementAvailable = false
-            }
+            onboardingAssignment = enrollment.assignment
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -116,6 +105,18 @@ struct QuestKeeperApp: App {
                     container = refreshed
                 } else {
                     container = sharedModelContainer
+                }
+                if shouldAttemptOnboardingExposure(
+                    hasAssignment: onboardingAssignment != nil,
+                    hasAttempted: hasAttemptedOnboardingExposure,
+                    isActive: true
+                ), let assignment = onboardingAssignment {
+                    hasAttemptedOnboardingExposure = true
+                    onboardingMeasurementAvailable = recordOnboardingExposure(
+                        assignment: assignment,
+                        at: .now,
+                        in: container.mainContext
+                    )
                 }
                 if shouldRecordRetentionActivation(
                     hasRecordedActivation: hasRecordedRetentionActivation,
@@ -172,4 +173,52 @@ nonisolated func shouldRecordRetentionActivation(
     didBackground: Bool
 ) -> Bool {
     !hasRecordedActivation || didBackground
+}
+
+nonisolated func shouldAttemptOnboardingExposure(
+    hasAssignment: Bool,
+    hasAttempted: Bool,
+    isActive: Bool
+) -> Bool {
+    hasAssignment && !hasAttempted && isActive
+}
+
+@MainActor
+func recordOnboardingExposure(
+    assignment: ExperimentAssignmentSnapshot,
+    at occurredAt: Date,
+    in context: ModelContext
+) -> Bool {
+    persistOnboardingExposure(
+        record: {
+            RetentionEventRecorder.recordExperimentExposed(
+                experimentKey: assignment.experimentKey,
+                at: occurredAt,
+                in: context
+            )
+        },
+        save: {
+            if context.hasChanges { try context.save() }
+        },
+        rollback: context.rollback
+    )
+}
+
+@MainActor
+func persistOnboardingExposure(
+    record: () -> RetentionRecordResult,
+    save: () throws -> Void,
+    rollback: () -> Void
+) -> Bool {
+    guard record() != .failed else {
+        rollback()
+        return false
+    }
+    do {
+        try save()
+        return true
+    } catch {
+        rollback()
+        return false
+    }
 }
