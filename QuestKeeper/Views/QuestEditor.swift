@@ -25,6 +25,7 @@ struct QuestEditor: View {
 
     init(
         quest: Quest?,
+        draft: QuestEditorDraft? = nil,
         notificationService: QuestNotificationService = .shared,
         onAuthorizationChange: @escaping (QuestNotificationAuthorization) -> Void = { _ in },
         onSaved: @escaping (Quest) -> Void = { _ in }
@@ -33,10 +34,13 @@ struct QuestEditor: View {
         self.notificationService = notificationService
         self.onAuthorizationChange = onAuthorizationChange
         self.onSaved = onSaved
-        _title = State(initialValue: quest?.title ?? "")
-        let fallbackDeadline = Date().addingTimeInterval(60 * 60)
-        _deadline = State(initialValue: max(quest?.deadline ?? fallbackDeadline, Date.now))
-        _importance = State(initialValue: quest?.importance ?? .medium)
+        let now = Date.now
+        let initialTitle = quest?.title ?? draft?.title ?? ""
+        let initialDeadline = quest?.deadline ?? draft?.deadline ?? now.addingTimeInterval(60 * 60)
+        let initialImportance = quest?.importance ?? draft?.importance ?? .medium
+        _title = State(initialValue: initialTitle)
+        _deadline = State(initialValue: max(initialDeadline, now))
+        _importance = State(initialValue: initialImportance)
     }
 
     var body: some View {
