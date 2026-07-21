@@ -86,7 +86,7 @@ Also test existing installation exclusion, existing quest exclusion, identity-pr
 - [ ] **Step 3: Verify the focused tests fail for missing types**
 
 ```bash
-xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -only-testing:QuestKeeperTests/ExperimentAssignmentRecorderTests -only-testing:QuestKeeperTests/RetentionPersistenceTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
+xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests/ExperimentAssignmentRecorderTests -only-testing:QuestKeeperTests/RetentionPersistenceTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
 ```
 
 Expected: FAIL because the assignment types do not exist.
@@ -206,7 +206,7 @@ Add widget-source and non-nil-quest-ID variants and require unsupported counts.
 - [ ] **Step 2: Run focused tests and require the missing-symbol failure**
 
 ```bash
-xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -only-testing:QuestKeeperTests/RetentionEventRecorderTests -only-testing:QuestKeeperTests/RetentionReportTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
+xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests/RetentionEventRecorderTests -only-testing:QuestKeeperTests/RetentionReportTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
 ```
 
 - [ ] **Step 3: Add three event cases and typed recorders**
@@ -284,7 +284,7 @@ Add isolated tests for the exact two-minute boundary, immature denominators, D1/
 - [ ] **Step 2: Run report tests and verify missing-type failure**
 
 ```bash
-xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -only-testing:QuestKeeperTests/OnboardingExperimentReportTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
+xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests/OnboardingExperimentReportTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
 ```
 
 - [ ] **Step 3: Define the report value types**
@@ -410,7 +410,7 @@ Extend the activation writer test with a pre-activation assignment and require o
 - [ ] **Step 2: Run focused store tests and verify failure**
 
 ```bash
-xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -only-testing:QuestKeeperTests/OnboardingExperimentStoreTests -only-testing:QuestKeeperTests/RetentionBaselineStoreTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
+xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests/OnboardingExperimentStoreTests -only-testing:QuestKeeperTests/RetentionBaselineStoreTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
 ```
 
 - [ ] **Step 3: Implement the atomic store**
@@ -478,7 +478,7 @@ Require control, missing/unsupported assignment, unavailable measurement, and ev
 - [ ] **Step 2: Run state tests and verify missing-type failure**
 
 ```bash
-xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -only-testing:QuestKeeperTests/OnboardingFlowStateTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
+xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests/OnboardingFlowStateTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
 ```
 
 - [ ] **Step 3: Implement the pure state contract**
@@ -528,7 +528,7 @@ Keep `recordQuestCreated` in the existing new-quest save branch.
 - [ ] **Step 5: Run Task 5 tests plus existing quest-action tests**
 
 ```bash
-xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -only-testing:QuestKeeperTests/OnboardingFlowStateTests -only-testing:QuestKeeperTests/QuestActionsTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
+xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests/OnboardingFlowStateTests -only-testing:QuestKeeperTests/QuestActionsTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
 ```
 
 Expected: PASS with default create/edit and canonical save behavior intact.
@@ -571,7 +571,7 @@ Keep the activation-gate assertions unchanged and require `QuestKeeperApp` to ow
 - [ ] **Step 2: Run app and state tests and verify failure**
 
 ```bash
-xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -only-testing:QuestKeeperTests/QuestKeeperAppTests -only-testing:QuestKeeperTests/OnboardingFlowStateTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
+xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests/QuestKeeperAppTests -only-testing:QuestKeeperTests/OnboardingFlowStateTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
 ```
 
 - [ ] **Step 3: Resolve assignment before the root view**
@@ -645,7 +645,7 @@ Do not change swipe, battle timing, edit, delete, or completion mutation behavio
 - [ ] **Step 8: Build the app once**
 
 ```bash
-xcodebuild build -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -jobs 2
+xcodebuild build -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -jobs 2
 ```
 
 Expected: `** BUILD SUCCEEDED **` with no new warning in changed files.
@@ -673,7 +673,7 @@ git commit -m "feat(onboarding): guide the first quest flow"
 - [ ] **Step 1: Run the complete unit target once**
 
 ```bash
-xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -only-testing:QuestKeeperTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
+xcodebuild test -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests -parallel-testing-enabled NO -maximum-parallel-testing-workers 1 -jobs 2
 ```
 
 Expected: every `QuestKeeperTests` suite passes.
@@ -682,8 +682,8 @@ Record exact test and suite counts only from complete output or the result bundl
 - [ ] **Step 2: Build app and widget sequentially**
 
 ```bash
-xcodebuild build -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -jobs 2
-xcodebuild build -project QuestKeeper.xcodeproj -scheme QuestKeeperWidget -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' -jobs 2
+xcodebuild build -project QuestKeeper.xcodeproj -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -jobs 2
+xcodebuild build -project QuestKeeper.xcodeproj -scheme QuestKeeperWidget -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -jobs 2
 ```
 
 Expected: both finish with `** BUILD SUCCEEDED **`; never run them concurrently.
@@ -715,7 +715,7 @@ Verify:
 - [ ] **Step 5: Inspect both App Group reports**
 
 ```bash
-group_path=$(xcrun simctl get_app_container 7ED9020C-A21E-425F-AF74-C71C40DA0A13 kr.donminzzi.QuestKeeper group.kr.donminzzi.QuestKeeper)
+group_path=$(xcrun simctl get_app_container CDF2239B-B46C-4A44-A09E-ED656EF7F9EA kr.donminzzi.QuestKeeper group.kr.donminzzi.QuestKeeper)
 jq . "$group_path/retention-baseline-v1.json"
 jq . "$group_path/onboarding-experiment-v1.json"
 ```
