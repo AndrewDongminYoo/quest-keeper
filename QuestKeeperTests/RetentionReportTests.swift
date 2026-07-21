@@ -163,6 +163,16 @@ struct RetentionReportTests {
         #expect(report.renderMarkdown() == report.renderMarkdown())
     }
 
+    @Test("checked-in synthetic baseline matches the deterministic renderer")
+    func checkedInBaselineMatchesRenderer() throws {
+        let noteURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "docs/notes/012-retention-baseline.md")
+
+        #expect(try String(contentsOf: noteURL, encoding: .utf8) == makeReport().renderMarkdown())
+    }
+
     private func makeReport(
         installations: [RetentionInstallationSnapshot] = RetentionBaselineFixture.installations,
         events: [RetentionEventSnapshot] = RetentionBaselineFixture.events,
