@@ -69,10 +69,11 @@ private struct GuidedOnboardingCard: View {
             Text("첫 승리를 시작해볼까요?")
                 .font(.headline.weight(.black))
                 .foregroundStyle(DungeonPalette.ink)
-            Text("2분 안에 끝낼 수 있는 작은 전투부터 시작하세요.")
+            Text("2분 안에 끝낼 수\u{00A0}있는 작은 전투부터 시작하세요.")
                 .font(.subheadline)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.76))
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel("2분 안에 끝낼 수 있는 작은 전투부터 시작하세요.")
             Button("2분 전투 시작", action: onStartGuidedQuest)
                 .buttonStyle(.pixel)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -83,6 +84,7 @@ private struct GuidedOnboardingCard: View {
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .font(.subheadline.weight(.semibold))
+            .foregroundStyle(DungeonPalette.ink)
         }
         .padding(16)
         .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
