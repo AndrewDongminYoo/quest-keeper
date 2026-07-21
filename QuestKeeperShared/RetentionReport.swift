@@ -296,6 +296,8 @@ private nonisolated func isValidCombination(
         source == .app && questID != nil
     case .questCompleted:
         questID != nil
+    case .experimentExposed, .questCreationStarted, .onboardingDeferred:
+        source == .app && questID == nil
     }
 }
 

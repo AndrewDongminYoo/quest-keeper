@@ -6,6 +6,9 @@ nonisolated enum RetentionEventName: String, Codable, CaseIterable, Sendable {
     case questCreated = "quest_created"
     case questCompleted = "quest_completed"
     case questRetried = "quest_retried"
+    case experimentExposed = "experiment_exposed"
+    case questCreationStarted = "quest_creation_started"
+    case onboardingDeferred = "onboarding_deferred"
 }
 
 nonisolated enum RetentionEventSource: String, Codable, CaseIterable, Sendable {

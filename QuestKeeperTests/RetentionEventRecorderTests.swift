@@ -8,6 +8,7 @@ struct RetentionEventRecorderTests {
     private let installationID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
     private let sessionID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
     private let questID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+    private let actionID = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
     private let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
     @Test("independent callers converge on one persisted installation identity")
@@ -56,10 +57,50 @@ struct RetentionEventRecorderTests {
             source: .app,
             in: context
         ) == .duplicate)
+        #expect(RetentionEventRecorder.recordExperimentExposed(
+            experimentKey: OnboardingExperiment.key,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordExperimentExposed(
+            experimentKey: OnboardingExperiment.key,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .duplicate)
+        #expect(RetentionEventRecorder.recordQuestCreationStarted(
+            experimentKey: OnboardingExperiment.key,
+            actionID: actionID,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordQuestCreationStarted(
+            experimentKey: OnboardingExperiment.key,
+            actionID: actionID,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .duplicate)
+        #expect(RetentionEventRecorder.recordOnboardingDeferred(
+            experimentKey: OnboardingExperiment.key,
+            sessionID: sessionID,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordOnboardingDeferred(
+            experimentKey: OnboardingExperiment.key,
+            sessionID: sessionID,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .duplicate)
 
         let events = try context.fetch(FetchDescriptor<RetentionEvent>())
-        #expect(events.count == 3)
+        #expect(events.count == 6)
         #expect(Set(events.map(\.installationID)) == [installationID])
+        let experimentEvents = events.filter {
+            [.experimentExposed, .questCreationStarted, .onboardingDeferred].contains($0.snapshot.name)
+        }
+        #expect(experimentEvents.count == 3)
+        #expect(experimentEvents.allSatisfy { $0.snapshot.source == .app })
+        #expect(experimentEvents.allSatisfy { $0.snapshot.questID == nil })
     }
 
     @Test("completion identity ignores process source but includes completion time")
