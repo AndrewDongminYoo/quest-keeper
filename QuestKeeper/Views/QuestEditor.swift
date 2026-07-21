@@ -81,6 +81,7 @@ struct QuestEditor: View {
     }
 
     private func save() {
+        let savedAt = Date.now
         let trimmed = title.trimmingCharacters(in: .whitespaces)
         let savedQuest: Quest
         if let quest {
@@ -91,6 +92,11 @@ struct QuestEditor: View {
         } else {
             let newQuest = Quest(title: trimmed, deadline: deadline, importance: importance)
             modelContext.insert(newQuest)
+            _ = RetentionEventRecorder.recordQuestCreated(
+                questID: newQuest.id,
+                at: savedAt,
+                in: modelContext
+            )
             savedQuest = newQuest
         }
         onSaved(savedQuest)

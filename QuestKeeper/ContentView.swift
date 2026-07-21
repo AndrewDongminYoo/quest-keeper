@@ -140,6 +140,12 @@ struct ContentView: View {
     private func complete(_ quest: Quest, at completedAt: Date = .now) {
         let questID = quest.id
         QuestActions.complete(quest, at: completedAt)
+        _ = RetentionEventRecorder.recordQuestCompleted(
+            questID: questID,
+            completedAt: completedAt,
+            source: .app,
+            in: modelContext
+        )
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
@@ -149,6 +155,12 @@ struct ContentView: View {
     private func retryTomorrow(_ quest: Quest) {
         let now = Date.now
         QuestActions.retryTomorrow(quest, now: now)
+        _ = RetentionEventRecorder.recordQuestRetried(
+            questID: quest.id,
+            newDeadline: quest.deadline,
+            at: now,
+            in: modelContext
+        )
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             let authorization = await notificationService.sync(quest: quest, now: now)
