@@ -94,7 +94,11 @@ struct DailyGraveRow: View {
             }
             Spacer(minLength: 10)
             Button(action: onRetryTomorrow) {
-                Label("내일 도전하기", systemImage: "arrow.uturn.forward")
+                Label {
+                    Text("내일 도전하기")
+                } icon: {
+                    DungeonArtworkView(artwork: .retry, size: 14)
+                }
                     .labelStyle(.titleAndIcon)
                     .lineLimit(1)
                     .fixedSize()

@@ -43,23 +43,20 @@ struct HeroHeader: View {
 
     private var stats: some View {
         HStack(spacing: 14) {
-            HeroStat(icon: "flag.checkered", label: "전투", value: activeQuestCount, tint: DungeonPalette.hero)
-            HeroStat(icon: "trophy.fill", label: "승리", value: state.totalVictories, tint: DungeonPalette.victory)
+            HeroStat(icon: .battleFlag, label: "전투", value: activeQuestCount)
+            HeroStat(icon: .victoryTrophy, label: "승리", value: state.totalVictories)
         }
     }
 }
 
-/// A single compact HUD stat: a state-tinted icon, a Korean label, and a monospaced count.
 private struct HeroStat: View {
-    let icon: String
+    let icon: DungeonArtwork
     let label: String
     let value: Int
-    let tint: Color
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: icon)
-                .foregroundStyle(tint)
+            DungeonArtworkView(artwork: icon, size: 14)
             Text(label)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.7))
             Text("\(value)")

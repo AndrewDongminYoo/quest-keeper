@@ -71,8 +71,7 @@ private struct BoardHUD: View {
                     .foregroundStyle(DungeonPalette.ink)
                 Spacer(minLength: 8)
                 Button(action: onCreate) {
-                    Image(systemName: "plus")
-                        .font(.headline.weight(.black))
+                    DungeonArtworkView(artwork: .add, size: 18)
                         .frame(width: 36, height: 36)
                         // Chunky square pixel button rather than a soft circle.
                         .background(DungeonPalette.hero, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
@@ -80,7 +79,6 @@ private struct BoardHUD: View {
                             RoundedRectangle(cornerRadius: PixelStyle.corner)
                                 .stroke(DungeonPalette.ink.opacity(0.25), lineWidth: PixelStyle.border)
                         )
-                        .foregroundStyle(.white)
                 }
                 .accessibilityLabel("전투 추가")
             }
@@ -100,9 +98,7 @@ private struct EmptyDungeonState: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "flag.checkered")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(DungeonPalette.victory)
+            DungeonArtworkView(artwork: .battleFlag, size: 34)
             Text("오늘의 던전이 비었습니다")
                 .font(.headline.weight(.bold))
                 .foregroundStyle(DungeonPalette.ink)
@@ -110,7 +106,11 @@ private struct EmptyDungeonState: View {
                 .font(.caption)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.7))
             Button(action: onCreate) {
-                Label("전투 추가", systemImage: "plus")
+                Label {
+                    Text("전투 추가")
+                } icon: {
+                    DungeonArtworkView(artwork: .add, size: 16)
+                }
             }
             .buttonStyle(.pixel)
         }
@@ -126,7 +126,11 @@ private struct NotificationPermissionBanner: View {
 
     var body: some View {
         Button(action: onOpenSettings) {
-            Label("마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요.", systemImage: "bell.slash")
+            Label {
+                Text("마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요.")
+            } icon: {
+                DungeonArtworkView(artwork: .notificationsDisabled, size: 16)
+            }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
