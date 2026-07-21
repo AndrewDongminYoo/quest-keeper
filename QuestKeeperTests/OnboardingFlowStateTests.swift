@@ -68,6 +68,16 @@ struct OnboardingFlowStateTests {
         ) == .standard)
     }
 
+    @Test("an expired quest stays visible when its creation event is missing")
+    func expiredQuestWithoutCreationEvent() {
+        #expect(makeState(
+            events: [exposure()],
+            pending: [],
+            hasExistingQuests: true,
+            deferred: false
+        ) == .standard)
+    }
+
     @Test("creation start is recorded only before first value")
     func creationStartGate() {
         #expect(OnboardingFlowState.shouldRecordCreationStarted(
@@ -111,6 +121,7 @@ struct OnboardingFlowStateTests {
             assignment: control,
             events: [],
             pendingQuestIDs: [],
+            hasExistingQuests: false,
             deferredThisRun: false,
             measurementAvailable: true
         ) == .standard)
@@ -118,6 +129,7 @@ struct OnboardingFlowStateTests {
             assignment: unsupported,
             events: [],
             pendingQuestIDs: [],
+            hasExistingQuests: false,
             deferredThisRun: false,
             measurementAvailable: true
         ) == .standard)
@@ -125,6 +137,7 @@ struct OnboardingFlowStateTests {
             assignment: nil,
             events: [],
             pendingQuestIDs: [],
+            hasExistingQuests: false,
             deferredThisRun: false,
             measurementAvailable: true
         ) == .standard)
@@ -132,6 +145,7 @@ struct OnboardingFlowStateTests {
             assignment: assignment(),
             events: [],
             pendingQuestIDs: [],
+            hasExistingQuests: false,
             deferredThisRun: false,
             measurementAvailable: false
         ) == .standard)
@@ -170,12 +184,14 @@ struct OnboardingFlowStateTests {
     private func makeState(
         events: [RetentionEventSnapshot],
         pending: Set<UUID>,
+        hasExistingQuests: Bool? = nil,
         deferred: Bool
     ) -> OnboardingFlowPresentation {
         OnboardingFlowState.make(
             assignment: assignment(),
             events: events,
             pendingQuestIDs: pending,
+            hasExistingQuests: hasExistingQuests ?? !pending.isEmpty,
             deferredThisRun: deferred,
             measurementAvailable: true
         )

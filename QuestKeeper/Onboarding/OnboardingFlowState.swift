@@ -12,6 +12,7 @@ nonisolated enum OnboardingFlowState {
         assignment: ExperimentAssignmentSnapshot?,
         events: [RetentionEventSnapshot],
         pendingQuestIDs: Set<UUID>,
+        hasExistingQuests: Bool,
         deferredThisRun: Bool,
         measurementAvailable: Bool
     ) -> OnboardingFlowPresentation {
@@ -45,7 +46,7 @@ nonisolated enum OnboardingFlowState {
         let laterEvents = canonicalEvents.dropFirst(exposureIndex + 1)
         guard let firstCreation = laterEvents.first(where: { $0.name == .questCreated }),
               let firstQuestID = firstCreation.questID else {
-            if !pendingQuestIDs.isEmpty { return .standard }
+            if hasExistingQuests { return .standard }
             return deferredThisRun ? .standard : .guidedOffer
         }
 

@@ -66,6 +66,7 @@ struct ContentView: View {
                     assignment: onboardingAssignment,
                     events: retentionEvents.map(\.snapshot),
                     pendingQuestIDs: Set(pending.map(\.id)),
+                    hasExistingQuests: !quests.isEmpty,
                     deferredThisRun: hasDeferredOnboardingThisRun,
                     measurementAvailable: onboardingMeasurementAvailable
                 )
