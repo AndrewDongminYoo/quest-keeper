@@ -83,7 +83,8 @@ nonisolated struct OnboardingExperimentReport: Codable, Equatable, Sendable {
                 $0.schemaVersion == RetentionInstallation.currentSchemaVersion
             }
             quality.unsupportedCount += rows.count - supportedRows.count
-            guard supportedRows.count == 1,
+            guard rows.count == 1,
+                  supportedRows.count == 1,
                   supportedRows[0].measurementStartedAt <= assignment.assignedAt else {
                 quality.crossInstallationMismatchCount += 1
                 continue
@@ -401,6 +402,12 @@ private nonisolated func makeJourney(
     let laterEvents = ordered.dropFirst(exposureIndex + 1)
     let creationStart = laterEvents.first(where: { $0.name == .questCreationStarted })
     let firstCreation = laterEvents.first(where: { $0.name == .questCreated })
+    if let creationStart,
+       let firstCreation,
+       !eventOrdering(creationStart, firstCreation) {
+        quality.orderingFailureCount += 1
+        return nil
+    }
     let completions = laterEvents.filter { $0.name == .questCompleted }
     let contradictoryCompletions = completions.filter { completion in
         guard let firstCreation else { return true }

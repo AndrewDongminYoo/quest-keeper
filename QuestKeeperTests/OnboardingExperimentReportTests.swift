@@ -149,6 +149,24 @@ struct OnboardingExperimentReportTests {
         #expect(report.dataQuality.status == .partial)
     }
 
+    @Test("a supported installation beside an unsupported row is excluded")
+    func mixedSupportedAndUnsupportedInstallations() {
+        let unsupported = RetentionInstallationSnapshot(
+            schemaVersion: 2,
+            installationID: OnboardingExperimentFixture.controlA,
+            measurementStartedAt: OnboardingExperimentFixture.assignments[0].assignedAt
+        )
+
+        let report = makeReport(
+            installations: OnboardingExperimentFixture.installations + [unsupported]
+        )
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.unsupportedCount == 1)
+        #expect(report.dataQuality.crossInstallationMismatchCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
     @Test("another experiment exposure cannot enter the AND-34 cohort")
     func differentExperimentExposure() {
         let events = OnboardingExperimentFixture.events.map { event in
@@ -186,6 +204,25 @@ struct OnboardingExperimentReportTests {
             OnboardingExperimentFixture.controlA,
             "2026-07-01T15:00:30Z",
             OnboardingExperimentFixture.controlQuest
+        ))
+
+        let report = makeReport(events: events)
+
+        #expect(report.control.funnel.exposed == 1)
+        #expect(report.dataQuality.orderingFailureCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("creation start after first value excludes the contaminated installation")
+    func creationStartAfterCreation() {
+        var events = OnboardingExperimentFixture.events.filter {
+            $0.id != OnboardingExperimentFixture.uuid(1_002)
+        }
+        events.append(OnboardingExperimentFixture.event(
+            302,
+            .questCreationStarted,
+            OnboardingExperimentFixture.controlA,
+            "2026-07-01T15:02:00Z"
         ))
 
         let report = makeReport(events: events)
