@@ -18,8 +18,11 @@ struct QuestKeeperApp: App {
     /// True once we've actually been backgrounded — gates the container swap so a mere Control
     /// Center / notification-banner peek (`.inactive` → `.active`, never `.background`) doesn't refresh.
     @State private var didBackground = false
+    @State private var hasRecordedRetentionActivation = false
+    @State private var retentionActivationSessionID = UUID()
     private let notificationDelegate: NotificationDelegate
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
+    private let retentionBaselineWriter: RetentionBaselineWriter
 
     init() {
         let routeStore = NotificationRouteStore()
@@ -28,6 +31,7 @@ struct QuestKeeperApp: App {
         _notificationRouteStore = State(initialValue: routeStore)
         notificationDelegate = delegate
         widgetSnapshotWriter = snapshotWriter
+        retentionBaselineWriter = RetentionBaselineWriter()
         UNUserNotificationCenter.current().delegate = delegate
         do {
             _sharedModelContainer = State(initialValue: try QuestModelContainer.make())
@@ -48,6 +52,7 @@ struct QuestKeeperApp: App {
             switch phase {
             case .background:
                 didBackground = true
+                retentionActivationSessionID = UUID()
             case .active:
                 // A warm foreground's `@Query` keeps its own SQLite snapshot and never sees writes the
                 // widget process committed while we were backgrounded — and `rollback()` reuses that
@@ -55,6 +60,7 @@ struct QuestKeeperApp: App {
                 // connection that reads the on-disk truth, like a cold launch (verified via spike 009).
                 // Only after a genuine `.background` (where the widget could have written) — not a
                 // Control Center peek — so we don't needlessly refresh or tear down an open editor.
+                let wasBackgrounded = didBackground
                 let container: ModelContainer
                 if didBackground, let refreshed = try? QuestModelContainer.make() {
                     didBackground = false
@@ -62,6 +68,17 @@ struct QuestKeeperApp: App {
                     container = refreshed
                 } else {
                     container = sharedModelContainer
+                }
+                if shouldRecordRetentionActivation(
+                    hasRecordedActivation: hasRecordedRetentionActivation,
+                    didBackground: wasBackgrounded
+                ) {
+                    hasRecordedRetentionActivation = true
+                    retentionBaselineWriter.recordActivationAndWrite(
+                        sessionID: retentionActivationSessionID,
+                        at: .now,
+                        using: container
+                    )
                 }
                 syncActivation(using: container)
             default:
@@ -84,4 +101,11 @@ struct QuestKeeperApp: App {
             await writer.submit(WidgetDungeonPayload.make(from: quests))
         }
     }
+}
+
+nonisolated func shouldRecordRetentionActivation(
+    hasRecordedActivation: Bool,
+    didBackground: Bool
+) -> Bool {
+    !hasRecordedActivation || didBackground
 }

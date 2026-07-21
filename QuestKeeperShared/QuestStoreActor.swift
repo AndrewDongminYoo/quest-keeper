@@ -15,6 +15,12 @@ actor QuestStoreActor {
         guard let quest = try modelContext.fetch(descriptor).first else { return false }
         guard quest.completedAt == nil else { return false }
         quest.completedAt = now
+        _ = RetentionEventRecorder.recordQuestCompleted(
+            questID: id,
+            completedAt: now,
+            source: .widget,
+            in: modelContext
+        )
         try modelContext.save()
         return true
     }

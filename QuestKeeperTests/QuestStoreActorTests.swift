@@ -14,7 +14,11 @@ import Testing
 @MainActor
 struct QuestStoreActorTests {
     private func container() throws -> ModelContainer {
-        try ModelContainer(for: Quest.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let schema = Schema([Quest.self, RetentionInstallation.self, RetentionEvent.self])
+        return try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
     }
 
     @Test("complete writes completedAt for a pending quest")
@@ -27,11 +31,17 @@ struct QuestStoreActorTests {
         let id = quest.id
 
         let wrote = try await QuestStoreActor(modelContainer: c).complete(id: id, now: now)
+        let duplicateWrote = try await QuestStoreActor(modelContainer: c).complete(id: id, now: now)
 
         #expect(wrote == true)
+        #expect(duplicateWrote == false)
         let fresh = ModelContext(c)
         let fetched = try fresh.fetch(FetchDescriptor<Quest>(predicate: #Predicate { $0.id == id })).first
         #expect(fetched?.completedAt == now)
+        let events = try fresh.fetch(FetchDescriptor<RetentionEvent>())
+        #expect(events.count == 1)
+        #expect(events.first?.snapshot.name == .questCompleted)
+        #expect(events.first?.snapshot.source == .widget)
     }
 
     @Test("complete is idempotent on an already-completed quest")
@@ -50,6 +60,7 @@ struct QuestStoreActorTests {
         let fresh = ModelContext(c)
         let fetched = try fresh.fetch(FetchDescriptor<Quest>(predicate: #Predicate { $0.id == id })).first
         #expect(fetched?.completedAt == alreadyDone) // unchanged
+        #expect(try fresh.fetch(FetchDescriptor<RetentionEvent>()).isEmpty)
     }
 
     @Test("complete is a no-op for a missing id")
@@ -57,5 +68,7 @@ struct QuestStoreActorTests {
         let c = try container()
         let wrote = try await QuestStoreActor(modelContainer: c).complete(id: UUID(), now: .now)
         #expect(wrote == false)
+        let fresh = ModelContext(c)
+        #expect(try fresh.fetch(FetchDescriptor<RetentionEvent>()).isEmpty)
     }
 }
