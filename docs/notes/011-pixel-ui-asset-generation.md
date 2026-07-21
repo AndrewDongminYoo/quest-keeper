@@ -86,8 +86,8 @@ The source border sampled as `#ED08EB`, so the installed chroma-key helper used 
 The helper reported `1,150,488` fully transparent pixels and `16,433` partially transparent edge pixels out of `1,572,528` pixels.
 
 The `1448×1086` source divides evenly into a four-column by three-row grid.
-Extraction therefore used the exact x-boundaries `0, 362, 724, 1086, 1448` and y-boundaries `0, 362, 724, 1086` without resampling or boundary correction.
-Every extracted image was placed on a `362×362` transparent canvas with no offset change because each source cell was already square.
+Initial extraction therefore used the exact x-boundaries `0, 362, 724, 1086, 1448` and y-boundaries `0, 362, 724, 1086` without resampling.
+The icon cells remain on `362×362` transparent canvases.
 
 ## Victory Trophy Crop Correction
 
@@ -98,9 +98,22 @@ The corrected SHA-256 values are `16c52c152c33d7fa360ba33d25b6e71483f215c3e871c5
 Final runtime review also found isolated source-edge pixels beside the breathing-in hero and daily grave.
 Their left 32 pixels were fixed as transparent safe margins without changing any decoded pixel outside that margin; the corrected SHA-256 values are `742097f5f199c017818bcad74f35e3aae5a7c47f8ba19946fad1903bafc9ff03` for `sprite-hero-breathe-in.png` and `62f9f1654f1f4703d0ad86382ca7f7b59e84f7293fabc51f72ef0f88a9862c5b` for `sprite-daily-grave.png`.
 
+## Hero Frame Anchor Correction
+
+Automated review later exposed that all three hero silhouettes crossed the first-row bottom boundary, so exact `362×362` cell extraction clipped feet and equipment and gave each animation frame a different horizontal center.
+The hero-only correction returned to the approved original source with SHA-256 `6aff0f9a561f576768d03ded5ae70df5ab6bfb7efba5cd03a9fa94dae8acb83f`; the later trophy-correction sheet was not used for this repair because it had also removed the idle hero's sword.
+
+Each hero was re-extracted from a `362×430` source region at x-offsets `0`, `362`, and `724` so pixels below the nominal row boundary remained available.
+The inhale region's left 32 pixels were cleared again because they contain only the idle sword tip crossing the adjacent column.
+After chroma removal, each complete silhouette was trimmed and placed without resampling on a shared `400×400` transparent canvas.
+The placements are `+56+74` for idle, `+48+61` for inhale, and `+44+111` for exhale, producing a common horizontal center of `200`, an exclusive bottom baseline of `384`, and a 16-pixel bottom safe margin.
+
+The corrected SHA-256 values are `3dae6d3d9aed6a8987b8c1e79592342e898d6d63bdf90412cfc6317f9b155726` for `sprite-hero-idle.png`, `a8a02d3ec292a62db5665a5c8228bc870225343ebfd17c9a12d5edca06098242` for `sprite-hero-breathe-in.png`, and `db721fdf505a48fd1b4cae6033c5d96342f5dee549ebfe02f69f62b6f7f862e8` for `sprite-hero-breathe-out.png`.
+The daily-grave asset was inspected independently and left unchanged because both its decoded PNG and runtime rendering contain the complete gravestone.
+
 The app catalog receives the three hero frames and seven app icons.
 The widget catalog receives completion, stale-warning, and protection-shield icons.
 The same approved completion pixels are present in both target-specific catalogs.
 
-Validation confirmed thirteen target PNG files, square `362×362` dimensions, RGBA output, transparent pixels, nonempty subjects, valid JSON manifests, and visually correct cell mapping.
-No edge contraction, feathering, subject redraw, or opaque-pixel resampling was required.
+Validation confirmed thirteen target PNG files, square `362×362` icon dimensions, shared `400×400` hero-frame dimensions, RGBA output, transparent pixels, nonempty subjects, valid JSON manifests, and visually correct cell mapping.
+No subject redraw or opaque-pixel resampling was required.
