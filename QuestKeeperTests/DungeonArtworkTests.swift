@@ -139,6 +139,18 @@ struct DungeonArtworkTests {
         #expect(Set(bounds.map(\.maxY)).count == 1)
     }
 
+    @Test("battle flag keeps its pole base inside the canvas")
+    func battleFlagHasSafeBottomMargin() throws {
+        let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        let imageURL = testsDirectory
+            .deletingLastPathComponent()
+            .appending(path: "QuestKeeper/Assets.xcassets/icon-battle-flag.imageset/icon-battle-flag.png")
+        let image = try #require(UIImage(contentsOfFile: imageURL.path)?.cgImage)
+        let bounds = try alphaBounds(of: image)
+
+        #expect(bounds.maxY <= CGFloat(image.height - 16))
+    }
+
     @Test("mourning and Reduce Motion select stable artwork")
     func staticHeroArtwork() {
         #expect(HeroAnimation.artwork(isMourning: true, reduceMotion: false, frameIndex: 2) == .heroMourning)

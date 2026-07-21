@@ -111,6 +111,13 @@ The placements are `+56+74` for idle, `+48+61` for inhale, and `+44+111` for exh
 The corrected SHA-256 values are `3dae6d3d9aed6a8987b8c1e79592342e898d6d63bdf90412cfc6317f9b155726` for `sprite-hero-idle.png`, `a8a02d3ec292a62db5665a5c8228bc870225343ebfd17c9a12d5edca06098242` for `sprite-hero-breathe-in.png`, and `db721fdf505a48fd1b4cae6033c5d96342f5dee549ebfe02f69f62b6f7f862e8` for `sprite-hero-breathe-out.png`.
 The daily-grave asset was inspected independently and left unchanged because both its decoded PNG and runtime rendering contain the complete gravestone.
 
+## Battle Flag Bottom Correction
+
+The battle flag also crossed the first-row bottom boundary, leaving its pole base cut off in the exact `362×362` cell extraction.
+The complete `191×282` flag was recovered from a `362×430` region of the same approved original source and placed without resampling at `+75+64` on its existing `362×362` canvas.
+This preserves the original horizontal position while adding the complete pole base and a 16-pixel bottom safe margin.
+The corrected SHA-256 is `927d81bbd2270ebe243d12712888275b7302cae2ce9883828cb80f6bc9d832a2` for `icon-battle-flag.png`.
+
 The app catalog receives the three hero frames and seven app icons.
 The widget catalog receives completion, stale-warning, and protection-shield icons.
 The same approved completion pixels are present in both target-specific catalogs.
