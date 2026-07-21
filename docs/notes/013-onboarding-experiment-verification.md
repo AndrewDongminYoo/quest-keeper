@@ -5,13 +5,14 @@
 
 ## Revision
 
-- Product commit: `8c9297edeca8c99a1012cbc977a66fc56bb6afa3`.
+- Product commit: `3b2d04797052d846f112b87347f43c648ef5c952`.
 - Simulator: iPhone 17e, iOS 26.5 (23F77), `CDF2239B-B46C-4A44-A09E-ED656EF7F9EA`.
 - Experiment: `and-34-first-value-v1`.
 
 ## Automated Verification
 
-- The full `QuestKeeperTests` target passed with 151 tests in 26 suites and no failures.
+- The full `QuestKeeperTests` target passed with 162 tests in 26 suites and no failures.
+- Pre-PR regression coverage verifies contaminated-installation exclusion, experiment-key isolation, visible-scene exposure, failed-save rollback, first-use-only creation starts, and unsupported-only live reports.
 - The `QuestKeeper` app scheme built successfully.
 - The `QuestKeeperWidget` scheme built successfully.
 - Parallel testing was disabled and the build used at most two jobs.
