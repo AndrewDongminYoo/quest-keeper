@@ -5,13 +5,18 @@ import SwiftData
 @MainActor
 final class RetentionBaselineWriter {
     private let store: RetentionBaselineStore
+    private let onboardingStore: OnboardingExperimentStore
     private let logger = Logger(
         subsystem: "kr.donminzzi.QuestKeeper",
         category: "RetentionMeasurement"
     )
 
-    init(store: RetentionBaselineStore = RetentionBaselineStore()) {
+    init(
+        store: RetentionBaselineStore = RetentionBaselineStore(),
+        onboardingStore: OnboardingExperimentStore = OnboardingExperimentStore()
+    ) {
         self.store = store
+        self.onboardingStore = onboardingStore
     }
 
     func recordActivationAndWrite(
@@ -48,6 +53,30 @@ final class RetentionBaselineWriter {
                 reportingWeek: reportingWeek
             )
             try store.save(report)
+
+            do {
+                let assignments = try container.mainContext.fetch(
+                    FetchDescriptor<ExperimentAssignment>(sortBy: [SortDescriptor(\.assignedAt)])
+                ).map(\.snapshot)
+                let supportedAssignments = assignments.filter {
+                    $0.schemaVersion == ExperimentAssignment.currentSchemaVersion
+                        && $0.experimentKey == OnboardingExperiment.key
+                        && $0.variant != nil
+                        && $0.assignedAt < now
+                }
+                guard let cohortStart = supportedAssignments.first?.assignedAt else { return }
+                let experimentReport = OnboardingExperimentReport.make(
+                    assignments: assignments,
+                    installations: installations,
+                    events: events,
+                    asOf: now,
+                    calendar: calendar,
+                    cohort: DateInterval(start: cohortStart, end: now)
+                )
+                try onboardingStore.save(experimentReport)
+            } catch {
+                logger.error("Failed to write onboarding experiment report: \(String(describing: error), privacy: .public)")
+            }
         } catch {
             logger.error("Failed to write retention baseline: \(String(describing: error), privacy: .public)")
         }
