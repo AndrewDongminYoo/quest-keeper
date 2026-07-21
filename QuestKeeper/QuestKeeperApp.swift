@@ -20,9 +20,13 @@ struct QuestKeeperApp: App {
     @State private var didBackground = false
     @State private var hasRecordedRetentionActivation = false
     @State private var retentionActivationSessionID = UUID()
+    @State private var hasDeferredOnboardingThisRun = false
     private let notificationDelegate: NotificationDelegate
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     private let retentionBaselineWriter: RetentionBaselineWriter
+    private let onboardingAssignment: ExperimentAssignmentSnapshot?
+    private let onboardingMeasurementAvailable: Bool
+    private let onboardingSessionID = UUID()
 
     init() {
         let routeStore = NotificationRouteStore()
@@ -34,7 +38,47 @@ struct QuestKeeperApp: App {
         retentionBaselineWriter = RetentionBaselineWriter()
         UNUserNotificationCenter.current().delegate = delegate
         do {
-            _sharedModelContainer = State(initialValue: try QuestModelContainer.make())
+            let container = try QuestModelContainer.make()
+            _sharedModelContainer = State(initialValue: container)
+
+            let enrollment: ExperimentEnrollmentResult
+            if !shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
+                enrollment = .ineligible
+            } else {
+#if DEBUG
+                if let variant = onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
+                    enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                        at: .now,
+                        in: container.mainContext,
+                        variantSelector: { variant }
+                    )
+                } else {
+                    enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                        at: .now,
+                        in: container.mainContext
+                    )
+                }
+#else
+                enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                    at: .now,
+                    in: container.mainContext
+                )
+#endif
+            }
+
+            if let assignment = enrollment.assignment,
+               RetentionEventRecorder.recordExperimentExposed(
+                   experimentKey: assignment.experimentKey,
+                   at: .now,
+                   in: container.mainContext
+               ) != .failed,
+               (try? container.mainContext.save()) != nil {
+                onboardingAssignment = assignment
+                onboardingMeasurementAvailable = true
+            } else {
+                onboardingAssignment = nil
+                onboardingMeasurementAvailable = false
+            }
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -44,7 +88,11 @@ struct QuestKeeperApp: App {
         WindowGroup {
             ContentView(
                 notificationRouteStore: notificationRouteStore,
-                widgetSnapshotWriter: widgetSnapshotWriter
+                widgetSnapshotWriter: widgetSnapshotWriter,
+                onboardingAssignment: onboardingAssignment,
+                onboardingMeasurementAvailable: onboardingMeasurementAvailable,
+                hasDeferredOnboardingThisRun: $hasDeferredOnboardingThisRun,
+                onboardingSessionID: onboardingSessionID
             )
         }
         .modelContainer(sharedModelContainer)
@@ -101,6 +149,22 @@ struct QuestKeeperApp: App {
             await writer.submit(WidgetDungeonPayload.make(from: quests))
         }
     }
+}
+
+nonisolated func onboardingVariantOverride(
+    arguments: [String]
+) -> OnboardingExperimentVariant? {
+    guard let flagIndex = arguments.firstIndex(of: "-onboardingVariant"),
+          arguments.indices.contains(flagIndex + 1) else {
+        return nil
+    }
+    return OnboardingExperimentVariant(rawValue: arguments[flagIndex + 1])
+}
+
+nonisolated func shouldResolveOnboardingExperiment(
+    environment: [String: String]
+) -> Bool {
+    environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1"
 }
 
 nonisolated func shouldRecordRetentionActivation(

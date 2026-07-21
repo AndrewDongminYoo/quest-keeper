@@ -14,6 +14,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Quest.deadline) private var quests: [Quest]
+    @Query(sort: \RetentionEvent.occurredAt) private var retentionEvents: [RetentionEvent]
 
     /// A stored fact: when the app was last foregrounded (Phase 4 moves this to the App Group).
     @AppStorage("lastOpenedTIRD") private var lastOpenedRaw: Double = 0
@@ -23,21 +24,33 @@ struct ContentView: View {
     @State private var route: EditorRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
     @State private var mourningTask: Task<Void, Never>?
+    @Binding private var hasDeferredOnboardingThisRun: Bool
 
     private let notificationService: QuestNotificationService
     private let notificationRouteStore: NotificationRouteStore
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
+    private let onboardingAssignment: ExperimentAssignmentSnapshot?
+    private let onboardingMeasurementAvailable: Bool
+    private let onboardingSessionID: UUID
 
     init(
         notificationService: QuestNotificationService = .shared,
         notificationRouteStore: NotificationRouteStore = NotificationRouteStore(),
         widgetSnapshotStore: WidgetDungeonSnapshotStore = WidgetDungeonSnapshotStore(),
-        widgetSnapshotWriter: WidgetDungeonSnapshotWriter? = nil
+        widgetSnapshotWriter: WidgetDungeonSnapshotWriter? = nil,
+        onboardingAssignment: ExperimentAssignmentSnapshot? = nil,
+        onboardingMeasurementAvailable: Bool = false,
+        hasDeferredOnboardingThisRun: Binding<Bool> = .constant(false),
+        onboardingSessionID: UUID = UUID()
     ) {
         self.notificationService = notificationService
         self.notificationRouteStore = notificationRouteStore
         self.widgetSnapshotWriter = widgetSnapshotWriter
             ?? WidgetDungeonSnapshotWriter(snapshotStore: widgetSnapshotStore)
+        self.onboardingAssignment = onboardingAssignment
+        self.onboardingMeasurementAvailable = onboardingMeasurementAvailable
+        self._hasDeferredOnboardingThisRun = hasDeferredOnboardingThisRun
+        self.onboardingSessionID = onboardingSessionID
     }
 
     var body: some View {
@@ -49,6 +62,13 @@ struct ContentView: View {
                 // Derived membership — recomputed every tick, never queried (outcome depends on `now`).
                 let pending = quests.filter { $0.snapshot.outcome(at: now) == .pending }
                 let dailyGraves = quests.filter { $0.snapshot.isVisibleDailyGrave(at: now) }
+                let onboardingPresentation = OnboardingFlowState.make(
+                    assignment: onboardingAssignment,
+                    events: retentionEvents.map(\.snapshot),
+                    pendingQuestIDs: Set(pending.map(\.id)),
+                    deferredThisRun: hasDeferredOnboardingThisRun,
+                    measurementAvailable: onboardingMeasurementAvailable
+                )
 
                 HomeDungeonBoardView(
                     state: state,
@@ -58,7 +78,12 @@ struct ContentView: View {
                     newlyMissedQuestIDs: pendingDeaths,
                     now: now,
                     showsNotificationPermissionBanner: notificationAuthorization == .denied,
-                    onCreate: { route = .create },
+                    onboardingPresentation: onboardingPresentation,
+                    onCreate: { beginQuestCreation(draft: nil) },
+                    onStartGuidedQuest: {
+                        beginQuestCreation(draft: .guided(at: .now))
+                    },
+                    onDeferOnboarding: deferOnboarding,
                     onOpenNotificationSettings: openNotificationSettings,
                     onComplete: complete,
                     onRetryTomorrow: retryTomorrow,
@@ -68,9 +93,10 @@ struct ContentView: View {
             }
             .sheet(item: $route) { route in
                 switch route {
-                case .create:
+                case .create(let draft):
                     QuestEditor(
                         quest: nil,
+                        draft: draft,
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
                         onSaved: writeWidgetSnapshot(including:)
@@ -136,6 +162,32 @@ struct ContentView: View {
     }
 
     // MARK: - Fact mutations
+
+    private func beginQuestCreation(draft: QuestEditorDraft?) {
+        if let assignment = onboardingAssignment, onboardingMeasurementAvailable {
+            _ = RetentionEventRecorder.recordQuestCreationStarted(
+                experimentKey: assignment.experimentKey,
+                actionID: UUID(),
+                at: .now,
+                in: modelContext
+            )
+            try? modelContext.save()
+        }
+        route = .create(draft)
+    }
+
+    private func deferOnboarding() {
+        if let assignment = onboardingAssignment, onboardingMeasurementAvailable {
+            _ = RetentionEventRecorder.recordOnboardingDeferred(
+                experimentKey: assignment.experimentKey,
+                sessionID: onboardingSessionID,
+                at: .now,
+                in: modelContext
+            )
+            try? modelContext.save()
+        }
+        hasDeferredOnboardingThisRun = true
+    }
 
     private func complete(_ quest: Quest, at completedAt: Date = .now) {
         let questID = quest.id
@@ -223,7 +275,7 @@ struct ContentView: View {
 
 /// Which quest, if any, the editor sheet is editing. `.create` inserts a new one.
 enum EditorRoute: Identifiable {
-    case create
+    case create(QuestEditorDraft?)
     case edit(Quest)
     case dailyGrave(Quest)
     case resolved(Quest)

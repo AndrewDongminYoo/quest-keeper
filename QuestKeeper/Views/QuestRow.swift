@@ -13,13 +13,20 @@ struct QuestRow: View {
     let quest: Quest
     let now: Date
     let battlePhase: QuestBattlePhase
+    let guidanceText: String?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(quest: Quest, now: Date, battlePhase: QuestBattlePhase = .idle) {
+    init(
+        quest: Quest,
+        now: Date,
+        battlePhase: QuestBattlePhase = .idle,
+        guidanceText: String? = nil
+    ) {
         self.quest = quest
         self.now = now
         self.battlePhase = battlePhase
+        self.guidanceText = guidanceText
     }
 
     var body: some View {
@@ -35,6 +42,12 @@ struct QuestRow: View {
                     .foregroundStyle(isDefeated ? DungeonPalette.ink.opacity(0.58) : DungeonPalette.ink)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+                if let guidanceText {
+                    Text(guidanceText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(DungeonPalette.hero)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 HStack(spacing: 8) {
                     Text(DungeonPresentation.countdownText(deadline: quest.deadline, now: now))
                         .font(.caption.monospacedDigit().weight(.semibold))
@@ -68,6 +81,7 @@ struct QuestRow: View {
             RoundedRectangle(cornerRadius: 2)
                 .stroke(tone.tint.opacity(0.45), lineWidth: 2)  // chunky pixel border
         )
+        .accessibilityHint(guidanceText ?? "")
     }
 }
 

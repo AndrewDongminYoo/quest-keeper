@@ -12,6 +12,7 @@ struct QuestListSections: View {
     let pending: [Quest]
     let dailyGraves: [Quest]
     let newlyMissedQuestIDs: Set<UUID>
+    let guidedCompletionQuestID: UUID?
     let now: Date
     let onComplete: (Quest, Date) -> Void
     let onRetryTomorrow: (Quest) -> Void
@@ -27,6 +28,7 @@ struct QuestListSections: View {
                         SwipeableQuestRow(
                             quest: quest,
                             now: now,
+                            showsGuidedCompletion: quest.id == guidedCompletionQuestID,
                             onComplete: onComplete,
                             onDelete: onDelete,
                             onEdit: onEdit
@@ -75,6 +77,7 @@ private struct BoardSectionTitle: View {
 private struct SwipeableQuestRow: View {
     let quest: Quest
     let now: Date
+    let showsGuidedCompletion: Bool
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
     let onEdit: (Quest) -> Void
@@ -101,7 +104,12 @@ private struct SwipeableQuestRow: View {
             .frame(maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 2))
 
-            QuestRow(quest: quest, now: now, battlePhase: battlePhase)
+            QuestRow(
+                quest: quest,
+                now: now,
+                battlePhase: battlePhase,
+                guidanceText: showsGuidedCompletion ? "완료하면 첫 승리를 얻어요" : nil
+            )
                 .offset(x: offset)
                 .contentShape(Rectangle())
                 .onTapGesture {

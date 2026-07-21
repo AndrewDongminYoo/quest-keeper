@@ -17,6 +17,32 @@ struct QuestKeeperAppTests {
 
         let labels = Mirror(reflecting: app).children.compactMap(\.label)
         #expect(labels.contains { $0.contains("widgetSnapshotWriter") })
+        #expect(labels.contains { $0.contains("onboardingSessionID") })
+        #expect(labels.contains { $0.contains("hasDeferredOnboardingThisRun") })
+    }
+
+    @Test(
+        "onboarding variant override accepts only supported variants",
+        arguments: [
+            (["QuestKeeper", "-onboardingVariant", "control"], OnboardingExperimentVariant.control),
+            (["QuestKeeper", "-onboardingVariant", "guided"], OnboardingExperimentVariant.guided),
+            (["QuestKeeper", "-onboardingVariant", "unknown"], nil),
+            (["QuestKeeper"], nil),
+        ]
+    )
+    func onboardingOverride(
+        arguments: [String],
+        expected: OnboardingExperimentVariant?
+    ) {
+        #expect(onboardingVariantOverride(arguments: arguments) == expected)
+    }
+
+    @Test("previews do not resolve or expose onboarding experiments")
+    func previewExclusion() {
+        #expect(!shouldResolveOnboardingExperiment(
+            environment: ["XCODE_RUNNING_FOR_PREVIEWS": "1"]
+        ))
+        #expect(shouldResolveOnboardingExperiment(environment: [:]))
     }
 
     @Test(
