@@ -24,26 +24,37 @@ struct QuestKeeperApp: App {
     @State private var hasAttemptedOnboardingExposure = false
     @State private var onboardingMeasurementAvailable = false
     private let notificationDelegate: NotificationDelegate
+    private let notificationService: QuestNotificationService
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     private let retentionBaselineWriter: RetentionBaselineWriter
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
     private let onboardingSessionID = UUID()
+    private let usesInMemoryStore: Bool
 
     init() {
-        let routeStore = NotificationRouteStore()
+#if DEBUG
+        let usesInMemoryStore = ProcessInfo.processInfo.arguments.contains("-uiTestingInMemoryStore")
+        let notificationService = usesInMemoryStore
+            ? QuestNotificationService(center: UITestingQuestNotificationCenter())
+            : QuestNotificationService.shared
+        let snapshotWriter = usesInMemoryStore
+            ? WidgetDungeonSnapshotWriter(save: { _ in })
+            : WidgetDungeonSnapshotWriter()
+#else
+        let usesInMemoryStore = false
+        let notificationService = QuestNotificationService.shared
         let snapshotWriter = WidgetDungeonSnapshotWriter()
+#endif
+        let routeStore = NotificationRouteStore()
         let delegate = NotificationDelegate(routeStore: routeStore)
         _notificationRouteStore = State(initialValue: routeStore)
         notificationDelegate = delegate
+        self.notificationService = notificationService
         widgetSnapshotWriter = snapshotWriter
         retentionBaselineWriter = RetentionBaselineWriter()
+        self.usesInMemoryStore = usesInMemoryStore
         UNUserNotificationCenter.current().delegate = delegate
         do {
-#if DEBUG
-            let usesInMemoryStore = ProcessInfo.processInfo.arguments.contains("-uiTestingInMemoryStore")
-#else
-            let usesInMemoryStore = false
-#endif
             let container = try QuestModelContainer.make(isStoredInMemoryOnly: usesInMemoryStore)
             _sharedModelContainer = State(initialValue: container)
 
@@ -81,6 +92,7 @@ struct QuestKeeperApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(
+                notificationService: notificationService,
                 notificationRouteStore: notificationRouteStore,
                 widgetSnapshotWriter: widgetSnapshotWriter,
                 onboardingAssignment: onboardingAssignment,
@@ -104,7 +116,13 @@ struct QuestKeeperApp: App {
                 // Control Center peek — so we don't needlessly refresh or tear down an open editor.
                 let wasBackgrounded = didBackground
                 let container: ModelContainer
-                if didBackground, let refreshed = try? QuestModelContainer.make() {
+                if didBackground, usesInMemoryStore {
+                    didBackground = false
+                    container = sharedModelContainer
+                } else if didBackground,
+                          let refreshed = try? QuestModelContainer.make(
+                              isStoredInMemoryOnly: usesInMemoryStore
+                          ) {
                     didBackground = false
                     sharedModelContainer = refreshed
                     container = refreshed
@@ -147,15 +165,33 @@ struct QuestKeeperApp: App {
     /// in SwiftData. Using the one live container avoids both the staleness and the trap.
     private func syncActivation(using container: ModelContainer) {
         let writer = widgetSnapshotWriter
+        let notificationService = notificationService
         Task { @MainActor in
             guard let quests = try? container.mainContext.fetch(
                 FetchDescriptor<Quest>(sortBy: [SortDescriptor(\.deadline)])
             ) else { return }
-            _ = await QuestNotificationService.shared.reconcile(quests: quests, now: .now)
+            _ = await notificationService.reconcile(quests: quests, now: .now)
             await writer.submit(WidgetDungeonPayload.make(from: quests))
         }
     }
 }
+
+#if DEBUG
+@MainActor
+private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
+    func authorizationStatus() async -> UNAuthorizationStatus { .authorized }
+
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { true }
+
+    func add(_ request: UNNotificationRequest) async throws {}
+
+    func pendingNotificationIdentifiers() async -> [String] { [] }
+
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {}
+
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {}
+}
+#endif
 
 nonisolated func onboardingVariantOverride(
     arguments: [String]

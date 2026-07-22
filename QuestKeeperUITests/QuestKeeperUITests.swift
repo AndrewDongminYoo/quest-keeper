@@ -39,14 +39,22 @@ final class QuestKeeperUITests: XCTestCase {
         app.launchArguments = ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
         app.launch()
 
-        app.buttons["전투 추가"].firstMatch.tap()
+        let addButton = app.buttons["전투 추가"].firstMatch
+        XCTAssertTrue(addButton.waitForExistence(timeout: 3))
+        addButton.tap()
         let titleField = app.textFields["제목"]
         XCTAssertTrue(titleField.waitForExistence(timeout: 2))
         titleField.tap()
         titleField.typeText("Swipe completion UI test")
-        app.buttons["저장"].tap()
+        let saveButton = app.buttons["저장"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 2))
+        saveButton.tap()
 
         let questTitle = app.staticTexts["Swipe completion UI test"]
+        XCTAssertTrue(questTitle.waitForExistence(timeout: 3))
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
         XCTAssertTrue(questTitle.waitForExistence(timeout: 3))
 
         questTitle.swipeRight()
