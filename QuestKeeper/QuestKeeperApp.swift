@@ -30,6 +30,7 @@ struct QuestKeeperApp: App {
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
     private let onboardingSessionID = UUID()
     private let usesInMemoryStore: Bool
+    private let isDailyFocusLoopEnabled: Bool
 
     init() {
 #if DEBUG
@@ -55,6 +56,11 @@ struct QuestKeeperApp: App {
             usesInMemoryStore: usesInMemoryStore
         ) ? RetentionBaselineWriter() : nil
         self.usesInMemoryStore = usesInMemoryStore
+#if DEBUG
+        isDailyFocusLoopEnabled = dailyFocusLoopEnabled(arguments: ProcessInfo.processInfo.arguments)
+#else
+        isDailyFocusLoopEnabled = false
+#endif
         UNUserNotificationCenter.current().delegate = delegate
         do {
             let container = try QuestModelContainer.make(isStoredInMemoryOnly: usesInMemoryStore)
@@ -105,7 +111,8 @@ struct QuestKeeperApp: App {
                 onboardingAssignment: onboardingAssignment,
                 onboardingMeasurementAvailable: onboardingMeasurementAvailable,
                 hasDeferredOnboardingThisRun: $hasDeferredOnboardingThisRun,
-                onboardingSessionID: onboardingSessionID
+                onboardingSessionID: onboardingSessionID,
+                dailyFocusLoopEnabled: isDailyFocusLoopEnabled
             )
         }
         .modelContainer(sharedModelContainer)
@@ -199,6 +206,10 @@ private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
     func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {}
 }
 #endif
+
+nonisolated func dailyFocusLoopEnabled(arguments: [String]) -> Bool {
+    arguments.contains("-dailyFocusLoopEnabled")
+}
 
 nonisolated func onboardingVariantOverride(
     arguments: [String]

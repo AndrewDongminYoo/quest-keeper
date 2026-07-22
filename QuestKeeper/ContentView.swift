@@ -32,6 +32,7 @@ struct ContentView: View {
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
     private let onboardingMeasurementAvailable: Bool
     private let onboardingSessionID: UUID
+    private let dailyFocusLoopEnabled: Bool
 
     init(
         notificationService: QuestNotificationService = .shared,
@@ -41,7 +42,8 @@ struct ContentView: View {
         onboardingAssignment: ExperimentAssignmentSnapshot? = nil,
         onboardingMeasurementAvailable: Bool = false,
         hasDeferredOnboardingThisRun: Binding<Bool> = .constant(false),
-        onboardingSessionID: UUID = UUID()
+        onboardingSessionID: UUID = UUID(),
+        dailyFocusLoopEnabled: Bool = false
     ) {
         self.notificationService = notificationService
         self.notificationRouteStore = notificationRouteStore
@@ -51,6 +53,7 @@ struct ContentView: View {
         self.onboardingMeasurementAvailable = onboardingMeasurementAvailable
         self._hasDeferredOnboardingThisRun = hasDeferredOnboardingThisRun
         self.onboardingSessionID = onboardingSessionID
+        self.dailyFocusLoopEnabled = dailyFocusLoopEnabled
     }
 
     var body: some View {

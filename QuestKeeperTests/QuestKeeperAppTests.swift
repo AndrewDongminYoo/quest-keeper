@@ -37,6 +37,18 @@ struct QuestKeeperAppTests {
         #expect(onboardingVariantOverride(arguments: arguments) == expected)
     }
 
+    @Test(
+        "daily focus loop requires its exact development argument",
+        arguments: [
+            (["QuestKeeper", "-dailyFocusLoopEnabled"], true),
+            (["QuestKeeper", "dailyFocusLoopEnabled"], false),
+            (["QuestKeeper"], false),
+        ]
+    )
+    func dailyFocusGate(arguments: [String], expected: Bool) {
+        #expect(dailyFocusLoopEnabled(arguments: arguments) == expected)
+    }
+
     @Test("previews do not resolve or expose onboarding experiments")
     func previewExclusion() {
         #expect(!shouldResolveOnboardingExperiment(
