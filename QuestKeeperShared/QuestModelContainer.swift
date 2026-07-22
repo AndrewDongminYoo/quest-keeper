@@ -10,7 +10,10 @@ import SwiftData
 enum QuestModelContainer {
     /// `nonisolated` so the widget intent can open the store inside its async, off-main `perform()`
     /// (the module defaults to `@MainActor`); the app's main-actor call site is unaffected.
-    nonisolated static func make(storeURL: URL? = nil) throws -> ModelContainer {
+    nonisolated static func make(
+        storeURL: URL? = nil,
+        isStoredInMemoryOnly: Bool = false
+    ) throws -> ModelContainer {
         let schema = Schema([
             Quest.self,
             RetentionInstallation.self,
@@ -18,7 +21,9 @@ enum QuestModelContainer {
             ExperimentAssignment.self,
         ])
         let configuration: ModelConfiguration
-        if let storeURL {
+        if isStoredInMemoryOnly {
+            configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        } else if let storeURL {
             configuration = ModelConfiguration(schema: schema, url: storeURL)
         } else {
             configuration = ModelConfiguration(

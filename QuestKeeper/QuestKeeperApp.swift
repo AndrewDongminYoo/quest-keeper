@@ -39,7 +39,12 @@ struct QuestKeeperApp: App {
         retentionBaselineWriter = RetentionBaselineWriter()
         UNUserNotificationCenter.current().delegate = delegate
         do {
-            let container = try QuestModelContainer.make()
+#if DEBUG
+            let usesInMemoryStore = ProcessInfo.processInfo.arguments.contains("-uiTestingInMemoryStore")
+#else
+            let usesInMemoryStore = false
+#endif
+            let container = try QuestModelContainer.make(isStoredInMemoryOnly: usesInMemoryStore)
             _sharedModelContainer = State(initialValue: container)
 
             let enrollment: ExperimentEnrollmentResult
