@@ -5,14 +5,17 @@ struct DailyFocusSelectionSheet: View {
     @State private var selectedQuestIDs: Set<UUID>
 
     let quests: [Quest]
+    let kind: DailyFocusSelectionKind
     let onSave: ([UUID]) -> Bool
 
     init(
         quests: [Quest],
         initialSelectedQuestIDs: [UUID],
+        kind: DailyFocusSelectionKind,
         onSave: @escaping ([UUID]) -> Bool
     ) {
         self.quests = quests
+        self.kind = kind
         self.onSave = onSave
         _selectedQuestIDs = State(initialValue: Set(initialSelectedQuestIDs))
     }
@@ -26,12 +29,12 @@ struct DailyFocusSelectionSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(quest.title)
                                 TimelineView(.periodic(from: .now, by: 60)) { context in
-                                    Text(
-                                        DungeonPresentation.countdownText(
+                                    Text(quest.completedAt == nil
+                                        ? DungeonPresentation.countdownText(
                                             deadline: quest.deadline,
                                             now: context.date
                                         )
-                                    )
+                                        : "완료")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 }
@@ -55,15 +58,20 @@ struct DailyFocusSelectionSheet: View {
                     Button("취소") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("선택 완료 (\(selectedQuestIDs.count)/3)") {
+                    Button("\(actionTitle) (\(selectedQuestIDs.count)/3)") {
                         let orderedIDs = quests.map(\.id).filter(selectedQuestIDs.contains)
-                        _ = onSave(orderedIDs)
-                        dismiss()
+                        if onSave(orderedIDs) {
+                            dismiss()
+                        }
                     }
                     .disabled(!DailyFocusState.isValidSelection(Array(selectedQuestIDs)))
                 }
             }
         }
+    }
+
+    private var actionTitle: String {
+        kind == .confirmation ? "오늘 이대로 시작" : "선택 완료"
     }
 
     private func binding(for questID: UUID) -> Binding<Bool> {

@@ -77,12 +77,19 @@ nonisolated struct DailyFocusSelectionSnapshot: Codable, Equatable, Identifiable
 
 nonisolated enum DailyFocusDay {
     static func key(for date: Date, calendar: Calendar) -> String {
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        let components = gregorianCalendar(timeZone: calendar.timeZone)
+            .dateComponents([.year, .month, .day], from: date)
         return String(
             format: "%04d-%02d-%02d",
             components.year ?? 0,
             components.month ?? 0,
             components.day ?? 0
         )
+    }
+
+    static func gregorianCalendar(timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
     }
 }

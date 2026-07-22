@@ -142,6 +142,179 @@ struct DailyFocusReportTests {
         #expect(report.editRate.value == nil)
     }
 
+    @Test("reporting interval excludes its exact end")
+    func reportingIntervalIsHalfOpen() throws {
+        let report = DailyFocusReport.make(
+            selections: [try selection(
+                1,
+                day: 5,
+                hour: 0,
+                questIDs: [firstQuestID],
+                kind: .confirmation
+            )],
+            installations: [installation()],
+            events: [activation(2, day: 5)],
+            asOf: date(day: 6),
+            calendar: calendar,
+            reportingInterval: DateInterval(start: date(day: 1), end: date(day: 5))
+        )
+
+        #expect(report.dailySelection == RetentionRate(achieved: 0, eligible: 0))
+        #expect(report.editRate == RetentionRate(achieved: 0, eligible: 0))
+    }
+
+    @Test("completion before first focus inclusion does not qualify")
+    func excludesCompletionBeforeInclusion() throws {
+        let report = DailyFocusReport.make(
+            selections: [try selection(
+                1,
+                day: 1,
+                hour: 9,
+                questIDs: [firstQuestID],
+                kind: .confirmation
+            )],
+            installations: [installation()],
+            events: [completion(2, day: 1, hour: 8, questID: firstQuestID)],
+            asOf: date(day: 2),
+            calendar: calendar,
+            reportingInterval: DateInterval(start: date(day: 1), end: date(day: 5))
+        )
+
+        #expect(report.focusQuestCompletion == RetentionRate(achieved: 0, eligible: 1))
+        #expect(report.selectedDayCompletion == RetentionRate(achieved: 0, eligible: 1))
+    }
+
+    @Test("next-day revisit matures only at the exact end of the observation day")
+    func nextDayMaturationBoundary() throws {
+        let selection = try selection(
+            1,
+            day: 1,
+            hour: 9,
+            questIDs: [firstQuestID],
+            kind: .confirmation
+        )
+        let inputs = [activation(2, day: 2)]
+        let interval = DateInterval(start: date(day: 1), end: date(day: 5))
+
+        let immature = DailyFocusReport.make(
+            selections: [selection],
+            installations: [installation()],
+            events: inputs,
+            asOf: date(day: 3).addingTimeInterval(-1),
+            calendar: calendar,
+            reportingInterval: interval
+        )
+        let mature = DailyFocusReport.make(
+            selections: [selection],
+            installations: [installation()],
+            events: inputs,
+            asOf: date(day: 3),
+            calendar: calendar,
+            reportingInterval: interval
+        )
+
+        #expect(immature.nextDayRevisit == RetentionRate(achieved: 0, eligible: 0))
+        #expect(mature.nextDayRevisit == RetentionRate(achieved: 1, eligible: 1))
+    }
+
+    @Test("same-position conflicts and future rows make quality partial")
+    func countsConflictAndFutureRows() throws {
+        let first = try selection(
+            1,
+            day: 1,
+            hour: 9,
+            questIDs: [firstQuestID],
+            kind: .confirmation
+        )
+        let conflict = try selection(
+            1,
+            day: 1,
+            hour: 9,
+            questIDs: [secondQuestID],
+            kind: .confirmation
+        )
+        let future = try selection(
+            3,
+            day: 4,
+            hour: 9,
+            questIDs: [thirdQuestID],
+            kind: .confirmation
+        )
+
+        let report = DailyFocusReport.make(
+            selections: [first, conflict, future],
+            installations: [installation()],
+            events: [],
+            asOf: date(day: 3),
+            calendar: calendar,
+            reportingInterval: DateInterval(start: date(day: 1), end: date(day: 5))
+        )
+
+        #expect(report.dataQuality.status == .partial)
+        #expect(report.dataQuality.conflictingCount == 2)
+        #expect(report.dataQuality.futureCount == 1)
+        #expect(report.dailySelection == RetentionRate(achieved: 0, eligible: 0))
+    }
+
+    @Test("canonical event deduplication keeps the earliest completion fact")
+    func deduplicatesCompletionEvents() throws {
+        let deduplicationKey = "quest_completed:\(installationID):shared"
+        let beforeInclusion = event(
+            2,
+            name: .questCompleted,
+            day: 1,
+            hour: 8,
+            questID: firstQuestID,
+            deduplicationKey: deduplicationKey
+        )
+        let afterInclusion = event(
+            3,
+            name: .questCompleted,
+            day: 1,
+            hour: 10,
+            questID: firstQuestID,
+            deduplicationKey: deduplicationKey
+        )
+        let report = DailyFocusReport.make(
+            selections: [try selection(
+                1,
+                day: 1,
+                hour: 9,
+                questIDs: [firstQuestID],
+                kind: .confirmation
+            )],
+            installations: [installation()],
+            events: [afterInclusion, beforeInclusion],
+            asOf: date(day: 2),
+            calendar: calendar,
+            reportingInterval: DateInterval(start: date(day: 1), end: date(day: 5))
+        )
+
+        #expect(report.focusQuestCompletion == RetentionRate(achieved: 0, eligible: 1))
+    }
+
+    @Test("widget events do not create app-active days")
+    func excludesWidgetActivationSource() {
+        let widgetActivation = event(
+            1,
+            name: .appActivated,
+            day: 1,
+            hour: 8,
+            questID: nil,
+            source: .widget
+        )
+        let report = DailyFocusReport.make(
+            selections: [],
+            installations: [installation()],
+            events: [widgetActivation],
+            asOf: date(day: 2),
+            calendar: calendar,
+            reportingInterval: DateInterval(start: date(day: 1), end: date(day: 5))
+        )
+
+        #expect(report.dailySelection == RetentionRate(achieved: 0, eligible: 0))
+    }
+
     private var calendar: Calendar {
         var value = Calendar(identifier: .gregorian)
         value.timeZone = TimeZone(secondsFromGMT: 0)!
@@ -206,7 +379,9 @@ struct DailyFocusReportTests {
         name: RetentionEventName,
         day: Int,
         hour: Int,
-        questID: UUID?
+        questID: UUID?,
+        deduplicationKey: String? = nil,
+        source: RetentionEventSource = .app
     ) -> RetentionEventSnapshot {
         RetentionEventSnapshot(
             id: uuid(idSuffix),
@@ -214,9 +389,10 @@ struct DailyFocusReportTests {
             nameRawValue: name.rawValue,
             installationID: installationID,
             occurredAt: date(day: day, hour: hour),
-            sourceRawValue: RetentionEventSource.app.rawValue,
+            sourceRawValue: source.rawValue,
             questID: questID,
-            deduplicationKey: "\(name.rawValue):\(installationID):\(idSuffix)"
+            deduplicationKey: deduplicationKey
+                ?? "\(name.rawValue):\(installationID):\(idSuffix)"
         )
     }
 

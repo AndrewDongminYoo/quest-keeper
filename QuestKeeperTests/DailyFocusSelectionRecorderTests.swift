@@ -152,6 +152,79 @@ struct DailyFocusSelectionRecorderTests {
         #expect(try container.mainContext.fetchCount(FetchDescriptor<DailyFocusSelection>()) == 0)
     }
 
+    @Test("backdated and same-time revisions fail")
+    func rejectsNonLaterRevision() throws {
+        let container = try makeContainer()
+        insertInstallationAndQuests(in: container.mainContext)
+        #expect(DailyFocusSelectionRecorder.record(
+            selectedQuestIDs: [firstQuestID],
+            kind: .confirmation,
+            at: recordedAt,
+            calendar: seoulCalendar,
+            in: container.mainContext
+        ) != .failed)
+
+        for invalidDate in [recordedAt.addingTimeInterval(-1), recordedAt] {
+            #expect(DailyFocusSelectionRecorder.record(
+                selectedQuestIDs: [secondQuestID],
+                kind: .revision,
+                at: invalidDate,
+                calendar: seoulCalendar,
+                in: container.mainContext
+            ) == .failed)
+        }
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<DailyFocusSelection>()) == 1)
+    }
+
+    @Test("same Gregorian local date remains one focus day after time-zone change")
+    func preventsSecondConfirmationForSameDateInAnotherTimeZone() throws {
+        let container = try makeContainer()
+        insertInstallationAndQuests(in: container.mainContext)
+        #expect(DailyFocusSelectionRecorder.record(
+            selectedQuestIDs: [firstQuestID],
+            kind: .confirmation,
+            at: recordedAt,
+            calendar: seoulCalendar,
+            in: container.mainContext
+        ) != .failed)
+        var tokyoCalendar = Calendar(identifier: .japanese)
+        tokyoCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+
+        #expect(DailyFocusSelectionRecorder.record(
+            selectedQuestIDs: [secondQuestID],
+            kind: .confirmation,
+            at: recordedAt.addingTimeInterval(60),
+            calendar: tokyoCalendar,
+            in: container.mainContext
+        ) == .failed)
+    }
+
+    @Test("revision can retain a focus quest completed on the same day")
+    func revisionRetainsCompletedMember() throws {
+        let container = try makeContainer()
+        insertInstallationAndQuests(in: container.mainContext)
+        #expect(DailyFocusSelectionRecorder.record(
+            selectedQuestIDs: [firstQuestID, secondQuestID],
+            kind: .confirmation,
+            at: recordedAt,
+            calendar: seoulCalendar,
+            in: container.mainContext
+        ) != .failed)
+        let quests = try container.mainContext.fetch(FetchDescriptor<Quest>())
+        quests.first(where: { $0.id == firstQuestID })?.completedAt = recordedAt.addingTimeInterval(30)
+
+        let result = DailyFocusSelectionRecorder.record(
+            selectedQuestIDs: [firstQuestID, thirdQuestID],
+            kind: .revision,
+            at: recordedAt.addingTimeInterval(60),
+            calendar: seoulCalendar,
+            in: container.mainContext
+        )
+
+        #expect(result != .failed)
+        #expect(result.snapshot?.selectedQuestIDs?.contains(firstQuestID) == true)
+    }
+
     private var seoulCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
@@ -202,5 +275,14 @@ struct DailyFocusSelectionRecorderTests {
             importance: .low
         ))
         try? context.save()
+    }
+}
+
+private extension DailyFocusSelectionRecordResult {
+    var snapshot: DailyFocusSelectionSnapshot? {
+        switch self {
+        case .inserted(let snapshot), .unchanged(let snapshot): snapshot
+        case .failed: nil
+        }
     }
 }

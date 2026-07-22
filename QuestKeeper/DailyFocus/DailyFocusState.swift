@@ -21,10 +21,10 @@ nonisolated enum DailyFocusState {
             .filter {
                 $0.schemaVersion == DailyFocusSelection.currentSchemaVersion
                     && $0.localDayKey == dayKey
-                    && $0.timeZoneIdentifier == calendar.timeZone.identifier
                     && $0.kind != nil
                     && isValidSelection($0.selectedQuestIDs ?? [])
             }
+            .groupedByPositionRemovingConflicts()
             .sorted(by: selectionOrdering)
 
         guard let confirmationIndex = orderedRows.firstIndex(where: { $0.kind == .confirmation }) else {
@@ -106,4 +106,20 @@ nonisolated enum DailyFocusState {
         if lhs.recordedAt != rhs.recordedAt { return lhs.recordedAt < rhs.recordedAt }
         return lhs.id.uuidString.lowercased() < rhs.id.uuidString.lowercased()
     }
+}
+
+private extension Array where Element == DailyFocusSelectionSnapshot {
+    nonisolated func groupedByPositionRemovingConflicts() -> [Element] {
+        Dictionary(grouping: self) {
+            DailyFocusSelectionPosition(id: $0.id, recordedAt: $0.recordedAt)
+        }.values.compactMap { rows in
+            guard let first = rows.first, rows.allSatisfy({ $0 == first }) else { return nil }
+            return first
+        }
+    }
+}
+
+nonisolated private struct DailyFocusSelectionPosition: Hashable {
+    let id: UUID
+    let recordedAt: Date
 }

@@ -31,6 +31,7 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
         calendar: Calendar,
         reportingInterval: DateInterval
     ) -> DailyFocusReport {
+        let reportingCalendar = DailyFocusDay.gregorianCalendar(timeZone: calendar.timeZone)
         var unsupportedCount = 0
         var malformedCount = 0
         var conflictingCount = 0
@@ -90,13 +91,24 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
         let groupedRows = Dictionary(grouping: validRows) {
             SelectionGroupKey(
                 installationID: $0.installationID,
-                localDayKey: $0.localDayKey,
-                timeZoneIdentifier: $0.timeZoneIdentifier
+                localDayKey: $0.localDayKey
             )
         }
         var selectedDays: [SelectedDay] = []
         for rows in groupedRows.values {
-            let ordered = rows.sorted(by: selectionOrdering)
+            let positionGroups = Dictionary(grouping: rows) {
+                SelectionPosition(id: $0.id, recordedAt: $0.recordedAt)
+            }
+            var canonicalRows: [DailyFocusSelectionSnapshot] = []
+            for positionRows in positionGroups.values {
+                guard let first = positionRows.first else { continue }
+                guard positionRows.allSatisfy({ $0 == first }) else {
+                    conflictingCount += positionRows.count
+                    continue
+                }
+                canonicalRows.append(first)
+            }
+            let ordered = canonicalRows.sorted(by: selectionOrdering)
             guard let confirmationIndex = ordered.firstIndex(where: { $0.kind == .confirmation }) else {
                 outOfOrderCount += ordered.count
                 continue
@@ -124,8 +136,8 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
                 }
             }
 
-            let dayStart = calendar.startOfDay(for: confirmation.recordedAt)
-            guard reportingInterval.contains(dayStart) else { continue }
+            let dayStart = reportingCalendar.startOfDay(for: confirmation.recordedAt)
+            guard reportingInterval.containsHalfOpen(dayStart) else { continue }
             selectedDays.append(SelectedDay(
                 installationID: confirmation.installationID,
                 dayStart: dayStart,
@@ -138,7 +150,7 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
         for event in events {
             guard event.schemaVersion == RetentionEvent.currentSchemaVersion,
                   let installation = supportedInstallations[event.installationID],
-                  event.source != nil,
+                  let source = event.source,
                   event.occurredAt >= installation.measurementStartedAt else {
                 continue
             }
@@ -147,7 +159,7 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
                 continue
             }
             switch event.name {
-            case .appActivated where event.questID == nil:
+            case .appActivated where source == .app && event.questID == nil:
                 validEvents.append(event)
             case .questCompleted where event.questID != nil:
                 validEvents.append(event)
@@ -160,8 +172,8 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
 
         let activeDays = Set(canonicalEvents.compactMap { event -> InstallationDay? in
             guard event.name == .appActivated else { return nil }
-            let dayStart = calendar.startOfDay(for: event.occurredAt)
-            guard reportingInterval.contains(dayStart) else { return nil }
+            let dayStart = reportingCalendar.startOfDay(for: event.occurredAt)
+            guard reportingInterval.containsHalfOpen(dayStart) else { return nil }
             return InstallationDay(installationID: event.installationID, dayStart: dayStart)
         })
         let selectedDayKeys = Set(selectedDays.map {
@@ -177,8 +189,8 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
         var revisitEligibleCount = 0
 
         for day in selectedDays {
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: day.dayStart),
-                  let dayAfterNext = calendar.date(byAdding: .day, value: 2, to: day.dayStart) else {
+            guard let nextDay = reportingCalendar.date(byAdding: .day, value: 1, to: day.dayStart),
+                  let dayAfterNext = reportingCalendar.date(byAdding: .day, value: 2, to: day.dayStart) else {
                 continue
             }
 
@@ -207,7 +219,7 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
                 let revisited = canonicalEvents.contains {
                     $0.installationID == day.installationID
                         && $0.name == .appActivated
-                        && calendar.isDate($0.occurredAt, inSameDayAs: nextDay)
+                        && reportingCalendar.isDate($0.occurredAt, inSameDayAs: nextDay)
                 }
                 if revisited { revisitCount += 1 }
             }
@@ -262,7 +274,11 @@ nonisolated struct DailyFocusReport: Codable, Equatable, Sendable {
 nonisolated private struct SelectionGroupKey: Hashable {
     let installationID: UUID
     let localDayKey: String
-    let timeZoneIdentifier: String
+}
+
+nonisolated private struct SelectionPosition: Hashable {
+    let id: UUID
+    let recordedAt: Date
 }
 
 nonisolated private struct InstallationDay: Hashable {
@@ -291,4 +307,10 @@ nonisolated private func eventOrdering(
 ) -> Bool {
     if lhs.occurredAt != rhs.occurredAt { return lhs.occurredAt < rhs.occurredAt }
     return lhs.id.uuidString.lowercased() < rhs.id.uuidString.lowercased()
+}
+
+private extension DateInterval {
+    nonisolated func containsHalfOpen(_ date: Date) -> Bool {
+        date >= start && date < end
+    }
 }

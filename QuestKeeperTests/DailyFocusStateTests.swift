@@ -144,6 +144,58 @@ struct DailyFocusStateTests {
         ) == [firstID, thirdID])
     }
 
+    @Test("day keys are Gregorian while preserving the supplied time zone")
+    func dayKeyUsesGregorianCalendar() {
+        var buddhist = Calendar(identifier: .buddhist)
+        buddhist.timeZone = TimeZone(identifier: "Asia/Seoul")!
+
+        #expect(DailyFocusDay.key(for: now, calendar: buddhist) == "2026-06-24")
+    }
+
+    @Test("same local date selection survives a time-zone identifier change")
+    func sameDateTimeZoneChangeKeepsSelection() throws {
+        let confirmation = try selection(
+            questIDs: [firstID],
+            recordedAt: now.addingTimeInterval(-60),
+            kind: .confirmation
+        )
+        var tokyoCalendar = Calendar(identifier: .gregorian)
+        tokyoCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+
+        #expect(DailyFocusState.make(
+            enabled: true,
+            quests: [quest(firstID, deadline: now.addingTimeInterval(600), importance: .low)],
+            selections: [confirmation],
+            now: now,
+            calendar: tokyoCalendar
+        ) == .confirmed(selectedQuestIDs: [firstID], completedQuestIDs: []))
+    }
+
+    @Test("conflicting snapshots at one deterministic position are ignored")
+    func ignoresSamePositionConflict() throws {
+        let id = UUID(uuidString: "00000000-0000-0000-0000-000000000209")!
+        let first = try selection(
+            id: id,
+            questIDs: [firstID],
+            recordedAt: now.addingTimeInterval(-60),
+            kind: .confirmation
+        )
+        let conflicting = try selection(
+            id: id,
+            questIDs: [secondID],
+            recordedAt: now.addingTimeInterval(-60),
+            kind: .confirmation
+        )
+
+        #expect(DailyFocusState.make(
+            enabled: true,
+            quests: [quest(firstID, deadline: now.addingTimeInterval(600), importance: .low)],
+            selections: [first, conflicting],
+            now: now,
+            calendar: seoulCalendar
+        ) == .recommended([firstID]))
+    }
+
     private var seoulCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!

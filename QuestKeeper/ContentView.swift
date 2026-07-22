@@ -100,12 +100,13 @@ struct ContentView: View {
                     },
                     onDeferOnboarding: deferOnboarding,
                     onConfirmDailyFocus: { questIDs in
-                        _ = recordDailyFocus(questIDs, kind: .confirmation, at: now)
+                        confirmRecommendedDailyFocus(questIDs)
                     },
                     onEditDailyFocus: { questIDs, kind in
                         dailyFocusEditor = DailyFocusEditorRoute(
                             initialSelectedQuestIDs: questIDs,
-                            kind: kind
+                            kind: kind,
+                            localDayKey: DailyFocusDay.key(for: now, calendar: .current)
                         )
                     },
                     onOpenNotificationSettings: openNotificationSettings,
@@ -147,11 +148,18 @@ struct ContentView: View {
                     now: .now
                 )
                 let questsByID = Dictionary(uniqueKeysWithValues: quests.map { ($0.id, $0) })
+                let candidateIDs = rankedIDs + editor.initialSelectedQuestIDs.filter {
+                    !rankedIDs.contains($0)
+                }
                 DailyFocusSelectionSheet(
-                    quests: rankedIDs.compactMap { questsByID[$0] },
-                    initialSelectedQuestIDs: editor.initialSelectedQuestIDs
+                    quests: candidateIDs.compactMap { questsByID[$0] },
+                    initialSelectedQuestIDs: editor.initialSelectedQuestIDs,
+                    kind: editor.kind
                 ) { questIDs in
-                    recordDailyFocus(questIDs, kind: editor.kind, at: .now)
+                    let savedAt = Date.now
+                    guard DailyFocusDay.key(for: savedAt, calendar: .current)
+                            == editor.localDayKey else { return false }
+                    return recordDailyFocus(questIDs, kind: editor.kind, at: savedAt)
                 }
             }
             .task {
@@ -241,9 +249,19 @@ struct ContentView: View {
             selectedQuestIDs: questIDs,
             kind: kind,
             at: recordedAt,
-            calendar: .current,
+            calendar: DailyFocusDay.gregorianCalendar(timeZone: .current),
             in: modelContext
         ) != .failed
+    }
+
+    private func confirmRecommendedDailyFocus(_ displayedQuestIDs: [UUID]) {
+        let tappedAt = Date.now
+        let currentRecommendation = DailyFocusState.recommend(
+            quests: quests.map(\.snapshot),
+            now: tappedAt
+        )
+        guard displayedQuestIDs == currentRecommendation else { return }
+        _ = recordDailyFocus(currentRecommendation, kind: .confirmation, at: tappedAt)
     }
 
     private func complete(_ quest: Quest, at completedAt: Date = .now) {
@@ -351,6 +369,7 @@ struct DailyFocusEditorRoute: Identifiable {
     let id = UUID()
     let initialSelectedQuestIDs: [UUID]
     let kind: DailyFocusSelectionKind
+    let localDayKey: String
 }
 
 nonisolated enum NotificationQuestDestination: Equatable {

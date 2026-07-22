@@ -60,10 +60,10 @@ struct HomeDungeonBoardView: View {
                             dailyFocusQuestIDs: dailyFocusPresentation.selectedQuestIDs,
                             completedDailyFocusQuestIDs: dailyFocusPresentation.completedQuestIDs,
                             onEditDailyFocus: {
-                                let pendingSelectedIDs = (dailyFocusPresentation.selectedQuestIDs ?? []).filter { selectedID in
-                                    pending.contains(where: { $0.id == selectedID })
-                                }
-                                onEditDailyFocus(pendingSelectedIDs, .revision)
+                                onEditDailyFocus(
+                                    dailyFocusPresentation.selectedQuestIDs ?? [],
+                                    .revision
+                                )
                             },
                             now: now,
                             onComplete: onComplete,

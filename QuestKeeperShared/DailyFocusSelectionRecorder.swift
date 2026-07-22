@@ -35,11 +35,32 @@ enum DailyFocusSelectionRecorder {
                 return .failed
             }
 
+            let dayKey = DailyFocusDay.key(for: recordedAt, calendar: calendar)
+            let rows = try context.fetch(FetchDescriptor<DailyFocusSelection>())
+                .map(\.snapshot)
+                .filter {
+                    $0.schemaVersion == DailyFocusSelection.currentSchemaVersion
+                        && $0.installationID == installation.installationID
+                        && $0.localDayKey == dayKey
+                        && $0.kind != nil
+                        && $0.selectedQuestIDs != nil
+                }
+                .sorted(by: snapshotOrdering)
+
+            let confirmation = rows.first { $0.kind == .confirmation }
+            let latest = rows.last
+            let previouslySelectedQuestIDs = Set(latest?.selectedQuestIDs ?? [])
+            let currentDayCalendar = DailyFocusDay.gregorianCalendar(timeZone: calendar.timeZone)
             let quests = try context.fetch(FetchDescriptor<Quest>())
             let questsByID = Dictionary(uniqueKeysWithValues: quests.map { ($0.id, $0) })
-            guard selectedQuestIDs.allSatisfy({
-                guard let quest = questsByID[$0] else { return false }
-                return quest.completedAt == nil && quest.deadline >= recordedAt
+            guard selectedQuestIDs.allSatisfy({ questID in
+                guard let quest = questsByID[questID] else { return false }
+                guard let completedAt = quest.completedAt else {
+                    return quest.deadline >= recordedAt
+                }
+                return kind == .revision
+                    && previouslySelectedQuestIDs.contains(questID)
+                    && currentDayCalendar.isDate(completedAt, inSameDayAs: recordedAt)
             }) else {
                 return .failed
             }
@@ -52,28 +73,16 @@ enum DailyFocusSelectionRecorder {
                 return lhs.id.uuidString.lowercased() < rhs.id.uuidString.lowercased()
             }
 
-            let dayKey = DailyFocusDay.key(for: recordedAt, calendar: calendar)
-            let rows = try context.fetch(FetchDescriptor<DailyFocusSelection>())
-                .map(\.snapshot)
-                .filter {
-                    $0.schemaVersion == DailyFocusSelection.currentSchemaVersion
-                        && $0.installationID == installation.installationID
-                        && $0.localDayKey == dayKey
-                        && $0.timeZoneIdentifier == calendar.timeZone.identifier
-                        && $0.kind != nil
-                        && $0.selectedQuestIDs != nil
-                }
-                .sorted(by: snapshotOrdering)
-
-            let confirmation = rows.first { $0.kind == .confirmation }
-            if let latest = rows.last, latest.selectedQuestIDs == orderedQuestIDs {
+            if let latest, latest.selectedQuestIDs == orderedQuestIDs {
                 return .unchanged(latest)
             }
             switch kind {
             case .confirmation:
                 guard confirmation == nil else { return .failed }
             case .revision:
-                guard confirmation != nil else { return .failed }
+                guard confirmation != nil,
+                      let latest,
+                      recordedAt > latest.recordedAt else { return .failed }
             }
 
             let data = try JSONEncoder().encode(orderedQuestIDs.map(\.uuidString))

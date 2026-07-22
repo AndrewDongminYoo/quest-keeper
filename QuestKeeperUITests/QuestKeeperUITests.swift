@@ -85,7 +85,7 @@ final class QuestKeeperUITests: XCTestCase {
         XCTAssertTrue(confirmButton.waitForExistence(timeout: 3))
 
         app.buttons["핵심 퀘스트 수정"].tap()
-        XCTAssertTrue(app.buttons["선택 완료 (3/3)"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["오늘 이대로 시작 (3/3)"].waitForExistence(timeout: 2))
         XCTAssertTrue(
             app.staticTexts
                 .matching(NSPredicate(format: "label ENDSWITH %@", "분 남음"))
@@ -99,9 +99,9 @@ final class QuestKeeperUITests: XCTestCase {
                 .exists
         )
         tapFocusToggle(title: "Focus 3", in: app)
-        XCTAssertTrue(app.buttons["선택 완료 (2/3)"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["오늘 이대로 시작 (2/3)"].waitForExistence(timeout: 2))
         tapFocusToggle(title: "Focus 4", in: app)
-        app.buttons["선택 완료 (3/3)"].tap()
+        app.buttons["오늘 이대로 시작 (3/3)"].tap()
 
         XCTAssertTrue(app.staticTexts["0/3 완료"].waitForExistence(timeout: 3))
         let remainingDisclosure = app.buttons["나머지 퀘스트 1개"]
@@ -122,13 +122,15 @@ final class QuestKeeperUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Focus 3"].waitForExistence(timeout: 2))
 
         app.buttons["핵심 퀘스트 수정"].tap()
+        XCTAssertTrue(app.buttons["선택 완료 (3/3)"].waitForExistence(timeout: 2))
+        tapFocusToggle(title: "Focus 4", in: app)
         XCTAssertTrue(app.buttons["선택 완료 (2/3)"].waitForExistence(timeout: 2))
         tapFocusToggle(title: "Focus 3", in: app)
         app.buttons["선택 완료 (3/3)"].tap()
 
-        XCTAssertTrue(app.staticTexts["0/3 완료"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["1/3 완료"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Focus 3"].exists)
-        XCTAssertTrue(app.buttons["나머지 퀘스트 1개"].waitForNonExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["나머지 퀘스트 1개"].exists)
     }
 
     @MainActor
