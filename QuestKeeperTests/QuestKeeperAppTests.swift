@@ -49,6 +49,17 @@ struct QuestKeeperAppTests {
         #expect(dailyFocusLoopEnabled(arguments: arguments) == expected)
     }
 
+#if DEBUG
+    @Test("UI test store URL requires an explicit path argument")
+    func uiTestStoreURL() {
+        #expect(uiTestingStoreURL(arguments: [
+            "QuestKeeper", "-uiTestingStoreURL", "/tmp/quest-keeper-ui-test/store.sqlite",
+        ])?.path == "/tmp/quest-keeper-ui-test/store.sqlite")
+        #expect(uiTestingStoreURL(arguments: ["QuestKeeper", "-uiTestingStoreURL"]) == nil)
+        #expect(uiTestingStoreURL(arguments: ["QuestKeeper"]) == nil)
+    }
+#endif
+
     @Test("previews do not resolve or expose onboarding experiments")
     func previewExclusion() {
         #expect(!shouldResolveOnboardingExperiment(

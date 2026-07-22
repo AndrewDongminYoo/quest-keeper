@@ -148,6 +148,105 @@ final class QuestKeeperUITests: XCTestCase {
     }
 
     @MainActor
+    func testDailyFocusPersistsAcrossSameDayRelaunch() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("QuestKeeperUITests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestingStoreURL", directory.appendingPathComponent("store.sqlite").path,
+            "-onboardingVariant", "control",
+            "-dailyFocusLoopEnabled",
+        ]
+        app.launch()
+        createQuest(title: "Relaunch 1", in: app)
+        createQuest(title: "Relaunch 2", in: app)
+        app.buttons["오늘 이대로 시작"].tap()
+        XCTAssertTrue(app.staticTexts["0/2 완료"].waitForExistence(timeout: 3))
+
+        app.terminate()
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["0/2 완료"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Relaunch 1"].exists)
+        XCTAssertFalse(app.buttons["오늘 이대로 시작"].exists)
+        app.terminate()
+    }
+
+    @MainActor
+    func testDailyFocusSelectionBoundsAreExplicit() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestingInMemoryStore",
+            "-onboardingVariant", "control",
+            "-dailyFocusLoopEnabled",
+        ]
+        app.launch()
+        for title in ["Bounds 1", "Bounds 2", "Bounds 3", "Bounds 4"] {
+            createQuest(title: title, in: app)
+        }
+
+        app.buttons["핵심 퀘스트 수정"].tap()
+        XCTAssertTrue(app.buttons["오늘 이대로 시작 (3/3)"].waitForExistence(timeout: 2))
+        XCTAssertFalse(focusToggle(title: "Bounds 4", in: app).isEnabled)
+        for title in ["Bounds 1", "Bounds 2", "Bounds 3"] {
+            tapFocusToggle(title: title, in: app)
+        }
+        let emptyConfirmation = app.buttons["오늘 이대로 시작 (0/3)"]
+        XCTAssertTrue(emptyConfirmation.exists)
+        XCTAssertFalse(emptyConfirmation.isEnabled)
+    }
+
+    @MainActor
+    func testDailyFocusKeepsDailyGravesSeparate() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestingInMemoryStore",
+            "-uiTestingDailyFocusGrave",
+            "-onboardingVariant", "control",
+            "-dailyFocusLoopEnabled",
+        ]
+        app.launch()
+        createQuest(title: "오늘의 전투", in: app)
+
+        XCTAssertTrue(app.staticTexts["오늘의 무덤"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["어제의 퀘스트"].exists)
+        app.buttons["오늘 이대로 시작"].tap()
+        XCTAssertTrue(app.staticTexts["오늘의 핵심 퀘스트"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["오늘의 무덤"].exists)
+    }
+
+    @MainActor
+    func testDailyFocusRemainingQuestSupportsSwipeCompletion() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestingInMemoryStore",
+            "-onboardingVariant", "control",
+            "-dailyFocusLoopEnabled",
+        ]
+        app.launch()
+        for title in ["Remaining 1", "Remaining 2", "Remaining 3", "Remaining 4"] {
+            createQuest(title: title, in: app)
+        }
+        app.buttons["오늘 이대로 시작"].tap()
+        app.buttons["나머지 퀘스트 1개"].tap()
+
+        let remainingQuest = app.staticTexts["Remaining 4"]
+        XCTAssertTrue(remainingQuest.waitForExistence(timeout: 2))
+        remainingQuest.swipeRight()
+        let completeButton = app.buttons["완료"]
+        XCTAssertTrue(completeButton.waitForExistence(timeout: 1))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+            .withOffset(CGVector(dx: 68, dy: remainingQuest.frame.midY))
+            .tap()
+
+        XCTAssertTrue(remainingQuest.waitForNonExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["0/3 완료"].exists)
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
