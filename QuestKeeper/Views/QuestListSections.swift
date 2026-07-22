@@ -68,6 +68,8 @@ struct QuestListSections: View {
                 Spacer()
                 Button("핵심 퀘스트 수정", action: onEditDailyFocus)
                     .font(.caption.weight(.bold))
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
             }
 
             if focusQuests.isEmpty {
@@ -79,7 +81,7 @@ struct QuestListSections: View {
                 VStack(spacing: 10) {
                     ForEach(focusQuests) { quest in
                         if completedDailyFocusQuestIDs.contains(quest.id) {
-                            QuestRow(quest: quest, now: now)
+                            QuestRow(quest: quest, now: now, isCompleted: true)
                         } else {
                             swipeableRow(quest)
                         }

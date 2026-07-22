@@ -25,9 +25,16 @@ struct DailyFocusSelectionSheet: View {
                         Toggle(isOn: binding(for: quest.id)) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(quest.title)
-                                Text(quest.deadline, style: .relative)
+                                TimelineView(.periodic(from: .now, by: 60)) { context in
+                                    Text(
+                                        DungeonPresentation.countdownText(
+                                            deadline: quest.deadline,
+                                            now: context.date
+                                        )
+                                    )
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                                }
                             }
                         }
                         .disabled(!selectedQuestIDs.contains(quest.id) && selectedQuestIDs.count == 3)
