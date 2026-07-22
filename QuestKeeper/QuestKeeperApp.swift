@@ -30,18 +30,25 @@ struct QuestKeeperApp: App {
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
     private let onboardingSessionID = UUID()
     private let usesInMemoryStore: Bool
+    private let uiTestingStoreURL: URL?
+    private let isDailyFocusLoopEnabled: Bool
 
     init() {
 #if DEBUG
-        let usesInMemoryStore = ProcessInfo.processInfo.arguments.contains("-uiTestingInMemoryStore")
-        let notificationService = usesInMemoryStore
+        let arguments = ProcessInfo.processInfo.arguments
+        let usesInMemoryStore = arguments.contains("-uiTestingInMemoryStore")
+        let uiTestingStoreURL = parsedUITestingStoreURL(arguments: arguments)
+        let usesUITestingStore = usesInMemoryStore || uiTestingStoreURL != nil
+        let notificationService = usesUITestingStore
             ? QuestNotificationService(center: UITestingQuestNotificationCenter())
             : QuestNotificationService.shared
-        let snapshotWriter = usesInMemoryStore
+        let snapshotWriter = usesUITestingStore
             ? WidgetDungeonSnapshotWriter(save: { _ in })
             : WidgetDungeonSnapshotWriter()
 #else
         let usesInMemoryStore = false
+        let uiTestingStoreURL: URL? = nil
+        let usesUITestingStore = false
         let notificationService = QuestNotificationService.shared
         let snapshotWriter = WidgetDungeonSnapshotWriter()
 #endif
@@ -52,20 +59,43 @@ struct QuestKeeperApp: App {
         self.notificationService = notificationService
         widgetSnapshotWriter = snapshotWriter
         retentionBaselineWriter = shouldPersistMeasurementArtifacts(
-            usesInMemoryStore: usesInMemoryStore
+            usesInMemoryStore: usesUITestingStore
         ) ? RetentionBaselineWriter() : nil
         self.usesInMemoryStore = usesInMemoryStore
+        self.uiTestingStoreURL = uiTestingStoreURL
+#if DEBUG
+        isDailyFocusLoopEnabled = dailyFocusLoopEnabled(arguments: ProcessInfo.processInfo.arguments)
+#else
+        isDailyFocusLoopEnabled = false
+#endif
         UNUserNotificationCenter.current().delegate = delegate
         do {
-            let container = try QuestModelContainer.make(isStoredInMemoryOnly: usesInMemoryStore)
+            let container = try QuestModelContainer.make(
+                storeURL: uiTestingStoreURL,
+                isStoredInMemoryOnly: usesInMemoryStore
+            )
             _sharedModelContainer = State(initialValue: container)
+#if DEBUG
+            if shouldSeedDailyFocusGraveFixture(
+                usesUITestingStore: usesUITestingStore,
+                arguments: arguments
+            ),
+               try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
+                container.mainContext.insert(Quest(
+                    title: "어제의 퀘스트",
+                    deadline: Date.now.addingTimeInterval(-60),
+                    importance: .medium
+                ))
+                try container.mainContext.save()
+            }
+#endif
 
             let enrollment: ExperimentEnrollmentResult
             if !shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
                 enrollment = .ineligible
             } else {
 #if DEBUG
-                let installationIDProvider: () throws -> UUID = usesInMemoryStore
+                let installationIDProvider: () throws -> UUID = usesUITestingStore
                     ? { UUID() }
                     : { try RetentionInstallationIdentityStore.appGroup().loadOrCreate() }
                 if let variant = onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
@@ -105,7 +135,8 @@ struct QuestKeeperApp: App {
                 onboardingAssignment: onboardingAssignment,
                 onboardingMeasurementAvailable: onboardingMeasurementAvailable,
                 hasDeferredOnboardingThisRun: $hasDeferredOnboardingThisRun,
-                onboardingSessionID: onboardingSessionID
+                onboardingSessionID: onboardingSessionID,
+                dailyFocusLoopEnabled: isDailyFocusLoopEnabled
             )
         }
         .modelContainer(sharedModelContainer)
@@ -123,7 +154,10 @@ struct QuestKeeperApp: App {
                 // Control Center peek — so we don't needlessly refresh or tear down an open editor.
                 let wasBackgrounded = didBackground
                 let container: ModelContainer
-                if didBackground, usesInMemoryStore {
+                if didBackground, shouldReuseContainerOnBackground(
+                    usesInMemoryStore: usesInMemoryStore,
+                    uiTestingStoreURL: uiTestingStoreURL
+                ) {
                     didBackground = false
                     container = sharedModelContainer
                 } else if didBackground,
@@ -197,6 +231,32 @@ private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
     func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {}
 
     func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {}
+}
+#endif
+
+nonisolated func dailyFocusLoopEnabled(arguments: [String]) -> Bool {
+    arguments.contains("-dailyFocusLoopEnabled")
+}
+
+nonisolated func shouldReuseContainerOnBackground(
+    usesInMemoryStore: Bool,
+    uiTestingStoreURL: URL?
+) -> Bool {
+    usesInMemoryStore || uiTestingStoreURL != nil
+}
+
+nonisolated func shouldSeedDailyFocusGraveFixture(
+    usesUITestingStore: Bool,
+    arguments: [String]
+) -> Bool {
+    usesUITestingStore && arguments.contains("-uiTestingDailyFocusGrave")
+}
+
+#if DEBUG
+nonisolated func parsedUITestingStoreURL(arguments: [String]) -> URL? {
+    guard let index = arguments.firstIndex(of: "-uiTestingStoreURL"),
+          arguments.indices.contains(index + 1) else { return nil }
+    return URL(fileURLWithPath: arguments[index + 1])
 }
 #endif
 

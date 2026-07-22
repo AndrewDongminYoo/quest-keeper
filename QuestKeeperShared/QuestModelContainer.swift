@@ -19,6 +19,7 @@ enum QuestModelContainer {
             RetentionInstallation.self,
             RetentionEvent.self,
             ExperimentAssignment.self,
+            DailyFocusSelection.self,
         ])
         let configuration: ModelConfiguration
         if isStoredInMemoryOnly {

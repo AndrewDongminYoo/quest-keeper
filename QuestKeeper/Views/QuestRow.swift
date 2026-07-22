@@ -14,6 +14,7 @@ struct QuestRow: View {
     let now: Date
     let battlePhase: QuestBattlePhase
     let guidanceText: String?
+    let isCompleted: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -21,25 +22,28 @@ struct QuestRow: View {
         quest: Quest,
         now: Date,
         battlePhase: QuestBattlePhase = .idle,
-        guidanceText: String? = nil
+        guidanceText: String? = nil,
+        isCompleted: Bool = false
     ) {
         self.quest = quest
         self.now = now
         self.battlePhase = battlePhase
         self.guidanceText = guidanceText
+        self.isCompleted = isCompleted
     }
 
     var body: some View {
         let level = quest.snapshot.mobLevel(at: now)
         let tone = DungeonPresentation.urgencyTone(deadline: quest.deadline, mobLevel: level, now: now)
         let isDefeated = battlePhase == .defeated
+        let tint = isCompleted ? DungeonPalette.victory : tone.tint
 
         HStack(spacing: 12) {
-            DungeonLaneMarker(tone: tone)
+            DungeonLaneMarker(tint: tint)
             VStack(alignment: .leading, spacing: 8) {
                 Text(quest.title)
                     .font(.body.weight(.bold))
-                    .foregroundStyle(isDefeated ? DungeonPalette.ink.opacity(0.58) : DungeonPalette.ink)
+                    .foregroundStyle(isDefeated || isCompleted ? DungeonPalette.ink.opacity(0.58) : DungeonPalette.ink)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 if let guidanceText {
@@ -48,16 +52,29 @@ struct QuestRow: View {
                         .foregroundStyle(DungeonPalette.hero)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                HStack(spacing: 8) {
-                    Text(DungeonPresentation.countdownText(deadline: quest.deadline, now: now))
-                        .font(.caption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(isDefeated ? DungeonPalette.ink.opacity(0.48) : tone.tint)
-                    ImportancePip(importance: quest.importance)
+                if !isCompleted {
+                    HStack(spacing: 8) {
+                        Text(DungeonPresentation.countdownText(deadline: quest.deadline, now: now))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(isDefeated ? DungeonPalette.ink.opacity(0.48) : tone.tint)
+                        ImportancePip(importance: quest.importance)
+                    }
                 }
             }
             Spacer(minLength: 10)
             VStack(alignment: .trailing, spacing: 8) {
-                if battlePhase == .defeated {
+                if isCompleted {
+                    HStack(spacing: 4) {
+                        DungeonArtworkView(artwork: .victoryReward, size: 14)
+                        Text("완료")
+                            .accessibilityLabel("\(quest.title) 완료")
+                    }
+                    .font(.caption2.weight(.black))
+                    .foregroundStyle(DungeonPalette.victory)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 2))
+                } else if battlePhase == .defeated {
                     HStack(spacing: 4) {
                         DungeonArtworkView(artwork: .victoryReward, size: 14)
                         Text("VICTORY +1")
@@ -79,9 +96,10 @@ struct QuestRow: View {
         .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
         .overlay(
             RoundedRectangle(cornerRadius: 2)
-                .stroke(tone.tint.opacity(0.45), lineWidth: 2)  // chunky pixel border
+                .stroke(tint.opacity(0.45), lineWidth: 2)  // chunky pixel border
         )
         .accessibilityHint(guidanceText ?? "")
+        .accessibilityValue(isCompleted ? "완료됨" : "")
     }
 }
 
@@ -108,11 +126,7 @@ struct DailyGraveRow: View {
             }
             Spacer(minLength: 10)
             Button(action: onRetryTomorrow) {
-                Label {
-                    Text("내일 도전하기")
-                } icon: {
-                    DungeonArtworkView(artwork: .retry, size: 14)
-                }
+                Label("내일 도전하기", systemImage: "arrow.uturn.forward")
                     .labelStyle(.titleAndIcon)
                     .lineLimit(1)
                     .fixedSize()
@@ -161,11 +175,11 @@ private extension DailyGraveRow {
 }
 
 private struct DungeonLaneMarker: View {
-    let tone: DungeonUrgencyTone
+    let tint: Color
 
     var body: some View {
         RoundedRectangle(cornerRadius: 2)
-            .fill(tone.tint)
+            .fill(tint)
             .frame(width: 5, height: 58)
     }
 }

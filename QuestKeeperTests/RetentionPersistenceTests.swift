@@ -32,20 +32,31 @@ struct RetentionPersistenceTests {
             variant: .guided,
             assignedAt: startedAt
         )
+        let selection = DailyFocusSelection(
+            installationID: installationID,
+            localDayKey: "2026-05-08",
+            timeZoneIdentifier: "Asia/Seoul",
+            selectedQuestIDsData: try JSONEncoder().encode([questID.uuidString]),
+            recordedAt: startedAt,
+            kind: .confirmation
+        )
 
         container.mainContext.insert(quest)
         container.mainContext.insert(installation)
         container.mainContext.insert(event)
         container.mainContext.insert(assignment)
+        container.mainContext.insert(selection)
         try container.mainContext.save()
 
         #expect(try container.mainContext.fetch(FetchDescriptor<Quest>()).count == 1)
         #expect(try container.mainContext.fetch(FetchDescriptor<RetentionInstallation>()).count == 1)
         #expect(try container.mainContext.fetch(FetchDescriptor<RetentionEvent>()).count == 1)
         #expect(try container.mainContext.fetch(FetchDescriptor<ExperimentAssignment>()).count == 1)
+        #expect(try container.mainContext.fetch(FetchDescriptor<DailyFocusSelection>()).count == 1)
         #expect(event.snapshot.nameRawValue == "quest_created")
         #expect(event.snapshot.sourceRawValue == "app")
         #expect(assignment.snapshot.variant == .guided)
+        #expect(selection.snapshot.selectedQuestIDs == [questID])
     }
 
     @Test("assignment snapshot exposes only approved experiment fields")
@@ -84,6 +95,26 @@ struct RetentionPersistenceTests {
         ])
     }
 
+    @Test("daily focus snapshot exposes only approved selection fields")
+    func dailyFocusSnapshotHasApprovedShape() throws {
+        let snapshot = DailyFocusSelectionSnapshot(
+            id: eventID,
+            schemaVersion: 1,
+            installationID: installationID,
+            localDayKey: "2026-05-08",
+            timeZoneIdentifier: "Asia/Seoul",
+            selectedQuestIDsData: try JSONEncoder().encode([questID.uuidString]),
+            recordedAt: startedAt,
+            kindRawValue: DailyFocusSelectionKind.confirmation.rawValue
+        )
+
+        let labels = Set(Mirror(reflecting: snapshot).children.compactMap(\.label))
+        #expect(labels == [
+            "id", "schemaVersion", "installationID", "localDayKey", "timeZoneIdentifier",
+            "selectedQuestIDsData", "recordedAt", "kindRawValue",
+        ])
+    }
+
     @Test("adding measurement models preserves a pre-populated Quest store")
     func addingModelsPreservesExistingStore() throws {
         let storeURL = FileManager.default.temporaryDirectory
@@ -116,6 +147,7 @@ struct RetentionPersistenceTests {
         #expect(try upgraded.mainContext.fetch(FetchDescriptor<RetentionEvent>()).isEmpty)
         #expect(try upgraded.mainContext.fetch(FetchDescriptor<RetentionInstallation>()).isEmpty)
         #expect(try upgraded.mainContext.fetch(FetchDescriptor<ExperimentAssignment>()).isEmpty)
+        #expect(try upgraded.mainContext.fetch(FetchDescriptor<DailyFocusSelection>()).isEmpty)
     }
 
     private func measurementContainer() throws -> ModelContainer {
@@ -124,6 +156,7 @@ struct RetentionPersistenceTests {
             RetentionInstallation.self,
             RetentionEvent.self,
             ExperimentAssignment.self,
+            DailyFocusSelection.self,
         ])
         return try ModelContainer(
             for: schema,

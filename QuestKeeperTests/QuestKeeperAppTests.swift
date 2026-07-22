@@ -37,6 +37,58 @@ struct QuestKeeperAppTests {
         #expect(onboardingVariantOverride(arguments: arguments) == expected)
     }
 
+    @Test(
+        "daily focus loop requires its exact development argument",
+        arguments: [
+            (["QuestKeeper", "-dailyFocusLoopEnabled"], true),
+            (["QuestKeeper", "dailyFocusLoopEnabled"], false),
+            (["QuestKeeper"], false),
+        ]
+    )
+    func dailyFocusGate(arguments: [String], expected: Bool) {
+        #expect(dailyFocusLoopEnabled(arguments: arguments) == expected)
+    }
+
+#if DEBUG
+    @Test("UI test store URL requires an explicit path argument")
+    func uiTestStoreURL() {
+        #expect(parsedUITestingStoreURL(arguments: [
+            "QuestKeeper", "-uiTestingStoreURL", "/tmp/quest-keeper-ui-test/store.sqlite",
+        ])?.path == "/tmp/quest-keeper-ui-test/store.sqlite")
+        #expect(parsedUITestingStoreURL(arguments: ["QuestKeeper", "-uiTestingStoreURL"]) == nil)
+        #expect(parsedUITestingStoreURL(arguments: ["QuestKeeper"]) == nil)
+    }
+#endif
+
+    @Test("UI test stores stay isolated across background refresh")
+    func uiTestStoreBackgroundReuse() {
+        #expect(shouldReuseContainerOnBackground(
+            usesInMemoryStore: true,
+            uiTestingStoreURL: nil
+        ))
+        #expect(shouldReuseContainerOnBackground(
+            usesInMemoryStore: false,
+            uiTestingStoreURL: URL(fileURLWithPath: "/tmp/quest-keeper-ui-test/store.sqlite")
+        ))
+        #expect(!shouldReuseContainerOnBackground(
+            usesInMemoryStore: false,
+            uiTestingStoreURL: nil
+        ))
+    }
+
+    @Test("daily grave fixture requires an isolated UI test store")
+    func dailyGraveFixtureIsolation() {
+        let arguments = ["QuestKeeper", "-uiTestingDailyFocusGrave"]
+        #expect(shouldSeedDailyFocusGraveFixture(
+            usesUITestingStore: true,
+            arguments: arguments
+        ))
+        #expect(!shouldSeedDailyFocusGraveFixture(
+            usesUITestingStore: false,
+            arguments: arguments
+        ))
+    }
+
     @Test("previews do not resolve or expose onboarding experiments")
     func previewExclusion() {
         #expect(!shouldResolveOnboardingExperiment(
