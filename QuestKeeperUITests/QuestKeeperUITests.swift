@@ -67,10 +67,124 @@ final class QuestKeeperUITests: XCTestCase {
     }
 
     @MainActor
+    func testDailyFocusExplicitConfirmationAndCompletion() throws {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestingInMemoryStore",
+            "-onboardingVariant", "control",
+            "-dailyFocusLoopEnabled",
+        ]
+        app.launch()
+
+        for title in ["Focus 1", "Focus 2", "Focus 3", "Focus 4"] {
+            createQuest(title: title, in: app)
+        }
+
+        let confirmButton = app.buttons["오늘 이대로 시작"]
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: 3))
+
+        app.buttons["핵심 퀘스트 수정"].tap()
+        XCTAssertTrue(app.buttons["선택 완료 (3/3)"].waitForExistence(timeout: 2))
+        XCTAssertTrue(
+            app.staticTexts
+                .matching(NSPredicate(format: "label ENDSWITH %@", "분 남음"))
+                .firstMatch
+                .waitForExistence(timeout: 2)
+        )
+        XCTAssertFalse(
+            app.staticTexts
+                .matching(NSPredicate(format: "label CONTAINS[c] %@", "min"))
+                .firstMatch
+                .exists
+        )
+        tapFocusToggle(title: "Focus 3", in: app)
+        XCTAssertTrue(app.buttons["선택 완료 (2/3)"].waitForExistence(timeout: 2))
+        tapFocusToggle(title: "Focus 4", in: app)
+        app.buttons["선택 완료 (3/3)"].tap()
+
+        XCTAssertTrue(app.staticTexts["0/3 완료"].waitForExistence(timeout: 3))
+        let remainingDisclosure = app.buttons["나머지 퀘스트 1개"]
+        XCTAssertTrue(remainingDisclosure.waitForExistence(timeout: 2))
+
+        let firstFocusQuest = app.staticTexts["Focus 1"]
+        XCTAssertTrue(firstFocusQuest.waitForExistence(timeout: 2))
+        revealCompletion(for: firstFocusQuest)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+            .withOffset(CGVector(dx: 68, dy: firstFocusQuest.frame.midY))
+            .tap()
+
+        XCTAssertTrue(app.staticTexts["1/3 완료"].waitForExistence(timeout: 4))
+        XCTAssertTrue(firstFocusQuest.exists)
+        XCTAssertTrue(app.staticTexts["Focus 1 완료"].waitForExistence(timeout: 2))
+
+        app.buttons["나머지 퀘스트 1개"].tap()
+        XCTAssertTrue(app.staticTexts["Focus 3"].waitForExistence(timeout: 2))
+
+        app.buttons["핵심 퀘스트 수정"].tap()
+        XCTAssertTrue(app.buttons["선택 완료 (2/3)"].waitForExistence(timeout: 2))
+        tapFocusToggle(title: "Focus 3", in: app)
+        app.buttons["선택 완료 (3/3)"].tap()
+
+        XCTAssertTrue(app.staticTexts["0/3 완료"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Focus 3"].exists)
+        XCTAssertTrue(app.buttons["나머지 퀘스트 1개"].waitForNonExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testDailyFocusRemainsDormantWithoutLaunchArgument() throws {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
+        app.launch()
+
+        createQuest(title: "Ordinary flow", in: app)
+
+        XCTAssertTrue(app.staticTexts["Ordinary flow"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["오늘 이대로 시작"].exists)
+        XCTAssertFalse(app.buttons["핵심 퀘스트 수정"].exists)
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }
+    }
+
+    @MainActor
+    private func createQuest(title: String, in app: XCUIApplication) {
+        let addButton = app.buttons["전투 추가"].firstMatch
+        XCTAssertTrue(addButton.waitForExistence(timeout: 3))
+        addButton.tap()
+
+        let titleField = app.textFields["제목"]
+        XCTAssertTrue(titleField.waitForExistence(timeout: 2))
+        titleField.tap()
+        titleField.typeText(title)
+
+        let saveButton = app.buttons["저장"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 2))
+        saveButton.tap()
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    private func focusToggle(title: String, in app: XCUIApplication) -> XCUIElement {
+        app.switches.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
+    }
+
+    @MainActor
+    private func tapFocusToggle(title: String, in app: XCUIApplication) {
+        let toggle = focusToggle(title: title, in: app)
+        XCTAssertTrue(toggle.waitForExistence(timeout: 2))
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+    }
+
+    @MainActor
+    private func revealCompletion(for questTitle: XCUIElement) {
+        let start = questTitle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: 180, dy: 0)))
     }
 }
