@@ -30,13 +30,14 @@ struct QuestKeeperApp: App {
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
     private let onboardingSessionID = UUID()
     private let usesInMemoryStore: Bool
+    private let uiTestingStoreURL: URL?
     private let isDailyFocusLoopEnabled: Bool
 
     init() {
 #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         let usesInMemoryStore = arguments.contains("-uiTestingInMemoryStore")
-        let uiTestingStoreURL = uiTestingStoreURL(arguments: arguments)
+        let uiTestingStoreURL = parsedUITestingStoreURL(arguments: arguments)
         let usesUITestingStore = usesInMemoryStore || uiTestingStoreURL != nil
         let notificationService = usesUITestingStore
             ? QuestNotificationService(center: UITestingQuestNotificationCenter())
@@ -61,6 +62,7 @@ struct QuestKeeperApp: App {
             usesInMemoryStore: usesUITestingStore
         ) ? RetentionBaselineWriter() : nil
         self.usesInMemoryStore = usesInMemoryStore
+        self.uiTestingStoreURL = uiTestingStoreURL
 #if DEBUG
         isDailyFocusLoopEnabled = dailyFocusLoopEnabled(arguments: ProcessInfo.processInfo.arguments)
 #else
@@ -74,7 +76,10 @@ struct QuestKeeperApp: App {
             )
             _sharedModelContainer = State(initialValue: container)
 #if DEBUG
-            if arguments.contains("-uiTestingDailyFocusGrave"),
+            if shouldSeedDailyFocusGraveFixture(
+                usesUITestingStore: usesUITestingStore,
+                arguments: arguments
+            ),
                try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
                 container.mainContext.insert(Quest(
                     title: "어제의 퀘스트",
@@ -149,7 +154,10 @@ struct QuestKeeperApp: App {
                 // Control Center peek — so we don't needlessly refresh or tear down an open editor.
                 let wasBackgrounded = didBackground
                 let container: ModelContainer
-                if didBackground, usesInMemoryStore {
+                if didBackground, shouldReuseContainerOnBackground(
+                    usesInMemoryStore: usesInMemoryStore,
+                    uiTestingStoreURL: uiTestingStoreURL
+                ) {
                     didBackground = false
                     container = sharedModelContainer
                 } else if didBackground,
@@ -230,8 +238,22 @@ nonisolated func dailyFocusLoopEnabled(arguments: [String]) -> Bool {
     arguments.contains("-dailyFocusLoopEnabled")
 }
 
+nonisolated func shouldReuseContainerOnBackground(
+    usesInMemoryStore: Bool,
+    uiTestingStoreURL: URL?
+) -> Bool {
+    usesInMemoryStore || uiTestingStoreURL != nil
+}
+
+nonisolated func shouldSeedDailyFocusGraveFixture(
+    usesUITestingStore: Bool,
+    arguments: [String]
+) -> Bool {
+    usesUITestingStore && arguments.contains("-uiTestingDailyFocusGrave")
+}
+
 #if DEBUG
-nonisolated func uiTestingStoreURL(arguments: [String]) -> URL? {
+nonisolated func parsedUITestingStoreURL(arguments: [String]) -> URL? {
     guard let index = arguments.firstIndex(of: "-uiTestingStoreURL"),
           arguments.indices.contains(index + 1) else { return nil }
     return URL(fileURLWithPath: arguments[index + 1])

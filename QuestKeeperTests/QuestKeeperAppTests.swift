@@ -52,13 +52,42 @@ struct QuestKeeperAppTests {
 #if DEBUG
     @Test("UI test store URL requires an explicit path argument")
     func uiTestStoreURL() {
-        #expect(uiTestingStoreURL(arguments: [
+        #expect(parsedUITestingStoreURL(arguments: [
             "QuestKeeper", "-uiTestingStoreURL", "/tmp/quest-keeper-ui-test/store.sqlite",
         ])?.path == "/tmp/quest-keeper-ui-test/store.sqlite")
-        #expect(uiTestingStoreURL(arguments: ["QuestKeeper", "-uiTestingStoreURL"]) == nil)
-        #expect(uiTestingStoreURL(arguments: ["QuestKeeper"]) == nil)
+        #expect(parsedUITestingStoreURL(arguments: ["QuestKeeper", "-uiTestingStoreURL"]) == nil)
+        #expect(parsedUITestingStoreURL(arguments: ["QuestKeeper"]) == nil)
     }
 #endif
+
+    @Test("UI test stores stay isolated across background refresh")
+    func uiTestStoreBackgroundReuse() {
+        #expect(shouldReuseContainerOnBackground(
+            usesInMemoryStore: true,
+            uiTestingStoreURL: nil
+        ))
+        #expect(shouldReuseContainerOnBackground(
+            usesInMemoryStore: false,
+            uiTestingStoreURL: URL(fileURLWithPath: "/tmp/quest-keeper-ui-test/store.sqlite")
+        ))
+        #expect(!shouldReuseContainerOnBackground(
+            usesInMemoryStore: false,
+            uiTestingStoreURL: nil
+        ))
+    }
+
+    @Test("daily grave fixture requires an isolated UI test store")
+    func dailyGraveFixtureIsolation() {
+        let arguments = ["QuestKeeper", "-uiTestingDailyFocusGrave"]
+        #expect(shouldSeedDailyFocusGraveFixture(
+            usesUITestingStore: true,
+            arguments: arguments
+        ))
+        #expect(!shouldSeedDailyFocusGraveFixture(
+            usesUITestingStore: false,
+            arguments: arguments
+        ))
+    }
 
     @Test("previews do not resolve or expose onboarding experiments")
     func previewExclusion() {

@@ -166,6 +166,10 @@ final class QuestKeeperUITests: XCTestCase {
         app.buttons["오늘 이대로 시작"].tap()
         XCTAssertTrue(app.staticTexts["0/2 완료"].waitForExistence(timeout: 3))
 
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.staticTexts["0/2 완료"].waitForExistence(timeout: 4))
+
         app.terminate()
         app.launch()
 
