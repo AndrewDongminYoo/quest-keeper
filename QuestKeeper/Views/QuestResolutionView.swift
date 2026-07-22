@@ -34,11 +34,7 @@ struct QuestResolutionView: View {
                             onRetryTomorrow()
                             dismiss()
                         } label: {
-                            Label {
-                                Text("내일 도전하기")
-                            } icon: {
-                                DungeonArtworkView(artwork: .retry, size: 14)
-                            }
+                            Label("내일 도전하기", systemImage: "arrow.uturn.forward")
                         }
                     }
                 }
