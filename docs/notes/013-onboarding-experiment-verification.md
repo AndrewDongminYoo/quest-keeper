@@ -1,18 +1,18 @@
 # QuestKeeper Onboarding Experiment Verification
 
-> This verifies implementation behavior on one simulator installation.
+> This verifies implementation behavior on one simulator device across multiple clean installations.
 > It is not population-level evidence and does not establish an experiment winner.
 
 ## Revision
 
-- Product commit: `6deb288cb27019e30047a20ae7309446876a9d70`.
+- Product commit: `22e12f3218fc1150fbe8a749d0abc6c2c2f262a1`.
 - Simulator: iPhone 17e, iOS 26.5 (23F77), `CDF2239B-B46C-4A44-A09E-ED656EF7F9EA`.
 - Experiment: `and-34-first-value-v1`.
 
 ## Automated Verification
 
-- The full `QuestKeeperTests` target passed with 165 tests in 26 suites and no failures.
-- Pre-PR regression coverage verifies contaminated-installation exclusion, experiment-key isolation, visible-scene exposure, failed-save rollback, first-use-only creation starts, unsupported-only live reports, mixed installation-schema rejection, creation-stage ordering, and existing-quest fallback when measurement is incomplete.
+- The full `QuestKeeperTests` target passed with 166 tests in 26 suites and no failures.
+- Pre-PR regression coverage verifies contaminated-installation exclusion, experiment-key isolation, visible-scene exposure, failed-save rollback, first-use-only creation starts, unsupported-only live reports, mixed installation-schema rejection, creation-stage ordering, two-minute observation maturity, and existing-quest fallback when measurement is incomplete.
 - The `QuestKeeper` app scheme built successfully.
 - The `QuestKeeperWidget` scheme built successfully.
 - Parallel testing was disabled and the build used at most two jobs.
