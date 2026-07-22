@@ -23,6 +23,9 @@ struct DailyFocusStateTests {
         #expect(DailyFocusState.recommend(quests: quests, now: now) == [
             firstID, secondID, thirdID,
         ])
+        #expect(DailyFocusState.rankedPendingQuestIDs(quests: quests, now: now) == [
+            firstID, secondID, thirdID, fourthID,
+        ])
     }
 
     @Test("recommendation excludes completed and expired quests")

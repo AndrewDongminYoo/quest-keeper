@@ -63,13 +63,17 @@ nonisolated enum DailyFocusState {
         quests: [QuestSnapshot],
         now: Date
     ) -> [UUID] {
-        Array(
-            quests
-                .filter { $0.outcome(at: now) == .pending }
-                .sorted(by: recommendationOrdering)
-                .prefix(3)
-                .map(\.id)
-        )
+        Array(rankedPendingQuestIDs(quests: quests, now: now).prefix(3))
+    }
+
+    static func rankedPendingQuestIDs(
+        quests: [QuestSnapshot],
+        now: Date
+    ) -> [UUID] {
+        quests
+            .filter { $0.outcome(at: now) == .pending }
+            .sorted(by: recommendationOrdering)
+            .map(\.id)
     }
 
     static func isValidSelection(_ questIDs: [UUID]) -> Bool {

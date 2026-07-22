@@ -9,32 +9,28 @@
 import SwiftUI
 
 struct QuestListSections: View {
+    let allQuests: [Quest]
     let pending: [Quest]
     let dailyGraves: [Quest]
     let newlyMissedQuestIDs: Set<UUID>
     let guidedCompletionQuestID: UUID?
+    let dailyFocusQuestIDs: [UUID]?
+    let completedDailyFocusQuestIDs: Set<UUID>
+    let onEditDailyFocus: () -> Void
     let now: Date
     let onComplete: (Quest, Date) -> Void
     let onRetryTomorrow: (Quest) -> Void
     let onDelete: (Quest) -> Void
     let onEdit: (Quest) -> Void
 
+    @State private var showsRemainingQuests = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if !pending.isEmpty {
-                BoardSectionTitle(title: "던전", count: pending.count)
-                VStack(spacing: 10) {
-                    ForEach(pending) { quest in
-                        SwipeableQuestRow(
-                            quest: quest,
-                            now: now,
-                            showsGuidedCompletion: quest.id == guidedCompletionQuestID,
-                            onComplete: onComplete,
-                            onDelete: onDelete,
-                            onEdit: onEdit
-                        )
-                    }
-                }
+            if let dailyFocusQuestIDs {
+                dailyFocusSections(questIDs: dailyFocusQuestIDs)
+            } else {
+                standardPendingSection
             }
 
             if !dailyGraves.isEmpty {
@@ -48,6 +44,79 @@ struct QuestListSections: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var standardPendingSection: some View {
+        if !pending.isEmpty {
+            BoardSectionTitle(title: "던전", count: pending.count)
+            questRows(pending)
+        }
+    }
+
+    private func dailyFocusSections(questIDs: [UUID]) -> some View {
+        let questsByID = Dictionary(uniqueKeysWithValues: allQuests.map { ($0.id, $0) })
+        let focusQuests = questIDs.compactMap { questsByID[$0] }
+        let remainingQuests = pending.filter { !Set(questIDs).contains($0.id) }
+
+        return VStack(alignment: .leading, spacing: 12) {
+            BoardSectionTitle(title: "오늘의 핵심 퀘스트", count: focusQuests.count)
+            HStack {
+                Text("\(completedDailyFocusQuestIDs.count)/\(focusQuests.count) 완료")
+                    .font(.caption.monospacedDigit().weight(.bold))
+                    .foregroundStyle(DungeonPalette.ink.opacity(0.72))
+                Spacer()
+                Button("핵심 퀘스트 수정", action: onEditDailyFocus)
+                    .font(.caption.weight(.bold))
+            }
+
+            if focusQuests.isEmpty {
+                Text("선택한 퀘스트가 없습니다. 오늘의 핵심 퀘스트를 다시 골라주세요.")
+                    .font(.subheadline)
+                    .foregroundStyle(DungeonPalette.ink.opacity(0.72))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(focusQuests) { quest in
+                        if completedDailyFocusQuestIDs.contains(quest.id) {
+                            QuestRow(quest: quest, now: now)
+                        } else {
+                            swipeableRow(quest)
+                        }
+                    }
+                }
+            }
+
+            if !remainingQuests.isEmpty {
+                DisclosureGroup(isExpanded: $showsRemainingQuests) {
+                    questRows(remainingQuests)
+                        .padding(.top, 10)
+                } label: {
+                    Text("나머지 퀘스트 \(remainingQuests.count)개")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(DungeonPalette.ink.opacity(0.82))
+                }
+            }
+        }
+    }
+
+    private func questRows(_ quests: [Quest]) -> some View {
+        VStack(spacing: 10) {
+            ForEach(quests) { quest in
+                swipeableRow(quest)
+            }
+        }
+    }
+
+    private func swipeableRow(_ quest: Quest) -> some View {
+        SwipeableQuestRow(
+            quest: quest,
+            now: now,
+            showsGuidedCompletion: quest.id == guidedCompletionQuestID,
+            onComplete: onComplete,
+            onDelete: onDelete,
+            onEdit: onEdit
+        )
     }
 }
 

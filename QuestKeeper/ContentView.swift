@@ -15,6 +15,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Quest.deadline) private var quests: [Quest]
     @Query(sort: \RetentionEvent.occurredAt) private var retentionEvents: [RetentionEvent]
+    @Query(sort: \DailyFocusSelection.recordedAt) private var dailyFocusSelections: [DailyFocusSelection]
 
     /// A stored fact: when the app was last foregrounded (Phase 4 moves this to the App Group).
     @AppStorage("lastOpenedTIRD") private var lastOpenedRaw: Double = 0
@@ -22,6 +23,7 @@ struct ContentView: View {
     /// Transient: the deaths to mourn this activation. Drives the "꿱" frame, then resets.
     @State private var pendingDeaths: Set<UUID> = []
     @State private var route: EditorRoute?
+    @State private var dailyFocusEditor: DailyFocusEditorRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
     @State private var mourningTask: Task<Void, Never>?
     @Binding private var hasDeferredOnboardingThisRun: Bool
@@ -73,21 +75,39 @@ struct ContentView: View {
                     deferredThisRun: hasDeferredOnboardingThisRun,
                     measurementAvailable: onboardingMeasurementAvailable
                 )
+                let dailyFocusPresentation = DailyFocusState.make(
+                    enabled: dailyFocusLoopEnabled,
+                    quests: snapshots,
+                    selections: dailyFocusSelections.map(\.snapshot),
+                    now: now,
+                    calendar: .current
+                )
 
                 HomeDungeonBoardView(
                     state: state,
                     isMourning: !pendingDeaths.isEmpty,
+                    allQuests: quests,
                     pending: pending,
                     dailyGraves: dailyGraves,
                     newlyMissedQuestIDs: pendingDeaths,
                     now: now,
                     showsNotificationPermissionBanner: notificationAuthorization == .denied,
                     onboardingPresentation: onboardingPresentation,
+                    dailyFocusPresentation: dailyFocusPresentation,
                     onCreate: { beginQuestCreation(draft: nil) },
                     onStartGuidedQuest: {
                         beginQuestCreation(draft: .guided(at: .now))
                     },
                     onDeferOnboarding: deferOnboarding,
+                    onConfirmDailyFocus: { questIDs in
+                        _ = recordDailyFocus(questIDs, kind: .confirmation, at: now)
+                    },
+                    onEditDailyFocus: { questIDs, kind in
+                        dailyFocusEditor = DailyFocusEditorRoute(
+                            initialSelectedQuestIDs: questIDs,
+                            kind: kind
+                        )
+                    },
                     onOpenNotificationSettings: openNotificationSettings,
                     onComplete: complete,
                     onRetryTomorrow: retryTomorrow,
@@ -119,6 +139,19 @@ struct ContentView: View {
                     }
                 case .resolved(let quest):
                     QuestResolutionView(quest: quest, now: .now)
+                }
+            }
+            .sheet(item: $dailyFocusEditor) { editor in
+                let rankedIDs = DailyFocusState.rankedPendingQuestIDs(
+                    quests: quests.map(\.snapshot),
+                    now: .now
+                )
+                let questsByID = Dictionary(uniqueKeysWithValues: quests.map { ($0.id, $0) })
+                DailyFocusSelectionSheet(
+                    quests: rankedIDs.compactMap { questsByID[$0] },
+                    initialSelectedQuestIDs: editor.initialSelectedQuestIDs
+                ) { questIDs in
+                    recordDailyFocus(questIDs, kind: editor.kind, at: .now)
                 }
             }
             .task {
@@ -196,6 +229,21 @@ struct ContentView: View {
             try? modelContext.save()
         }
         hasDeferredOnboardingThisRun = true
+    }
+
+    private func recordDailyFocus(
+        _ questIDs: [UUID],
+        kind: DailyFocusSelectionKind,
+        at recordedAt: Date
+    ) -> Bool {
+        guard dailyFocusLoopEnabled else { return false }
+        return DailyFocusSelectionRecorder.record(
+            selectedQuestIDs: questIDs,
+            kind: kind,
+            at: recordedAt,
+            calendar: .current,
+            in: modelContext
+        ) != .failed
     }
 
     private func complete(_ quest: Quest, at completedAt: Date = .now) {
@@ -297,6 +345,12 @@ enum EditorRoute: Identifiable {
         case .resolved(let quest): "resolved-\(quest.id.uuidString)"
         }
     }
+}
+
+struct DailyFocusEditorRoute: Identifiable {
+    let id = UUID()
+    let initialSelectedQuestIDs: [UUID]
+    let kind: DailyFocusSelectionKind
 }
 
 nonisolated enum NotificationQuestDestination: Equatable {

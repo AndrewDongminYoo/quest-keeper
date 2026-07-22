@@ -3,15 +3,19 @@ import SwiftUI
 struct HomeDungeonBoardView: View {
     let state: HeroState
     let isMourning: Bool
+    let allQuests: [Quest]
     let pending: [Quest]
     let dailyGraves: [Quest]
     let newlyMissedQuestIDs: Set<UUID>
     let now: Date
     let showsNotificationPermissionBanner: Bool
     let onboardingPresentation: OnboardingFlowPresentation
+    let dailyFocusPresentation: DailyFocusPresentationState
     let onCreate: () -> Void
     let onStartGuidedQuest: () -> Void
     let onDeferOnboarding: () -> Void
+    let onConfirmDailyFocus: ([UUID]) -> Void
+    let onEditDailyFocus: ([UUID], DailyFocusSelectionKind) -> Void
     let onOpenNotificationSettings: () -> Void
     let onComplete: (Quest, Date) -> Void
     let onRetryTomorrow: (Quest) -> Void
@@ -33,14 +37,34 @@ struct HomeDungeonBoardView: View {
                             onCreate: onCreate,
                             onDefer: onDeferOnboarding
                         )
-                    } else if pending.isEmpty && dailyGraves.isEmpty {
+                    } else if pending.isEmpty && dailyGraves.isEmpty && !dailyFocusPresentation.isConfirmed {
                         EmptyDungeonState(onCreate: onCreate)
                     } else {
+                        if case let .recommended(questIDs) = dailyFocusPresentation {
+                            DailyFocusRecommendationCard(
+                                quests: quests(for: questIDs),
+                                onEdit: {
+                                    onEditDailyFocus(questIDs, .confirmation)
+                                },
+                                onConfirm: {
+                                    onConfirmDailyFocus(questIDs)
+                                }
+                            )
+                        }
                         QuestListSections(
+                            allQuests: allQuests,
                             pending: pending,
                             dailyGraves: dailyGraves,
                             newlyMissedQuestIDs: newlyMissedQuestIDs,
                             guidedCompletionQuestID: onboardingPresentation.guidedCompletionQuestID,
+                            dailyFocusQuestIDs: dailyFocusPresentation.selectedQuestIDs,
+                            completedDailyFocusQuestIDs: dailyFocusPresentation.completedQuestIDs,
+                            onEditDailyFocus: {
+                                let pendingSelectedIDs = (dailyFocusPresentation.selectedQuestIDs ?? []).filter { selectedID in
+                                    pending.contains(where: { $0.id == selectedID })
+                                }
+                                onEditDailyFocus(pendingSelectedIDs, .revision)
+                            },
                             now: now,
                             onComplete: onComplete,
                             onRetryTomorrow: onRetryTomorrow,
@@ -56,6 +80,68 @@ struct HomeDungeonBoardView: View {
                 .padding(.bottom, 28)
             }
         }
+    }
+
+    private func quests(for questIDs: [UUID]) -> [Quest] {
+        let questsByID = Dictionary(uniqueKeysWithValues: allQuests.map { ($0.id, $0) })
+        return questIDs.compactMap { questsByID[$0] }
+    }
+}
+
+private struct DailyFocusRecommendationCard: View {
+    let quests: [Quest]
+    let onEdit: () -> Void
+    let onConfirm: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("오늘의 핵심 퀘스트")
+                .font(.headline.weight(.black))
+                .foregroundStyle(DungeonPalette.ink)
+            Text("추천을 확인하고 오늘의 전투를 직접 선택하세요.")
+                .font(.subheadline)
+                .foregroundStyle(DungeonPalette.ink.opacity(0.76))
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(quests) { quest in
+                    Text("• \(quest.title)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(DungeonPalette.ink)
+                        .lineLimit(2)
+                }
+            }
+            HStack(spacing: 12) {
+                Button("핵심 퀘스트 수정", action: onEdit)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                Button("오늘 이대로 시작", action: onConfirm)
+                    .buttonStyle(.pixel)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .font(.subheadline.weight(.semibold))
+        }
+        .padding(16)
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
+        .overlay(
+            RoundedRectangle(cornerRadius: 2)
+                .stroke(DungeonPalette.hero.opacity(0.55), lineWidth: 2)
+        )
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private extension DailyFocusPresentationState {
+    var isConfirmed: Bool {
+        guard case .confirmed = self else { return false }
+        return true
+    }
+
+    var selectedQuestIDs: [UUID]? {
+        guard case let .confirmed(selectedQuestIDs, _) = self else { return nil }
+        return selectedQuestIDs
+    }
+
+    var completedQuestIDs: Set<UUID> {
+        guard case let .confirmed(_, completedQuestIDs) = self else { return [] }
+        return completedQuestIDs
     }
 }
 
