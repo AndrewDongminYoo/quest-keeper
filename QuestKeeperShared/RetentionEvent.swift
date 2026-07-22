@@ -6,6 +6,9 @@ nonisolated enum RetentionEventName: String, Codable, CaseIterable, Sendable {
     case questCreated = "quest_created"
     case questCompleted = "quest_completed"
     case questRetried = "quest_retried"
+    case experimentExposed = "experiment_exposed"
+    case questCreationStarted = "quest_creation_started"
+    case onboardingDeferred = "onboarding_deferred"
 }
 
 nonisolated enum RetentionEventSource: String, Codable, CaseIterable, Sendable {
@@ -109,5 +112,35 @@ nonisolated struct RetentionEventSnapshot: Codable, Equatable, Identifiable, Sen
 
     var source: RetentionEventSource? {
         RetentionEventSource(rawValue: sourceRawValue)
+    }
+
+    var experimentKeyComponent: String? {
+        guard let name, name.isExperimentSpecific else { return nil }
+        let prefix = "\(name.rawValue):\(installationID.uuidString):"
+        guard deduplicationKey.hasPrefix(prefix) else { return nil }
+        let component = deduplicationKey.dropFirst(prefix.count)
+        switch name {
+        case .experimentExposed:
+            return component.isEmpty ? nil : String(component)
+        case .questCreationStarted, .onboardingDeferred:
+            return component.split(separator: ":", maxSplits: 1).first.map(String.init)
+        default:
+            return nil
+        }
+    }
+}
+
+extension RetentionEventName {
+    nonisolated var isExperimentSpecific: Bool {
+        self == .experimentExposed || self == .questCreationStarted || self == .onboardingDeferred
+    }
+
+    nonisolated var isOnboardingProgress: Bool {
+        switch self {
+        case .experimentExposed, .questCreationStarted, .questCreated, .questCompleted, .onboardingDeferred:
+            true
+        case .appActivated, .questRetried:
+            false
+        }
     }
 }

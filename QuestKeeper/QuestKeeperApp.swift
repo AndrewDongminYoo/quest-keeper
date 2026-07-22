@@ -20,9 +20,14 @@ struct QuestKeeperApp: App {
     @State private var didBackground = false
     @State private var hasRecordedRetentionActivation = false
     @State private var retentionActivationSessionID = UUID()
+    @State private var hasDeferredOnboardingThisRun = false
+    @State private var hasAttemptedOnboardingExposure = false
+    @State private var onboardingMeasurementAvailable = false
     private let notificationDelegate: NotificationDelegate
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     private let retentionBaselineWriter: RetentionBaselineWriter
+    private let onboardingAssignment: ExperimentAssignmentSnapshot?
+    private let onboardingSessionID = UUID()
 
     init() {
         let routeStore = NotificationRouteStore()
@@ -34,7 +39,35 @@ struct QuestKeeperApp: App {
         retentionBaselineWriter = RetentionBaselineWriter()
         UNUserNotificationCenter.current().delegate = delegate
         do {
-            _sharedModelContainer = State(initialValue: try QuestModelContainer.make())
+            let container = try QuestModelContainer.make()
+            _sharedModelContainer = State(initialValue: container)
+
+            let enrollment: ExperimentEnrollmentResult
+            if !shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
+                enrollment = .ineligible
+            } else {
+#if DEBUG
+                if let variant = onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
+                    enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                        at: .now,
+                        in: container.mainContext,
+                        variantSelector: { variant }
+                    )
+                } else {
+                    enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                        at: .now,
+                        in: container.mainContext
+                    )
+                }
+#else
+                enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                    at: .now,
+                    in: container.mainContext
+                )
+#endif
+            }
+
+            onboardingAssignment = enrollment.assignment
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -44,7 +77,11 @@ struct QuestKeeperApp: App {
         WindowGroup {
             ContentView(
                 notificationRouteStore: notificationRouteStore,
-                widgetSnapshotWriter: widgetSnapshotWriter
+                widgetSnapshotWriter: widgetSnapshotWriter,
+                onboardingAssignment: onboardingAssignment,
+                onboardingMeasurementAvailable: onboardingMeasurementAvailable,
+                hasDeferredOnboardingThisRun: $hasDeferredOnboardingThisRun,
+                onboardingSessionID: onboardingSessionID
             )
         }
         .modelContainer(sharedModelContainer)
@@ -68,6 +105,18 @@ struct QuestKeeperApp: App {
                     container = refreshed
                 } else {
                     container = sharedModelContainer
+                }
+                if shouldAttemptOnboardingExposure(
+                    hasAssignment: onboardingAssignment != nil,
+                    hasAttempted: hasAttemptedOnboardingExposure,
+                    isActive: true
+                ), let assignment = onboardingAssignment {
+                    hasAttemptedOnboardingExposure = true
+                    onboardingMeasurementAvailable = recordOnboardingExposure(
+                        assignment: assignment,
+                        at: .now,
+                        in: container.mainContext
+                    )
                 }
                 if shouldRecordRetentionActivation(
                     hasRecordedActivation: hasRecordedRetentionActivation,
@@ -103,9 +152,73 @@ struct QuestKeeperApp: App {
     }
 }
 
+nonisolated func onboardingVariantOverride(
+    arguments: [String]
+) -> OnboardingExperimentVariant? {
+    guard let flagIndex = arguments.firstIndex(of: "-onboardingVariant"),
+          arguments.indices.contains(flagIndex + 1) else {
+        return nil
+    }
+    return OnboardingExperimentVariant(rawValue: arguments[flagIndex + 1])
+}
+
+nonisolated func shouldResolveOnboardingExperiment(
+    environment: [String: String]
+) -> Bool {
+    environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1"
+}
+
 nonisolated func shouldRecordRetentionActivation(
     hasRecordedActivation: Bool,
     didBackground: Bool
 ) -> Bool {
     !hasRecordedActivation || didBackground
+}
+
+nonisolated func shouldAttemptOnboardingExposure(
+    hasAssignment: Bool,
+    hasAttempted: Bool,
+    isActive: Bool
+) -> Bool {
+    hasAssignment && !hasAttempted && isActive
+}
+
+@MainActor
+func recordOnboardingExposure(
+    assignment: ExperimentAssignmentSnapshot,
+    at occurredAt: Date,
+    in context: ModelContext
+) -> Bool {
+    persistOnboardingExposure(
+        record: {
+            RetentionEventRecorder.recordExperimentExposed(
+                experimentKey: assignment.experimentKey,
+                at: occurredAt,
+                in: context
+            )
+        },
+        save: {
+            if context.hasChanges { try context.save() }
+        },
+        rollback: context.rollback
+    )
+}
+
+@MainActor
+func persistOnboardingExposure(
+    record: () -> RetentionRecordResult,
+    save: () throws -> Void,
+    rollback: () -> Void
+) -> Bool {
+    guard record() != .failed else {
+        rollback()
+        return false
+    }
+    do {
+        try save()
+        return true
+    } catch {
+        rollback()
+        return false
+    }
 }

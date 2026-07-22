@@ -16,6 +16,78 @@ struct RetentionReportTests {
         #expect(report.dataQuality.status == .complete)
     }
 
+    @Test("experiment events do not alter core metrics")
+    func experimentEventsPreserveCoreMetrics() {
+        let experimentEvents = [
+            RetentionBaselineFixture.event(
+                601,
+                "experiment-exposed",
+                .experimentExposed,
+                RetentionBaselineFixture.installationA,
+                "2026-06-30T15:00:01Z"
+            ),
+            RetentionBaselineFixture.event(
+                602,
+                "quest-creation-started",
+                .questCreationStarted,
+                RetentionBaselineFixture.installationA,
+                "2026-06-30T15:00:02Z"
+            ),
+            RetentionBaselineFixture.event(
+                603,
+                "onboarding-deferred",
+                .onboardingDeferred,
+                RetentionBaselineFixture.installationA,
+                "2026-06-30T15:00:03Z"
+            ),
+        ]
+
+        let baseline = makeReport()
+        let report = makeReport(events: RetentionBaselineFixture.events + experimentEvents)
+
+        #expect(report.firstValue == baseline.firstValue)
+        #expect(report.firstCompletion == baseline.firstCompletion)
+        #expect(report.d1 == baseline.d1)
+        #expect(report.d7 == baseline.d7)
+        #expect(report.weeklyActiveInstallations == baseline.weeklyActiveInstallations)
+        #expect(report.weeklyRepeatedCompletion == baseline.weeklyRepeatedCompletion)
+        #expect(report.dataQuality.unsupportedCount == 0)
+    }
+
+    @Test("experiment events reject widget sources and quest identifiers")
+    func invalidExperimentEventFieldsAreUnsupported() {
+        let invalidEvents = [
+            rawEvent(
+                id: 611,
+                key: "widget-exposure",
+                name: "experiment_exposed",
+                source: "widget",
+                at: "2026-07-08T03:00:00Z"
+            ),
+            rawEvent(
+                id: 612,
+                key: "creation-start-with-quest",
+                name: "quest_creation_started",
+                source: "app",
+                at: "2026-07-08T03:00:00Z",
+                questID: RetentionBaselineFixture.questA
+            ),
+            rawEvent(
+                id: 613,
+                key: "deferred-with-quest",
+                name: "onboarding_deferred",
+                source: "app",
+                at: "2026-07-08T03:00:00Z",
+                questID: RetentionBaselineFixture.questA
+            ),
+        ]
+
+        let report = makeReport(events: RetentionBaselineFixture.events + invalidEvents)
+
+        #expect(report.dataQuality.unsupportedCount == 3)
+        #expect(report.dataQuality.status == .partial)
+    }
+
     @Test("scenario validation identifies one exact missing key")
     func scenarioMissingKey() {
         let removed = RetentionBaselineFixture.events[1]

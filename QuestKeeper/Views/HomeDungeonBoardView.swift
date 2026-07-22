@@ -8,7 +8,10 @@ struct HomeDungeonBoardView: View {
     let newlyMissedQuestIDs: Set<UUID>
     let now: Date
     let showsNotificationPermissionBanner: Bool
+    let onboardingPresentation: OnboardingFlowPresentation
     let onCreate: () -> Void
+    let onStartGuidedQuest: () -> Void
+    let onDeferOnboarding: () -> Void
     let onOpenNotificationSettings: () -> Void
     let onComplete: (Quest, Date) -> Void
     let onRetryTomorrow: (Quest) -> Void
@@ -24,13 +27,20 @@ struct HomeDungeonBoardView: View {
                     if showsNotificationPermissionBanner {
                         NotificationPermissionBanner(onOpenSettings: onOpenNotificationSettings)
                     }
-                    if pending.isEmpty && dailyGraves.isEmpty {
+                    if onboardingPresentation == .guidedOffer {
+                        GuidedOnboardingCard(
+                            onStartGuidedQuest: onStartGuidedQuest,
+                            onCreate: onCreate,
+                            onDefer: onDeferOnboarding
+                        )
+                    } else if pending.isEmpty && dailyGraves.isEmpty {
                         EmptyDungeonState(onCreate: onCreate)
                     } else {
                         QuestListSections(
                             pending: pending,
                             dailyGraves: dailyGraves,
                             newlyMissedQuestIDs: newlyMissedQuestIDs,
+                            guidedCompletionQuestID: onboardingPresentation.guidedCompletionQuestID,
                             now: now,
                             onComplete: onComplete,
                             onRetryTomorrow: onRetryTomorrow,
@@ -46,6 +56,50 @@ struct HomeDungeonBoardView: View {
                 .padding(.bottom, 28)
             }
         }
+    }
+}
+
+private struct GuidedOnboardingCard: View {
+    let onStartGuidedQuest: () -> Void
+    let onCreate: () -> Void
+    let onDefer: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("첫 승리를 시작해볼까요?")
+                .font(.headline.weight(.black))
+                .foregroundStyle(DungeonPalette.ink)
+            Text("2분 안에 끝낼 수\u{00A0}있는 작은 전투부터 시작하세요.")
+                .font(.subheadline)
+                .foregroundStyle(DungeonPalette.ink.opacity(0.76))
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel("2분 안에 끝낼 수 있는 작은 전투부터 시작하세요.")
+            Button("2분 전투 시작", action: onStartGuidedQuest)
+                .buttonStyle(.pixel)
+                .frame(maxWidth: .infinity, minHeight: 44)
+            HStack(spacing: 12) {
+                Button("직접 만들기", action: onCreate)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                Button("나중에", action: onDefer)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(DungeonPalette.ink)
+        }
+        .padding(16)
+        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
+        .overlay(
+            RoundedRectangle(cornerRadius: 2)
+                .stroke(DungeonPalette.hero.opacity(0.55), lineWidth: 2)
+        )
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private extension OnboardingFlowPresentation {
+    var guidedCompletionQuestID: UUID? {
+        guard case let .guidedCompletion(questID) = self else { return nil }
+        return questID
     }
 }
 

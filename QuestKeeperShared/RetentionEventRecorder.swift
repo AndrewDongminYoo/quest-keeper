@@ -119,6 +119,53 @@ nonisolated enum RetentionEventRecorder {
         )
     }
 
+    static func recordExperimentExposed(
+        experimentKey: String,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        record(
+            name: .experimentExposed,
+            source: .app,
+            occurredAt: occurredAt,
+            questID: nil,
+            keyComponent: experimentKey,
+            in: context
+        )
+    }
+
+    static func recordQuestCreationStarted(
+        experimentKey: String,
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        record(
+            name: .questCreationStarted,
+            source: .app,
+            occurredAt: occurredAt,
+            questID: nil,
+            keyComponent: "\(experimentKey):\(actionID)",
+            in: context
+        )
+    }
+
+    static func recordOnboardingDeferred(
+        experimentKey: String,
+        sessionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        record(
+            name: .onboardingDeferred,
+            source: .app,
+            occurredAt: occurredAt,
+            questID: nil,
+            keyComponent: "\(experimentKey):\(sessionID)",
+            in: context
+        )
+    }
+
     private static func record(
         name: RetentionEventName,
         source: RetentionEventSource,

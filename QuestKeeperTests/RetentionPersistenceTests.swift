@@ -27,17 +27,41 @@ struct RetentionPersistenceTests {
             questID: questID,
             deduplicationKey: "quest_created:\(installationID):\(questID)"
         )
+        let assignment = ExperimentAssignment(
+            installationID: installationID,
+            variant: .guided,
+            assignedAt: startedAt
+        )
 
         container.mainContext.insert(quest)
         container.mainContext.insert(installation)
         container.mainContext.insert(event)
+        container.mainContext.insert(assignment)
         try container.mainContext.save()
 
         #expect(try container.mainContext.fetch(FetchDescriptor<Quest>()).count == 1)
         #expect(try container.mainContext.fetch(FetchDescriptor<RetentionInstallation>()).count == 1)
         #expect(try container.mainContext.fetch(FetchDescriptor<RetentionEvent>()).count == 1)
+        #expect(try container.mainContext.fetch(FetchDescriptor<ExperimentAssignment>()).count == 1)
         #expect(event.snapshot.nameRawValue == "quest_created")
         #expect(event.snapshot.sourceRawValue == "app")
+        #expect(assignment.snapshot.variant == .guided)
+    }
+
+    @Test("assignment snapshot exposes only approved experiment fields")
+    func assignmentSnapshotHasApprovedShape() {
+        let snapshot = ExperimentAssignmentSnapshot(
+            schemaVersion: 1,
+            experimentKey: OnboardingExperiment.key,
+            installationID: installationID,
+            variantRawValue: OnboardingExperimentVariant.control.rawValue,
+            assignedAt: startedAt
+        )
+
+        let labels = Set(Mirror(reflecting: snapshot).children.compactMap(\.label))
+        #expect(labels == [
+            "schemaVersion", "experimentKey", "installationID", "variantRawValue", "assignedAt",
+        ])
     }
 
     @Test("event snapshot exposes only the approved privacy fields")
@@ -91,10 +115,16 @@ struct RetentionPersistenceTests {
         #expect(quests.first?.importance == .high)
         #expect(try upgraded.mainContext.fetch(FetchDescriptor<RetentionEvent>()).isEmpty)
         #expect(try upgraded.mainContext.fetch(FetchDescriptor<RetentionInstallation>()).isEmpty)
+        #expect(try upgraded.mainContext.fetch(FetchDescriptor<ExperimentAssignment>()).isEmpty)
     }
 
     private func measurementContainer() throws -> ModelContainer {
-        let schema = Schema([Quest.self, RetentionInstallation.self, RetentionEvent.self])
+        let schema = Schema([
+            Quest.self,
+            RetentionInstallation.self,
+            RetentionEvent.self,
+            ExperimentAssignment.self,
+        ])
         return try ModelContainer(
             for: schema,
             configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
