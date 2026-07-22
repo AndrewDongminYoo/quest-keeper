@@ -94,7 +94,7 @@ nonisolated enum OnboardingFlowState {
                 && $0.schemaVersion == RetentionEvent.currentSchemaVersion
                 && $0.occurredAt >= assignment.assignedAt
                 && validCombination($0)
-                && (!$0.name!.isExperimentSpecific
+                && ($0.name?.isExperimentSpecific != true
                     || $0.experimentKeyComponent == assignment.experimentKey)
         }
         return Dictionary(grouping: validEvents, by: \.deduplicationKey)

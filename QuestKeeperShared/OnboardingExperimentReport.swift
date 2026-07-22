@@ -418,6 +418,7 @@ private nonisolated func makeJourney(
     guard contradictoryCompletions.isEmpty else { return nil }
     let firstCompletion = completions.first
     let boundary = exposure.occurredAt.addingTimeInterval(120)
+    let twoMinuteWindowMatured = boundary <= asOf
     let d1 = retention(
         dayOffset: 1,
         exposure: exposure.occurredAt,
@@ -438,9 +439,11 @@ private nonisolated func makeJourney(
         creationStarted: creationStart != nil,
         firstValueAt: firstCreation?.occurredAt,
         firstCompletionAt: firstCompletion?.occurredAt,
-        twoMinuteWindowMatured: boundary <= asOf,
-        firstValueWithinTwoMinutes: firstCreation?.occurredAt ?? .distantFuture <= boundary,
-        firstSuccessWithinTwoMinutes: firstCompletion?.occurredAt ?? .distantFuture <= boundary,
+        twoMinuteWindowMatured: twoMinuteWindowMatured,
+        firstValueWithinTwoMinutes: twoMinuteWindowMatured
+            && (firstCreation?.occurredAt ?? .distantFuture) <= boundary,
+        firstSuccessWithinTwoMinutes: twoMinuteWindowMatured
+            && (firstCompletion?.occurredAt ?? .distantFuture) <= boundary,
         returnedD1: d1.returned,
         d1Eligible: d1.eligible,
         returnedD7: d7.returned,

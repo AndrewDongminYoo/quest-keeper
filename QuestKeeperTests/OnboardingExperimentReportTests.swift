@@ -51,6 +51,30 @@ struct OnboardingExperimentReportTests {
         #expect(immature.control.onboardingCompletionWithinTwoMinutes == RetentionRate(achieved: 0, eligible: 0))
     }
 
+    @Test("an immature two minute window contributes to neither numerator nor denominator")
+    func immatureTwoMinuteWindow() {
+        let installationID = OnboardingExperimentFixture.uuid(22)
+        let assignment = OnboardingExperimentFixture.assignment(installationID, .control, "2026-07-01T15:00:00Z")
+        let exposure = OnboardingExperimentFixture.event(221, .experimentExposed, installationID, "2026-07-01T15:00:00Z")
+        let creation = OnboardingExperimentFixture.event(
+            222,
+            .questCreated,
+            installationID,
+            "2026-07-01T15:01:00Z",
+            OnboardingExperimentFixture.uuid(223)
+        )
+
+        let report = makeReport(
+            assignments: [assignment],
+            installations: [installation(for: assignment)],
+            events: [exposure, creation],
+            asOf: OnboardingExperimentFixture.date("2026-07-01T15:01:30Z")
+        )
+
+        #expect(report.control.funnel.firstValue == 1)
+        #expect(report.control.onboardingCompletionWithinTwoMinutes == RetentionRate(achieved: 0, eligible: 0))
+    }
+
     @Test("D1 requires the complete local target day and does not backfill late activation")
     func localDayRetention() {
         let installationID = OnboardingExperimentFixture.uuid(21)
