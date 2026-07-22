@@ -110,8 +110,8 @@ private struct SwipeableQuestRow: View {
                 battlePhase: battlePhase,
                 guidanceText: showsGuidedCompletion ? "완료하면 첫 승리를 얻어요" : nil
             )
-                .offset(x: offset)
                 .contentShape(Rectangle())
+                .offset(x: offset)
                 .onTapGesture {
                     guard !isResolvingBattle else { return }
                     if offset == 0 {
