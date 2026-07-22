@@ -26,7 +26,7 @@ struct QuestKeeperApp: App {
     private let notificationDelegate: NotificationDelegate
     private let notificationService: QuestNotificationService
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
-    private let retentionBaselineWriter: RetentionBaselineWriter
+    private let retentionBaselineWriter: RetentionBaselineWriter?
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
     private let onboardingSessionID = UUID()
     private let usesInMemoryStore: Bool
@@ -51,7 +51,9 @@ struct QuestKeeperApp: App {
         notificationDelegate = delegate
         self.notificationService = notificationService
         widgetSnapshotWriter = snapshotWriter
-        retentionBaselineWriter = RetentionBaselineWriter()
+        retentionBaselineWriter = shouldPersistMeasurementArtifacts(
+            usesInMemoryStore: usesInMemoryStore
+        ) ? RetentionBaselineWriter() : nil
         self.usesInMemoryStore = usesInMemoryStore
         UNUserNotificationCenter.current().delegate = delegate
         do {
@@ -63,16 +65,21 @@ struct QuestKeeperApp: App {
                 enrollment = .ineligible
             } else {
 #if DEBUG
+                let installationIDProvider: () throws -> UUID = usesInMemoryStore
+                    ? { UUID() }
+                    : { try RetentionInstallationIdentityStore.appGroup().loadOrCreate() }
                 if let variant = onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
                     enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
                         at: .now,
                         in: container.mainContext,
+                        installationIDProvider: installationIDProvider,
                         variantSelector: { variant }
                     )
                 } else {
                     enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
                         at: .now,
-                        in: container.mainContext
+                        in: container.mainContext,
+                        installationIDProvider: installationIDProvider
                     )
                 }
 #else
@@ -146,7 +153,7 @@ struct QuestKeeperApp: App {
                     didBackground: wasBackgrounded
                 ) {
                     hasRecordedRetentionActivation = true
-                    retentionBaselineWriter.recordActivationAndWrite(
+                    retentionBaselineWriter?.recordActivationAndWrite(
                         sessionID: retentionActivationSessionID,
                         at: .now,
                         using: container
@@ -207,6 +214,12 @@ nonisolated func shouldResolveOnboardingExperiment(
     environment: [String: String]
 ) -> Bool {
     environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1"
+}
+
+nonisolated func shouldPersistMeasurementArtifacts(
+    usesInMemoryStore: Bool
+) -> Bool {
+    !usesInMemoryStore
 }
 
 nonisolated func shouldRecordRetentionActivation(

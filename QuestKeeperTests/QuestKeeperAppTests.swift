@@ -65,6 +65,22 @@ struct QuestKeeperAppTests {
     }
 
     @Test(
+        "in-memory launches do not persist measurement artifacts",
+        arguments: [
+            (false, true),
+            (true, false),
+        ]
+    )
+    func measurementArtifactPersistenceGate(
+        usesInMemoryStore: Bool,
+        expected: Bool
+    ) {
+        #expect(shouldPersistMeasurementArtifacts(
+            usesInMemoryStore: usesInMemoryStore
+        ) == expected)
+    }
+
+    @Test(
         "onboarding exposure waits for the first active scene",
         arguments: [
             (true, false, true, true),
