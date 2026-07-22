@@ -3,6 +3,7 @@ import SwiftUI
 struct DailyFocusSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedQuestIDs: Set<UUID>
+    @State private var showingSaveIssue = false
 
     let quests: [Quest]
     let kind: DailyFocusSelectionKind
@@ -62,10 +63,17 @@ struct DailyFocusSelectionSheet: View {
                         let orderedIDs = quests.map(\.id).filter(selectedQuestIDs.contains)
                         if onSave(orderedIDs) {
                             dismiss()
+                        } else {
+                            showingSaveIssue = true
                         }
                     }
                     .disabled(!DailyFocusState.isValidSelection(Array(selectedQuestIDs)))
                 }
+            }
+            .alert("선택을 다시 확인해주세요", isPresented: $showingSaveIssue) {
+                Button("확인", role: .cancel) { }
+            } message: {
+                Text("퀘스트 상태가 바뀌어 지금 선택을 저장하지 않았습니다.")
             }
         }
     }
