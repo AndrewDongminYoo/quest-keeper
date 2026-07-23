@@ -109,18 +109,26 @@ struct QuestKeeperApp: App {
                         measurementStartedAt: now.addingTimeInterval(-4 * 86_400)
                     ))
                 }
-                container.mainContext.insert(Quest(
-                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
-                    title: "회복 퀘스트 1",
-                    deadline: now.addingTimeInterval(600),
-                    importance: .high
-                ))
-                container.mainContext.insert(Quest(
-                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
-                    title: "회복 퀘스트 2",
-                    deadline: now.addingTimeInterval(1_200),
-                    importance: .medium
-                ))
+                if arguments.contains("-uiTestingRecoveryNoPending") {
+                    container.mainContext.insert(Quest(
+                        title: "남겨둔 퀘스트",
+                        deadline: now.addingTimeInterval(-60),
+                        importance: .medium
+                    ))
+                } else {
+                    container.mainContext.insert(Quest(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
+                        title: "회복 퀘스트 1",
+                        deadline: now.addingTimeInterval(600),
+                        importance: .high
+                    ))
+                    container.mainContext.insert(Quest(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
+                        title: "회복 퀘스트 2",
+                        deadline: now.addingTimeInterval(1_200),
+                        importance: .medium
+                    ))
+                }
                 container.mainContext.insert(Quest(
                     title: "지켜낸 승리",
                     deadline: now.addingTimeInterval(-86_400),
