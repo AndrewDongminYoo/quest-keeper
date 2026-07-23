@@ -12,7 +12,8 @@ enum QuestModelContainer {
     /// (the module defaults to `@MainActor`); the app's main-actor call site is unaffected.
     nonisolated static func make(
         storeURL: URL? = nil,
-        isStoredInMemoryOnly: Bool = false
+        isStoredInMemoryOnly: Bool = false,
+        retryKeyMigrationMarkerURL: URL? = nil
     ) throws -> ModelContainer {
         let schema = Schema([
             Quest.self,
@@ -32,6 +33,18 @@ enum QuestModelContainer {
                 groupContainer: .identifier(WidgetDungeonSnapshotStore.appGroupIdentifier)
             )
         }
-        return try ModelContainer(for: schema, configurations: [configuration])
+        let container = try ModelContainer(for: schema, configurations: [configuration])
+        let markerURL = retryKeyMigrationMarkerURL
+            ?? storeURL?.appendingPathExtension(RetentionRetryKeyMigrationMarkerStore.fileExtension)
+            ?? FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: WidgetDungeonSnapshotStore.appGroupIdentifier
+            )?.appending(path: RetentionRetryKeyMigrationMarkerStore.fileExtension)
+        if !isStoredInMemoryOnly, let markerURL {
+            RetentionEventRecorder.normalizeLegacyQuestRetryDeduplicationKeysIfNeeded(
+                in: ModelContext(container),
+                markerStore: RetentionRetryKeyMigrationMarkerStore(fileURL: markerURL)
+            )
+        }
+        return container
     }
 }
