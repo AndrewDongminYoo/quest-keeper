@@ -302,13 +302,14 @@ struct ContentView: View {
             now: now,
             calendar: localCalendar
         )
-        guard RecoveryState.presentation(
+        guard RecoveryState.canConfirmSingleQuest(
+            questID,
             offer: recoveryOffer,
             quests: quests.map(\.snapshot),
             dailyFocusPresentation: dailyFocusPresentation,
             now: now,
             calendar: localCalendar
-        ) == .singleQuest(questID) else {
+        ) else {
             return false
         }
         guard recordDailyFocus([questID], kind: .confirmation, at: now) else {

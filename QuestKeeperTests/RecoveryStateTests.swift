@@ -240,6 +240,46 @@ struct RecoveryStateTests {
             calendar: calendar
         ) == nil)
     }
+
+    @Test("single-quest confirmation rejects a candidate that changed before the tap")
+    func staleSingleQuestConfirmation() {
+        let offer = RecoveryActivationOffer(
+            variant: .singleQuest,
+            localDayKey: "2026-07-23"
+        )
+        let quests = [
+            QuestSnapshot(
+                id: firstID,
+                deadline: thursday.addingTimeInterval(300),
+                completedAt: thursday,
+                importance: .medium
+            ),
+            QuestSnapshot(
+                id: secondID,
+                deadline: thursday.addingTimeInterval(600),
+                completedAt: nil,
+                importance: .low
+            ),
+        ]
+        let focus = DailyFocusPresentationState.recommended([secondID])
+
+        #expect(!RecoveryState.canConfirmSingleQuest(
+            firstID,
+            offer: offer,
+            quests: quests,
+            dailyFocusPresentation: focus,
+            now: thursday,
+            calendar: calendar
+        ))
+        #expect(RecoveryState.canConfirmSingleQuest(
+            secondID,
+            offer: offer,
+            quests: quests,
+            dailyFocusPresentation: focus,
+            now: thursday,
+            calendar: calendar
+        ))
+    }
 }
 
 private struct RecoveryOfferInput {

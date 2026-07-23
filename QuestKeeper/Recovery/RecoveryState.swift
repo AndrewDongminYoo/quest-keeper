@@ -77,4 +77,21 @@ nonisolated enum RecoveryState {
         }
         return nil
     }
+
+    static func canConfirmSingleQuest(
+        _ questID: UUID,
+        offer: RecoveryActivationOffer?,
+        quests: [QuestSnapshot],
+        dailyFocusPresentation: DailyFocusPresentationState,
+        now: Date,
+        calendar: Calendar
+    ) -> Bool {
+        presentation(
+            offer: offer,
+            quests: quests,
+            dailyFocusPresentation: dailyFocusPresentation,
+            now: now,
+            calendar: calendar
+        ) == .singleQuest(questID)
+    }
 }
