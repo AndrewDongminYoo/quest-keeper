@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct RecoveryCardView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingSelectionIssue = false
 
     let presentation: RecoveryCardPresentation
@@ -39,7 +40,7 @@ struct RecoveryCardView: View {
             Button(primaryTitle, action: primaryAction)
                 .buttonStyle(PixelButtonStyle(
                     fill: DungeonPalette.hero,
-                    foreground: DungeonPalette.dungeon
+                    foreground: colorScheme == .dark ? DungeonPalette.dungeon : .white
                 ))
                 .frame(maxWidth: .infinity, minHeight: 44)
             Button("지금은 괜찮아요", action: onDismiss)
