@@ -202,6 +202,22 @@ struct QuestKeeperAppTests {
         ))
     }
 
+    @Test("background replay waits when a fresh production container is unavailable")
+    func backgroundReplayFreshnessBoundary() {
+        #expect(shouldReplayActivation(
+            wasBackgrounded: false,
+            hasFreshContainer: false
+        ))
+        #expect(!shouldReplayActivation(
+            wasBackgrounded: true,
+            hasFreshContainer: false
+        ))
+        #expect(shouldReplayActivation(
+            wasBackgrounded: true,
+            hasFreshContainer: true
+        ))
+    }
+
     @Test("daily grave fixture requires an isolated UI test store")
     func dailyGraveFixtureIsolation() {
         let arguments = ["QuestKeeper", "-uiTestingDailyFocusGrave"]

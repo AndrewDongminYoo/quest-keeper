@@ -213,12 +213,14 @@ struct QuestKeeperApp: App {
                 // Control Center peek — so we don't needlessly refresh or tear down an open editor.
                 let wasBackgrounded = didBackground
                 let container: ModelContainer
+                let canReplayActivation: Bool
                 if didBackground, shouldReuseContainerOnBackground(
                     usesInMemoryStore: usesInMemoryStore,
                     uiTestingStoreURL: uiTestingStoreURL
                 ) {
                     didBackground = false
                     container = sharedModelContainer
+                    canReplayActivation = true
                 } else if didBackground,
                           let refreshed = try? QuestModelContainer.make(
                               isStoredInMemoryOnly: usesInMemoryStore
@@ -226,19 +228,26 @@ struct QuestKeeperApp: App {
                     didBackground = false
                     sharedModelContainer = refreshed
                     container = refreshed
+                    canReplayActivation = true
                 } else {
                     container = sharedModelContainer
+                    canReplayActivation = shouldReplayActivation(
+                        wasBackgrounded: didBackground,
+                        hasFreshContainer: false
+                    )
                 }
                 let shouldDeriveRecovery = shouldDeriveRecoveryOffer(
                     hasRecoveryVariant: recoveryLoopVariant != nil,
                     hasPerformedActivationReplay: hasPerformedActivationReplay,
                     didBackground: wasBackgrounded
                 )
-                let didDeriveRecovery = replayActivation(
-                    using: container,
-                    at: .now,
-                    shouldDeriveRecovery: shouldDeriveRecovery
-                )
+                let didDeriveRecovery = canReplayActivation
+                    ? replayActivation(
+                        using: container,
+                        at: .now,
+                        shouldDeriveRecovery: shouldDeriveRecovery
+                    )
+                    : false
                 if shouldDeriveRecovery {
                     hasPerformedActivationReplay = didDeriveRecovery
                 }
@@ -383,6 +392,13 @@ nonisolated func shouldReuseContainerOnBackground(
     uiTestingStoreURL: URL?
 ) -> Bool {
     usesInMemoryStore || uiTestingStoreURL != nil
+}
+
+nonisolated func shouldReplayActivation(
+    wasBackgrounded: Bool,
+    hasFreshContainer: Bool
+) -> Bool {
+    !wasBackgrounded || hasFreshContainer
 }
 
 nonisolated func shouldDeriveRecoveryOffer(
