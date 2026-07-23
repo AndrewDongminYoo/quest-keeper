@@ -62,6 +62,7 @@ nonisolated enum RecoveryState {
               offer.localDayKey == DailyFocusDay.key(for: now, calendar: calendar) else {
             return nil
         }
+        guard !quests.isEmpty else { return nil }
         guard case .confirmed = dailyFocusPresentation else {
             let pendingIDs = DailyFocusState.rankedPendingQuestIDs(
                 quests: quests,

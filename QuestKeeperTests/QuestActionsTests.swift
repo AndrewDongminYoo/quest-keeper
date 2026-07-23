@@ -164,4 +164,33 @@ struct QuestActionsTests {
         #expect(firstOffer != nil)
         #expect(secondOffer == nil)
     }
+
+    @Test("unavailable focus input consumes activation without offering recovery")
+    func unavailableFocusConsumesActivation() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let previous = calendar.date(byAdding: .day, value: -3, to: now)!
+        let questID = UUID()
+        let unavailableSelections: [DailyFocusSelectionSnapshot]? = nil
+        let replay = makeActivationReplay(
+            quests: [
+                QuestSnapshot(
+                    id: questID,
+                    deadline: now.addingTimeInterval(-day),
+                    completedAt: nil,
+                    importance: .medium
+                ),
+            ],
+            dailyFocusSelections: unavailableSelections,
+            previousLastOpened: previous,
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: true,
+            recoveryLoopVariant: .singleQuest
+        )
+
+        #expect(replay.result.deaths == [questID])
+        #expect(replay.result.recoveryOffer == nil)
+        #expect(replay.newLastOpened == now)
+    }
 }

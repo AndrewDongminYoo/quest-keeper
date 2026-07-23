@@ -32,7 +32,7 @@ nonisolated struct ActivationReplayResult: Equatable, Identifiable {
 nonisolated func makeActivationReplay(
     id: UUID = UUID(),
     quests: [QuestSnapshot],
-    dailyFocusSelections: [DailyFocusSelectionSnapshot],
+    dailyFocusSelections: [DailyFocusSelectionSnapshot]?,
     previousLastOpened: Date?,
     now: Date,
     calendar: Calendar,
@@ -44,6 +44,16 @@ nonisolated func makeActivationReplay(
         now: now,
         previousLastOpened: previousLastOpened
     )
+    guard let dailyFocusSelections else {
+        return (
+            ActivationReplayResult(
+                id: id,
+                deaths: deaths,
+                recoveryOffer: nil
+            ),
+            newLastOpened
+        )
+    }
     let dailyFocusPresentation = DailyFocusState.make(
         enabled: dailyFocusLoopEnabled,
         quests: quests,

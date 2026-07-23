@@ -241,6 +241,20 @@ struct RecoveryStateTests {
         ) == nil)
     }
 
+    @Test("presentation hides recovery after the last stored quest is deleted")
+    func emptyQuestPresentation() {
+        #expect(RecoveryState.presentation(
+            offer: RecoveryActivationOffer(
+                variant: .singleQuest,
+                localDayKey: "2026-07-23"
+            ),
+            quests: [],
+            dailyFocusPresentation: .empty,
+            now: thursday,
+            calendar: calendar
+        ) == nil)
+    }
+
     @Test("single-quest confirmation rejects a candidate that changed before the tap")
     func staleSingleQuestConfirmation() {
         let offer = RecoveryActivationOffer(

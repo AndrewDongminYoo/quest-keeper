@@ -333,17 +333,14 @@ struct QuestKeeperApp: App {
             lastOpenedRaw = newLastOpened.timeIntervalSinceReferenceDate
             return false
         }
-        guard let dailyFocusSelections = try? container.mainContext.fetch(
+        let dailyFocusSelections = try? container.mainContext.fetch(
             FetchDescriptor<DailyFocusSelection>(
                 sortBy: [SortDescriptor(\.recordedAt)]
             )
-        ) else {
-            recoveryOffer = nil
-            return false
-        }
+        )
         let replay = makeActivationReplay(
             quests: quests.map(\.snapshot),
-            dailyFocusSelections: dailyFocusSelections.map(\.snapshot),
+            dailyFocusSelections: dailyFocusSelections?.map(\.snapshot),
             previousLastOpened: previousLastOpened,
             now: now,
             calendar: calendar,
