@@ -224,9 +224,9 @@ struct ContentView: View {
         }
 
         let deaths = activationReplay?.deaths ?? []
+        guard !deaths.isEmpty else { return }
         mourningTask?.cancel()
         withAnimation { pendingDeaths = Set(deaths) }
-        guard !deaths.isEmpty else { return }
         // Play once, then settle — otherwise the mourning frame latches until the next activation.
         mourningTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(GameBalance.mourningDuration))

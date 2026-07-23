@@ -96,7 +96,7 @@ struct QuestKeeperAppTests {
     }
 
     @Test(
-        "activation replay runs only for launch and genuine background return",
+        "recovery derivation runs only for launch and genuine background return",
         arguments: [
             (false, false, true),
             (true, false, false),
@@ -108,7 +108,7 @@ struct QuestKeeperAppTests {
         didBackground: Bool,
         expected: Bool
     ) {
-        #expect(shouldReplayActivation(
+        #expect(shouldDeriveRecoveryOffer(
             hasPerformedActivationReplay: hasPerformedActivationReplay,
             didBackground: didBackground
         ) == expected)

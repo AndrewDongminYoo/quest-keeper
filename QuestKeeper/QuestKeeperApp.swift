@@ -229,13 +229,18 @@ struct QuestKeeperApp: App {
                 } else {
                     container = sharedModelContainer
                 }
-                if shouldReplayActivation(
+                let shouldDeriveRecovery = shouldDeriveRecoveryOffer(
                     hasPerformedActivationReplay: hasPerformedActivationReplay,
                     didBackground: wasBackgrounded
-                ) {
+                )
+                if shouldDeriveRecovery {
                     hasPerformedActivationReplay = true
-                    replayActivation(using: container, at: .now)
                 }
+                replayActivation(
+                    using: container,
+                    at: .now,
+                    shouldDeriveRecovery: shouldDeriveRecovery
+                )
                 if shouldAttemptOnboardingExposure(
                     hasAssignment: onboardingAssignment != nil,
                     hasAttempted: hasAttemptedOnboardingExposure,
@@ -282,26 +287,45 @@ struct QuestKeeperApp: App {
         }
     }
 
-    private func replayActivation(using container: ModelContainer, at now: Date) {
+    private func replayActivation(
+        using container: ModelContainer,
+        at now: Date,
+        shouldDeriveRecovery: Bool
+    ) {
         let previousLastOpened = lastOpenedRaw == 0
             ? nil
             : Date(timeIntervalSinceReferenceDate: lastOpenedRaw)
         let calendar = DailyFocusDay.gregorianCalendar(timeZone: .current)
         guard let quests = try? container.mainContext.fetch(
             FetchDescriptor<Quest>(sortBy: [SortDescriptor(\.deadline)])
-        ),
-        let dailyFocusSelections = try? container.mainContext.fetch(
+        ) else {
+            if shouldDeriveRecovery {
+                recoveryOffer = nil
+            }
+            return
+        }
+        guard shouldDeriveRecovery else {
+            let (deaths, newLastOpened) = reconstructOnActivation(
+                quests: quests.map(\.snapshot),
+                now: now,
+                previousLastOpened: previousLastOpened
+            )
+            if !deaths.isEmpty {
+                activationReplay = ActivationReplayResult(
+                    id: UUID(),
+                    deaths: deaths,
+                    recoveryOffer: recoveryOffer
+                )
+            }
+            lastOpenedRaw = newLastOpened.timeIntervalSinceReferenceDate
+            return
+        }
+        guard let dailyFocusSelections = try? container.mainContext.fetch(
             FetchDescriptor<DailyFocusSelection>(
                 sortBy: [SortDescriptor(\.recordedAt)]
             )
         ) else {
             recoveryOffer = nil
-            activationReplay = ActivationReplayResult(
-                id: UUID(),
-                deaths: [],
-                recoveryOffer: nil
-            )
-            lastOpenedRaw = now.timeIntervalSinceReferenceDate
             return
         }
         let replay = makeActivationReplay(
@@ -359,7 +383,7 @@ nonisolated func shouldReuseContainerOnBackground(
     usesInMemoryStore || uiTestingStoreURL != nil
 }
 
-nonisolated func shouldReplayActivation(
+nonisolated func shouldDeriveRecoveryOffer(
     hasPerformedActivationReplay: Bool,
     didBackground: Bool
 ) -> Bool {
