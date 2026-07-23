@@ -156,10 +156,13 @@ struct RetentionPersistenceTests {
             .appending(path: "QuestKeeper-retry-key-\(UUID().uuidString).store")
         let firstEventID = UUID(uuidString: "00000000-0000-0000-0000-000000000301")!
         let secondEventID = UUID(uuidString: "00000000-0000-0000-0000-000000000302")!
+        let duplicateEventID = UUID(uuidString: "00000000-0000-0000-0000-000000000303")!
         let firstDeadlineBits = startedAt.addingTimeInterval(86_400)
             .timeIntervalSinceReferenceDate.bitPattern
         let secondDeadlineBits = startedAt.addingTimeInterval(172_800)
             .timeIntervalSinceReferenceDate.bitPattern
+        let firstLegacyKey = "quest_retried:\(installationID):\(questID):\(firstDeadlineBits)"
+        let secondLegacyKey = "quest_retried:\(installationID):\(questID):\(secondDeadlineBits)"
 
         do {
             let legacy = try measurementContainer(storeURL: storeURL)
@@ -174,7 +177,7 @@ struct RetentionPersistenceTests {
                 occurredAt: startedAt,
                 source: .app,
                 questID: questID,
-                deduplicationKey: "quest_retried:\(installationID):\(questID):\(firstDeadlineBits)"
+                deduplicationKey: firstLegacyKey
             ))
             legacy.mainContext.insert(RetentionEvent(
                 id: secondEventID,
@@ -183,7 +186,16 @@ struct RetentionPersistenceTests {
                 occurredAt: startedAt.addingTimeInterval(86_400),
                 source: .app,
                 questID: questID,
-                deduplicationKey: "quest_retried:\(installationID):\(questID):\(secondDeadlineBits)"
+                deduplicationKey: secondLegacyKey
+            ))
+            legacy.mainContext.insert(RetentionEvent(
+                id: duplicateEventID,
+                name: .questRetried,
+                installationID: installationID,
+                occurredAt: startedAt.addingTimeInterval(1),
+                source: .app,
+                questID: questID,
+                deduplicationKey: firstLegacyKey
             ))
             try legacy.mainContext.save()
         }
@@ -191,10 +203,37 @@ struct RetentionPersistenceTests {
         let upgraded = try QuestModelContainer.make(storeURL: storeURL)
         let events = try upgraded.mainContext.fetch(FetchDescriptor<RetentionEvent>())
 
-        #expect(Set(events.map(\.deduplicationKey)) == [
-            "quest_retried:\(installationID):\(questID):\(firstEventID)",
-            "quest_retried:\(installationID):\(questID):\(secondEventID)",
-        ])
+        let keysByID = Dictionary(uniqueKeysWithValues: events.map { ($0.id, $0.deduplicationKey) })
+        #expect(keysByID[firstEventID] == keysByID[duplicateEventID])
+        #expect(keysByID[firstEventID] == "quest_retried:\(installationID):\(questID):\(firstEventID)")
+        #expect(keysByID[secondEventID] == "quest_retried:\(installationID):\(questID):\(secondEventID)")
+        #expect(FileManager.default.fileExists(
+            atPath: storeURL.appendingPathExtension(
+                RetentionRetryKeyMigrationMarkerStore.fileExtension
+            ).path
+        ))
+    }
+
+    @Test("retry-key cleanup failure does not block opening the shared store")
+    func retryKeyCleanupFailureDoesNotBlockStore() throws {
+        let storeURL = FileManager.default.temporaryDirectory
+            .appending(path: "QuestKeeper-retry-key-failure-\(UUID().uuidString).store")
+
+        do {
+            let legacy = try measurementContainer(storeURL: storeURL)
+            legacy.mainContext.insert(RetentionInstallation(
+                installationID: installationID,
+                measurementStartedAt: startedAt
+            ))
+            try legacy.mainContext.save()
+        }
+
+        let opened = try QuestModelContainer.make(
+            storeURL: storeURL,
+            retryKeyMigrationMarkerURL: URL(filePath: "/dev/null/retry-key-migration")
+        )
+
+        #expect(try opened.mainContext.fetch(FetchDescriptor<RetentionInstallation>()).count == 1)
     }
 
     private func measurementContainer() throws -> ModelContainer {

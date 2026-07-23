@@ -51,6 +51,24 @@ nonisolated enum RetentionRecordResult: Equatable, Sendable {
     case failed
 }
 
+nonisolated struct RetentionRetryKeyMigrationMarkerStore: Sendable {
+    static let fileExtension = "retry-key-migration-v1"
+
+    let fileURL: URL
+
+    var isCompleted: Bool {
+        FileManager.default.fileExists(atPath: fileURL.path)
+    }
+
+    func markCompleted() throws {
+        try FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data().write(to: fileURL, options: .atomic)
+    }
+}
+
 nonisolated enum RetentionEventRecorder {
     private static let logger = Logger(
         subsystem: "kr.donminzzi.QuestKeeper",
@@ -119,30 +137,54 @@ nonisolated enum RetentionEventRecorder {
         )
     }
 
-    static func normalizeLegacyQuestRetryDeduplicationKeys(
-        in context: ModelContext
-    ) throws {
-        let retryName = RetentionEventName.questRetried.rawValue
-        let descriptor = FetchDescriptor<RetentionEvent>(
-            predicate: #Predicate { $0.nameRawValue == retryName }
-        )
-        var changed = false
+    static func normalizeLegacyQuestRetryDeduplicationKeysIfNeeded(
+        in context: ModelContext,
+        markerStore: RetentionRetryKeyMigrationMarkerStore
+    ) {
+        guard !markerStore.isCompleted else { return }
 
-        for event in try context.fetch(descriptor) {
-            let questComponent = event.questID?.uuidString ?? "missing-quest"
-            let prefix = "\(retryName):\(event.installationID.uuidString):\(questComponent):"
-            let component = event.deduplicationKey.hasPrefix(prefix)
-                ? String(event.deduplicationKey.dropFirst(prefix.count))
-                : ""
-            guard UUID(uuidString: component) == nil else { continue }
+        do {
+            let retryName = RetentionEventName.questRetried.rawValue
+            let descriptor = FetchDescriptor<RetentionEvent>(
+                predicate: #Predicate { $0.nameRawValue == retryName }
+            )
+            let events = try context.fetch(descriptor)
+            let legacyGroups = Dictionary(grouping: events.filter {
+                retryAttemptID(in: $0, retryName: retryName) == nil
+            }, by: \.deduplicationKey)
 
-            event.deduplicationKey = "\(prefix)\(event.id.uuidString)"
-            changed = true
+            for rows in legacyGroups.values {
+                guard let replacementID = rows.map(\.id.uuidString).min() else { continue }
+                for event in rows {
+                    let questComponent = event.questID?.uuidString ?? "missing-quest"
+                    event.deduplicationKey = [
+                        retryName,
+                        event.installationID.uuidString,
+                        questComponent,
+                        replacementID,
+                    ].joined(separator: ":")
+                }
+            }
+
+            if !legacyGroups.isEmpty {
+                try context.save()
+            }
+            try markerStore.markCompleted()
+        } catch {
+            logger.error(
+                "Failed to normalize legacy retry keys: \(String(describing: error), privacy: .public)"
+            )
         }
+    }
 
-        if changed {
-            try context.save()
-        }
+    private static func retryAttemptID(
+        in event: RetentionEvent,
+        retryName: String
+    ) -> UUID? {
+        let questComponent = event.questID?.uuidString ?? "missing-quest"
+        let prefix = "\(retryName):\(event.installationID.uuidString):\(questComponent):"
+        guard event.deduplicationKey.hasPrefix(prefix) else { return nil }
+        return UUID(uuidString: String(event.deduplicationKey.dropFirst(prefix.count)))
     }
 
     static func recordExperimentExposed(

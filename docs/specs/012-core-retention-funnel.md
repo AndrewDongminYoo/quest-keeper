@@ -127,6 +127,9 @@ Owner: the app retry-tomorrow mutation.
 
 Required fields: installation ID, occurrence time, app source, quest UUID, and a key derived from installation ID plus quest UUID plus an opaque UUID created once for that retry attempt.
 
+On the first shared-store open after this key format ships, legacy rows with the same deadline-bearing key must receive the same opaque replacement key.
+The cleanup is best effort, must not block app or widget behavior, and writes its completion marker only after the normalized rows persist so later container opens do not rescan retry history.
+
 Do not emit for an edit that merely changes a deadline.
 This event describes a recovery branch and is not a required step in the core funnel.
 
