@@ -22,3 +22,60 @@ nonisolated func reconstructOnActivation(
     let state = HeroDerivation.state(quests: quests, now: now, lastOpened: previous)
     return (state.deathsWhileAway, now)
 }
+
+nonisolated struct ActivationReplayResult: Equatable, Identifiable {
+    let id: UUID
+    let deaths: [UUID]
+    let recoveryOffer: RecoveryActivationOffer?
+}
+
+nonisolated func makeActivationReplay(
+    id: UUID = UUID(),
+    quests: [QuestSnapshot],
+    dailyFocusSelections: [DailyFocusSelectionSnapshot]?,
+    previousLastOpened: Date?,
+    now: Date,
+    calendar: Calendar,
+    dailyFocusLoopEnabled: Bool,
+    recoveryLoopVariant: RecoveryLoopVariant?
+) -> (result: ActivationReplayResult, newLastOpened: Date) {
+    let (deaths, newLastOpened) = reconstructOnActivation(
+        quests: quests,
+        now: now,
+        previousLastOpened: previousLastOpened
+    )
+    guard let dailyFocusSelections else {
+        return (
+            ActivationReplayResult(
+                id: id,
+                deaths: deaths,
+                recoveryOffer: nil
+            ),
+            newLastOpened
+        )
+    }
+    let dailyFocusPresentation = DailyFocusState.make(
+        enabled: dailyFocusLoopEnabled,
+        quests: quests,
+        selections: dailyFocusSelections,
+        now: now,
+        calendar: calendar
+    )
+    let recoveryOffer = RecoveryState.offer(
+        previousLastOpened: previousLastOpened,
+        now: now,
+        calendar: calendar,
+        deathsWhileAway: deaths,
+        hasStoredQuests: !quests.isEmpty,
+        dailyFocusPresentation: dailyFocusPresentation,
+        variant: recoveryLoopVariant
+    )
+    return (
+        ActivationReplayResult(
+            id: id,
+            deaths: deaths,
+            recoveryOffer: recoveryOffer
+        ),
+        newLastOpened
+    )
+}

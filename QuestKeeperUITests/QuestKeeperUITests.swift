@@ -292,4 +292,5 @@ final class QuestKeeperUITests: XCTestCase {
         let start = questTitle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: 180, dy: 0)))
     }
+
 }

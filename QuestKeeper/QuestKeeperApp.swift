@@ -18,6 +18,10 @@ struct QuestKeeperApp: App {
     /// True once we've actually been backgrounded — gates the container swap so a mere Control
     /// Center / notification-banner peek (`.inactive` → `.active`, never `.background`) doesn't refresh.
     @State private var didBackground = false
+    @State private var hasPerformedActivationReplay = false
+    @State private var activationReplay: ActivationReplayResult?
+    @State private var recoveryOffer: RecoveryActivationOffer?
+    @AppStorage("lastOpenedTIRD") private var lastOpenedRaw: Double = 0
     @State private var hasRecordedRetentionActivation = false
     @State private var retentionActivationSessionID = UUID()
     @State private var hasDeferredOnboardingThisRun = false
@@ -32,6 +36,7 @@ struct QuestKeeperApp: App {
     private let usesInMemoryStore: Bool
     private let uiTestingStoreURL: URL?
     private let isDailyFocusLoopEnabled: Bool
+    private let recoveryLoopVariant: RecoveryLoopVariant?
 
     init() {
 #if DEBUG
@@ -64,9 +69,15 @@ struct QuestKeeperApp: App {
         self.usesInMemoryStore = usesInMemoryStore
         self.uiTestingStoreURL = uiTestingStoreURL
 #if DEBUG
-        isDailyFocusLoopEnabled = dailyFocusLoopEnabled(arguments: ProcessInfo.processInfo.arguments)
+        let dailyFocusEnabled = dailyFocusLoopEnabled(arguments: arguments)
+        isDailyFocusLoopEnabled = dailyFocusEnabled
+        recoveryLoopVariant = QuestKeeper.recoveryLoopVariant(
+            arguments: arguments,
+            dailyFocusLoopEnabled: dailyFocusEnabled
+        )
 #else
         isDailyFocusLoopEnabled = false
+        recoveryLoopVariant = nil
 #endif
         UNUserNotificationCenter.current().delegate = delegate
         do {
@@ -86,6 +97,52 @@ struct QuestKeeperApp: App {
                     deadline: Date.now.addingTimeInterval(-60),
                     importance: .medium
                 ))
+                try container.mainContext.save()
+            }
+            if shouldSeedRecoveryFixture(
+                usesUITestingStore: usesUITestingStore,
+                arguments: arguments
+            ),
+               try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
+                let now = Date.now
+                if !arguments.contains("-uiTestingRecoveryPersistenceFailure") {
+                    container.mainContext.insert(RetentionInstallation(
+                        installationID: UUID(
+                            uuidString: "00000000-0000-0000-0000-000000000001"
+                        )!,
+                        measurementStartedAt: now.addingTimeInterval(-4 * 86_400)
+                    ))
+                }
+                if arguments.contains("-uiTestingRecoveryNoPending") {
+                    container.mainContext.insert(Quest(
+                        title: "남겨둔 퀘스트",
+                        deadline: now.addingTimeInterval(-60),
+                        importance: .medium
+                    ))
+                } else {
+                    container.mainContext.insert(Quest(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
+                        title: "회복 퀘스트 1",
+                        deadline: now.addingTimeInterval(600),
+                        importance: .high
+                    ))
+                    container.mainContext.insert(Quest(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
+                        title: "회복 퀘스트 2",
+                        deadline: now.addingTimeInterval(1_200),
+                        importance: .medium
+                    ))
+                }
+                container.mainContext.insert(Quest(
+                    title: "지켜낸 승리",
+                    deadline: now.addingTimeInterval(-86_400),
+                    importance: .low,
+                    completedAt: now.addingTimeInterval(-86_460)
+                ))
+                UserDefaults.standard.set(
+                    now.addingTimeInterval(-3 * 86_400).timeIntervalSinceReferenceDate,
+                    forKey: "lastOpenedTIRD"
+                )
                 try container.mainContext.save()
             }
 #endif
@@ -135,6 +192,8 @@ struct QuestKeeperApp: App {
                 onboardingAssignment: onboardingAssignment,
                 onboardingMeasurementAvailable: onboardingMeasurementAvailable,
                 hasDeferredOnboardingThisRun: $hasDeferredOnboardingThisRun,
+                recoveryOffer: $recoveryOffer,
+                activationReplay: activationReplay,
                 onboardingSessionID: onboardingSessionID,
                 dailyFocusLoopEnabled: isDailyFocusLoopEnabled
             )
@@ -154,12 +213,14 @@ struct QuestKeeperApp: App {
                 // Control Center peek — so we don't needlessly refresh or tear down an open editor.
                 let wasBackgrounded = didBackground
                 let container: ModelContainer
+                let canReplayActivation: Bool
                 if didBackground, shouldReuseContainerOnBackground(
                     usesInMemoryStore: usesInMemoryStore,
                     uiTestingStoreURL: uiTestingStoreURL
                 ) {
                     didBackground = false
                     container = sharedModelContainer
+                    canReplayActivation = true
                 } else if didBackground,
                           let refreshed = try? QuestModelContainer.make(
                               isStoredInMemoryOnly: usesInMemoryStore
@@ -167,8 +228,31 @@ struct QuestKeeperApp: App {
                     didBackground = false
                     sharedModelContainer = refreshed
                     container = refreshed
+                    canReplayActivation = true
                 } else {
                     container = sharedModelContainer
+                    canReplayActivation = shouldReplayActivation(
+                        wasBackgrounded: didBackground,
+                        hasFreshContainer: false
+                    )
+                }
+                let shouldDeriveRecovery = shouldDeriveRecoveryOffer(
+                    hasRecoveryVariant: recoveryLoopVariant != nil,
+                    hasPerformedActivationReplay: hasPerformedActivationReplay,
+                    didBackground: wasBackgrounded
+                )
+                let didDeriveRecovery = canReplayActivation
+                    ? replayActivation(
+                        using: container,
+                        at: .now,
+                        shouldDeriveRecovery: shouldDeriveRecovery
+                    )
+                    : false
+                if !canReplayActivation {
+                    recoveryOffer = nil
+                }
+                if shouldDeriveRecovery {
+                    hasPerformedActivationReplay = didDeriveRecovery
                 }
                 if shouldAttemptOnboardingExposure(
                     hasAssignment: onboardingAssignment != nil,
@@ -201,7 +285,7 @@ struct QuestKeeperApp: App {
     }
 
     /// Reconcile notifications and rewrite the widget snapshot from the *current* (freshly swapped)
-    /// container. This runs here — not in `ContentView.onBecameActive` — because a warm foreground's
+    /// container. This runs here — not in `ContentView` — because a warm foreground's
     /// `@Query` is stale, and opening a second container for the same store to read fresh would trap
     /// in SwiftData. Using the one live container avoids both the staleness and the trap.
     private func syncActivation(using container: ModelContainer) {
@@ -214,6 +298,59 @@ struct QuestKeeperApp: App {
             _ = await notificationService.reconcile(quests: quests, now: .now)
             await writer.submit(WidgetDungeonPayload.make(from: quests))
         }
+    }
+
+    private func replayActivation(
+        using container: ModelContainer,
+        at now: Date,
+        shouldDeriveRecovery: Bool
+    ) -> Bool {
+        let previousLastOpened = lastOpenedRaw == 0
+            ? nil
+            : Date(timeIntervalSinceReferenceDate: lastOpenedRaw)
+        let calendar = DailyFocusDay.gregorianCalendar(timeZone: .current)
+        guard let quests = try? container.mainContext.fetch(
+            FetchDescriptor<Quest>(sortBy: [SortDescriptor(\.deadline)])
+        ) else {
+            if shouldDeriveRecovery {
+                recoveryOffer = nil
+            }
+            return false
+        }
+        guard shouldDeriveRecovery else {
+            let (deaths, newLastOpened) = reconstructOnActivation(
+                quests: quests.map(\.snapshot),
+                now: now,
+                previousLastOpened: previousLastOpened
+            )
+            if !deaths.isEmpty {
+                activationReplay = ActivationReplayResult(
+                    id: UUID(),
+                    deaths: deaths,
+                    recoveryOffer: recoveryOffer
+                )
+            }
+            lastOpenedRaw = newLastOpened.timeIntervalSinceReferenceDate
+            return false
+        }
+        let dailyFocusSelections = try? container.mainContext.fetch(
+            FetchDescriptor<DailyFocusSelection>(
+                sortBy: [SortDescriptor(\.recordedAt)]
+            )
+        )
+        let replay = makeActivationReplay(
+            quests: quests.map(\.snapshot),
+            dailyFocusSelections: dailyFocusSelections?.map(\.snapshot),
+            previousLastOpened: previousLastOpened,
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: isDailyFocusLoopEnabled,
+            recoveryLoopVariant: recoveryLoopVariant
+        )
+        recoveryOffer = replay.result.recoveryOffer
+        activationReplay = replay.result
+        lastOpenedRaw = replay.newLastOpened.timeIntervalSinceReferenceDate
+        return true
     }
 }
 
@@ -238,6 +375,18 @@ nonisolated func dailyFocusLoopEnabled(arguments: [String]) -> Bool {
     arguments.contains("-dailyFocusLoopEnabled")
 }
 
+nonisolated func recoveryLoopVariant(
+    arguments: [String],
+    dailyFocusLoopEnabled: Bool
+) -> RecoveryLoopVariant? {
+    guard dailyFocusLoopEnabled,
+          let index = arguments.firstIndex(of: "-recoveryLoopVariant"),
+          arguments.indices.contains(index + 1) else {
+        return nil
+    }
+    return RecoveryLoopVariant(rawValue: arguments[index + 1])
+}
+
 nonisolated func shouldReuseContainerOnBackground(
     usesInMemoryStore: Bool,
     uiTestingStoreURL: URL?
@@ -245,11 +394,33 @@ nonisolated func shouldReuseContainerOnBackground(
     usesInMemoryStore || uiTestingStoreURL != nil
 }
 
+nonisolated func shouldReplayActivation(
+    wasBackgrounded: Bool,
+    hasFreshContainer: Bool
+) -> Bool {
+    !wasBackgrounded || hasFreshContainer
+}
+
+nonisolated func shouldDeriveRecoveryOffer(
+    hasRecoveryVariant: Bool,
+    hasPerformedActivationReplay: Bool,
+    didBackground: Bool
+) -> Bool {
+    hasRecoveryVariant && (!hasPerformedActivationReplay || didBackground)
+}
+
 nonisolated func shouldSeedDailyFocusGraveFixture(
     usesUITestingStore: Bool,
     arguments: [String]
 ) -> Bool {
     usesUITestingStore && arguments.contains("-uiTestingDailyFocusGrave")
+}
+
+nonisolated func shouldSeedRecoveryFixture(
+    usesUITestingStore: Bool,
+    arguments: [String]
+) -> Bool {
+    usesUITestingStore && arguments.contains("-uiTestingRecoveryFixture")
 }
 
 #if DEBUG

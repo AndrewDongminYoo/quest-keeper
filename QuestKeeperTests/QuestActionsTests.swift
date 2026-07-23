@@ -122,4 +122,75 @@ struct QuestActionsTests {
         let second = reconstructOnActivation(quests: quests, now: now, previousLastOpened: first.newLastOpened)
         #expect(second.deaths.isEmpty)
     }
+
+    @Test("advanced activation clock cannot recreate the same recovery offer")
+    func recoveryOfferUsesPreviousActivationOnce() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let previous = calendar.date(byAdding: .day, value: -3, to: now)!
+        let questID = UUID()
+        let quests = [
+            QuestSnapshot(
+                id: questID,
+                deadline: now.addingTimeInterval(600),
+                completedAt: nil,
+                importance: .medium
+            ),
+        ]
+        let first = reconstructOnActivation(
+            quests: quests,
+            now: now,
+            previousLastOpened: previous
+        )
+        let firstOffer = RecoveryState.offer(
+            previousLastOpened: previous,
+            now: now,
+            calendar: calendar,
+            deathsWhileAway: first.deaths,
+            hasStoredQuests: true,
+            dailyFocusPresentation: .recommended([questID]),
+            variant: .singleQuest
+        )
+        let secondOffer = RecoveryState.offer(
+            previousLastOpened: first.newLastOpened,
+            now: now,
+            calendar: calendar,
+            deathsWhileAway: [],
+            hasStoredQuests: true,
+            dailyFocusPresentation: .recommended([questID]),
+            variant: .singleQuest
+        )
+
+        #expect(firstOffer != nil)
+        #expect(secondOffer == nil)
+    }
+
+    @Test("unavailable focus input consumes activation without offering recovery")
+    func unavailableFocusConsumesActivation() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let previous = calendar.date(byAdding: .day, value: -3, to: now)!
+        let questID = UUID()
+        let unavailableSelections: [DailyFocusSelectionSnapshot]? = nil
+        let replay = makeActivationReplay(
+            quests: [
+                QuestSnapshot(
+                    id: questID,
+                    deadline: now.addingTimeInterval(-day),
+                    completedAt: nil,
+                    importance: .medium
+                ),
+            ],
+            dailyFocusSelections: unavailableSelections,
+            previousLastOpened: previous,
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: true,
+            recoveryLoopVariant: .singleQuest
+        )
+
+        #expect(replay.result.deaths == [questID])
+        #expect(replay.result.recoveryOffer == nil)
+        #expect(replay.newLastOpened == now)
+    }
 }

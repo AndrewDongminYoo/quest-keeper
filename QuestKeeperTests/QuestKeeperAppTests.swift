@@ -49,6 +49,132 @@ struct QuestKeeperAppTests {
         #expect(dailyFocusLoopEnabled(arguments: arguments) == expected)
     }
 
+    @Test(
+        "recovery variant requires daily focus and an exact supported value",
+        arguments: [
+            (
+                ["QuestKeeper", "-dailyFocusLoopEnabled", "-recoveryLoopVariant", "singleQuest"],
+                true,
+                RecoveryLoopVariant.singleQuest
+            ),
+            (
+                ["QuestKeeper", "-dailyFocusLoopEnabled", "-recoveryLoopVariant", "chooseToday"],
+                true,
+                RecoveryLoopVariant.chooseToday
+            ),
+            (["QuestKeeper", "-recoveryLoopVariant", "singleQuest"], false, nil),
+            (
+                ["QuestKeeper", "-dailyFocusLoopEnabled", "-recoveryLoopVariant", "unknown"],
+                true,
+                nil
+            ),
+            (["QuestKeeper", "-dailyFocusLoopEnabled", "-recoveryLoopVariant"], true, nil),
+        ]
+    )
+    func recoveryVariantGate(
+        arguments: [String],
+        dailyFocusEnabled: Bool,
+        expected: RecoveryLoopVariant?
+    ) {
+        #expect(recoveryLoopVariant(
+            arguments: arguments,
+            dailyFocusLoopEnabled: dailyFocusEnabled
+        ) == expected)
+    }
+
+    @Test("recovery fixtures require an isolated UI test store")
+    func recoveryFixtureIsolation() {
+        let arguments = ["QuestKeeper", "-uiTestingRecoveryFixture"]
+        #expect(shouldSeedRecoveryFixture(
+            usesUITestingStore: true,
+            arguments: arguments
+        ))
+        #expect(!shouldSeedRecoveryFixture(
+            usesUITestingStore: false,
+            arguments: arguments
+        ))
+    }
+
+    @Test(
+        "recovery derivation runs only for launch and genuine background return",
+        arguments: [
+            (true, false, false, true),
+            (true, true, false, false),
+            (true, true, true, true),
+            (false, false, false, false),
+            (false, true, true, false),
+        ]
+    )
+    func activationReplayGate(
+        hasRecoveryVariant: Bool,
+        hasPerformedActivationReplay: Bool,
+        didBackground: Bool,
+        expected: Bool
+    ) {
+        #expect(shouldDeriveRecoveryOffer(
+            hasRecoveryVariant: hasRecoveryVariant,
+            hasPerformedActivationReplay: hasPerformedActivationReplay,
+            didBackground: didBackground
+        ) == expected)
+    }
+
+    @Test("activation replay derives recovery from refreshed completion facts")
+    func recoveryUsesRefreshedFacts() {
+        let now = Date(timeIntervalSinceReferenceDate: 806_000_000)
+        let previous = now.addingTimeInterval(-86_400)
+        let calendar = DailyFocusDay.gregorianCalendar(
+            timeZone: TimeZone(identifier: "Asia/Seoul")!
+        )
+        let firstID = UUID()
+        let secondID = UUID()
+        let staleQuests = [
+            QuestSnapshot(
+                id: firstID,
+                deadline: now.addingTimeInterval(-3_600),
+                completedAt: nil,
+                importance: .medium
+            ),
+            QuestSnapshot(
+                id: secondID,
+                deadline: now.addingTimeInterval(-1_800),
+                completedAt: nil,
+                importance: .medium
+            ),
+        ]
+        let refreshedQuests = staleQuests.map {
+            QuestSnapshot(
+                id: $0.id,
+                deadline: $0.deadline,
+                completedAt: $0.deadline.addingTimeInterval(-60),
+                importance: $0.importance
+            )
+        }
+
+        let stale = makeActivationReplay(
+            quests: staleQuests,
+            dailyFocusSelections: [],
+            previousLastOpened: previous,
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: true,
+            recoveryLoopVariant: .singleQuest
+        )
+        let refreshed = makeActivationReplay(
+            quests: refreshedQuests,
+            dailyFocusSelections: [],
+            previousLastOpened: previous,
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: true,
+            recoveryLoopVariant: .singleQuest
+        )
+
+        #expect(stale.result.deaths.count == 2)
+        #expect(stale.result.recoveryOffer != nil)
+        #expect(refreshed.result.deaths.isEmpty)
+        #expect(refreshed.result.recoveryOffer == nil)
+    }
+
 #if DEBUG
     @Test("UI test store URL requires an explicit path argument")
     func uiTestStoreURL() {
@@ -73,6 +199,22 @@ struct QuestKeeperAppTests {
         #expect(!shouldReuseContainerOnBackground(
             usesInMemoryStore: false,
             uiTestingStoreURL: nil
+        ))
+    }
+
+    @Test("background replay waits when a fresh production container is unavailable")
+    func backgroundReplayFreshnessBoundary() {
+        #expect(shouldReplayActivation(
+            wasBackgrounded: false,
+            hasFreshContainer: false
+        ))
+        #expect(!shouldReplayActivation(
+            wasBackgrounded: true,
+            hasFreshContainer: false
+        ))
+        #expect(shouldReplayActivation(
+            wasBackgrounded: true,
+            hasFreshContainer: true
         ))
     }
 

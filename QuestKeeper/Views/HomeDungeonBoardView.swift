@@ -11,11 +11,16 @@ struct HomeDungeonBoardView: View {
     let showsNotificationPermissionBanner: Bool
     let onboardingPresentation: OnboardingFlowPresentation
     let dailyFocusPresentation: DailyFocusPresentationState
+    let recoveryPresentation: RecoveryCardPresentation?
     let onCreate: () -> Void
     let onStartGuidedQuest: () -> Void
     let onDeferOnboarding: () -> Void
     let onConfirmDailyFocus: ([UUID]) -> Void
     let onEditDailyFocus: ([UUID], DailyFocusSelectionKind) -> Void
+    let onConfirmRecoveryQuest: (UUID) -> Bool
+    let onChooseRecoveryFocus: () -> Void
+    let onCreateRecoveryQuest: () -> Void
+    let onDismissRecovery: () -> Void
     let onOpenNotificationSettings: () -> Void
     let onComplete: (Quest, Date) -> Void
     let onRetryTomorrow: (Quest) -> Void
@@ -31,6 +36,17 @@ struct HomeDungeonBoardView: View {
                     if showsNotificationPermissionBanner {
                         NotificationPermissionBanner(onOpenSettings: onOpenNotificationSettings)
                     }
+                    if let recoveryPresentation {
+                        RecoveryCardView(
+                            presentation: recoveryPresentation,
+                            quest: recoveryQuest(for: recoveryPresentation),
+                            now: now,
+                            onConfirmSingleQuest: onConfirmRecoveryQuest,
+                            onChooseToday: onChooseRecoveryFocus,
+                            onCreateQuest: onCreateRecoveryQuest,
+                            onDismiss: onDismissRecovery
+                        )
+                    }
                     if onboardingPresentation == .guidedOffer {
                         GuidedOnboardingCard(
                             onStartGuidedQuest: onStartGuidedQuest,
@@ -40,7 +56,8 @@ struct HomeDungeonBoardView: View {
                     } else if pending.isEmpty && dailyGraves.isEmpty && !dailyFocusPresentation.isConfirmed {
                         EmptyDungeonState(onCreate: onCreate)
                     } else {
-                        if case let .recommended(questIDs) = dailyFocusPresentation {
+                        if recoveryPresentation == nil,
+                           case let .recommended(questIDs) = dailyFocusPresentation {
                             DailyFocusRecommendationCard(
                                 quests: quests(for: questIDs),
                                 onEdit: {
@@ -85,6 +102,13 @@ struct HomeDungeonBoardView: View {
     private func quests(for questIDs: [UUID]) -> [Quest] {
         let questsByID = Dictionary(uniqueKeysWithValues: allQuests.map { ($0.id, $0) })
         return questIDs.compactMap { questsByID[$0] }
+    }
+
+    private func recoveryQuest(
+        for presentation: RecoveryCardPresentation
+    ) -> Quest? {
+        guard case let .singleQuest(questID) = presentation else { return nil }
+        return allQuests.first { $0.id == questID }
     }
 }
 
