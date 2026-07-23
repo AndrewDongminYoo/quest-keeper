@@ -132,31 +132,25 @@ struct RetentionEventRecorderTests {
         #expect(events.map(\.snapshot).allSatisfy { $0.name == .questCompleted })
     }
 
-    @Test("retry identity includes the effective new deadline")
+    @Test("retry identity contains only the quest identifier")
     func retryCanonicalIdentity() throws {
         let container = try measurementContainer()
         let context = container.mainContext
-        let firstDeadline = now.addingTimeInterval(86_400)
-        let secondDeadline = firstDeadline.addingTimeInterval(86_400)
+        context.insert(RetentionInstallation(installationID: installationID, measurementStartedAt: now))
 
         #expect(RetentionEventRecorder.recordQuestRetried(
             questID: questID,
-            newDeadline: firstDeadline,
             at: now,
             in: context
         ) == .inserted)
         #expect(RetentionEventRecorder.recordQuestRetried(
             questID: questID,
-            newDeadline: firstDeadline,
             at: now.addingTimeInterval(1),
             in: context
         ) == .duplicate)
-        #expect(RetentionEventRecorder.recordQuestRetried(
-            questID: questID,
-            newDeadline: secondDeadline,
-            at: now.addingTimeInterval(1),
-            in: context
-        ) == .inserted)
+
+        let event = try #require(context.fetch(FetchDescriptor<RetentionEvent>()).first)
+        #expect(event.deduplicationKey == "quest_retried:\(installationID):\(questID)")
     }
 
     private func measurementContainer() throws -> ModelContainer {

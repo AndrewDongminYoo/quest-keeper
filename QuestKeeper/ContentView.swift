@@ -284,7 +284,6 @@ struct ContentView: View {
         QuestActions.retryTomorrow(quest, now: now)
         _ = RetentionEventRecorder.recordQuestRetried(
             questID: quest.id,
-            newDeadline: quest.deadline,
             at: now,
             in: modelContext
         )

@@ -105,7 +105,6 @@ nonisolated enum RetentionEventRecorder {
 
     static func recordQuestRetried(
         questID: UUID,
-        newDeadline: Date,
         at occurredAt: Date,
         in context: ModelContext
     ) -> RetentionRecordResult {
@@ -114,7 +113,7 @@ nonisolated enum RetentionEventRecorder {
             source: .app,
             occurredAt: occurredAt,
             questID: questID,
-            keyComponent: "\(questID.uuidString):\(newDeadline.timeIntervalSinceReferenceDate.bitPattern)",
+            keyComponent: questID.uuidString,
             in: context
         )
     }
