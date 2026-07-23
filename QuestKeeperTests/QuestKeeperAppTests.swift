@@ -49,6 +49,52 @@ struct QuestKeeperAppTests {
         #expect(dailyFocusLoopEnabled(arguments: arguments) == expected)
     }
 
+    @Test(
+        "recovery variant requires daily focus and an exact supported value",
+        arguments: [
+            (
+                ["QuestKeeper", "-dailyFocusLoopEnabled", "-recoveryLoopVariant", "singleQuest"],
+                true,
+                RecoveryLoopVariant.singleQuest
+            ),
+            (
+                ["QuestKeeper", "-dailyFocusLoopEnabled", "-recoveryLoopVariant", "chooseToday"],
+                true,
+                RecoveryLoopVariant.chooseToday
+            ),
+            (["QuestKeeper", "-recoveryLoopVariant", "singleQuest"], false, nil),
+            (
+                ["QuestKeeper", "-dailyFocusLoopEnabled", "-recoveryLoopVariant", "unknown"],
+                true,
+                nil
+            ),
+            (["QuestKeeper", "-dailyFocusLoopEnabled", "-recoveryLoopVariant"], true, nil),
+        ]
+    )
+    func recoveryVariantGate(
+        arguments: [String],
+        dailyFocusEnabled: Bool,
+        expected: RecoveryLoopVariant?
+    ) {
+        #expect(recoveryLoopVariant(
+            arguments: arguments,
+            dailyFocusLoopEnabled: dailyFocusEnabled
+        ) == expected)
+    }
+
+    @Test("recovery fixtures require an isolated UI test store")
+    func recoveryFixtureIsolation() {
+        let arguments = ["QuestKeeper", "-uiTestingRecoveryFixture"]
+        #expect(shouldSeedRecoveryFixture(
+            usesUITestingStore: true,
+            arguments: arguments
+        ))
+        #expect(!shouldSeedRecoveryFixture(
+            usesUITestingStore: false,
+            arguments: arguments
+        ))
+    }
+
 #if DEBUG
     @Test("UI test store URL requires an explicit path argument")
     func uiTestStoreURL() {

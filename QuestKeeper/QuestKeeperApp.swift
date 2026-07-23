@@ -32,6 +32,7 @@ struct QuestKeeperApp: App {
     private let usesInMemoryStore: Bool
     private let uiTestingStoreURL: URL?
     private let isDailyFocusLoopEnabled: Bool
+    private let recoveryLoopVariant: RecoveryLoopVariant?
 
     init() {
 #if DEBUG
@@ -64,9 +65,15 @@ struct QuestKeeperApp: App {
         self.usesInMemoryStore = usesInMemoryStore
         self.uiTestingStoreURL = uiTestingStoreURL
 #if DEBUG
-        isDailyFocusLoopEnabled = dailyFocusLoopEnabled(arguments: ProcessInfo.processInfo.arguments)
+        let dailyFocusEnabled = dailyFocusLoopEnabled(arguments: arguments)
+        isDailyFocusLoopEnabled = dailyFocusEnabled
+        recoveryLoopVariant = QuestKeeper.recoveryLoopVariant(
+            arguments: arguments,
+            dailyFocusLoopEnabled: dailyFocusEnabled
+        )
 #else
         isDailyFocusLoopEnabled = false
+        recoveryLoopVariant = nil
 #endif
         UNUserNotificationCenter.current().delegate = delegate
         do {
@@ -86,6 +93,44 @@ struct QuestKeeperApp: App {
                     deadline: Date.now.addingTimeInterval(-60),
                     importance: .medium
                 ))
+                try container.mainContext.save()
+            }
+            if shouldSeedRecoveryFixture(
+                usesUITestingStore: usesUITestingStore,
+                arguments: arguments
+            ),
+               try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
+                let now = Date.now
+                if !arguments.contains("-uiTestingRecoveryPersistenceFailure") {
+                    container.mainContext.insert(RetentionInstallation(
+                        installationID: UUID(
+                            uuidString: "00000000-0000-0000-0000-000000000001"
+                        )!,
+                        measurementStartedAt: now.addingTimeInterval(-4 * 86_400)
+                    ))
+                }
+                container.mainContext.insert(Quest(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
+                    title: "회복 퀘스트 1",
+                    deadline: now.addingTimeInterval(600),
+                    importance: .high
+                ))
+                container.mainContext.insert(Quest(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
+                    title: "회복 퀘스트 2",
+                    deadline: now.addingTimeInterval(1_200),
+                    importance: .medium
+                ))
+                container.mainContext.insert(Quest(
+                    title: "지켜낸 승리",
+                    deadline: now.addingTimeInterval(-86_400),
+                    importance: .low,
+                    completedAt: now.addingTimeInterval(-86_460)
+                ))
+                UserDefaults.standard.set(
+                    now.addingTimeInterval(-3 * 86_400).timeIntervalSinceReferenceDate,
+                    forKey: "lastOpenedTIRD"
+                )
                 try container.mainContext.save()
             }
 #endif
@@ -136,7 +181,8 @@ struct QuestKeeperApp: App {
                 onboardingMeasurementAvailable: onboardingMeasurementAvailable,
                 hasDeferredOnboardingThisRun: $hasDeferredOnboardingThisRun,
                 onboardingSessionID: onboardingSessionID,
-                dailyFocusLoopEnabled: isDailyFocusLoopEnabled
+                dailyFocusLoopEnabled: isDailyFocusLoopEnabled,
+                recoveryLoopVariant: recoveryLoopVariant
             )
         }
         .modelContainer(sharedModelContainer)
@@ -238,6 +284,18 @@ nonisolated func dailyFocusLoopEnabled(arguments: [String]) -> Bool {
     arguments.contains("-dailyFocusLoopEnabled")
 }
 
+nonisolated func recoveryLoopVariant(
+    arguments: [String],
+    dailyFocusLoopEnabled: Bool
+) -> RecoveryLoopVariant? {
+    guard dailyFocusLoopEnabled,
+          let index = arguments.firstIndex(of: "-recoveryLoopVariant"),
+          arguments.indices.contains(index + 1) else {
+        return nil
+    }
+    return RecoveryLoopVariant(rawValue: arguments[index + 1])
+}
+
 nonisolated func shouldReuseContainerOnBackground(
     usesInMemoryStore: Bool,
     uiTestingStoreURL: URL?
@@ -250,6 +308,13 @@ nonisolated func shouldSeedDailyFocusGraveFixture(
     arguments: [String]
 ) -> Bool {
     usesUITestingStore && arguments.contains("-uiTestingDailyFocusGrave")
+}
+
+nonisolated func shouldSeedRecoveryFixture(
+    usesUITestingStore: Bool,
+    arguments: [String]
+) -> Bool {
+    usesUITestingStore && arguments.contains("-uiTestingRecoveryFixture")
 }
 
 #if DEBUG
