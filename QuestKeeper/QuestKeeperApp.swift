@@ -248,6 +248,9 @@ struct QuestKeeperApp: App {
                         shouldDeriveRecovery: shouldDeriveRecovery
                     )
                     : false
+                if !canReplayActivation {
+                    recoveryOffer = nil
+                }
                 if shouldDeriveRecovery {
                     hasPerformedActivationReplay = didDeriveRecovery
                 }
