@@ -105,6 +105,7 @@ nonisolated enum RetentionEventRecorder {
 
     static func recordQuestRetried(
         questID: UUID,
+        attemptID: UUID,
         at occurredAt: Date,
         in context: ModelContext
     ) -> RetentionRecordResult {
@@ -113,9 +114,35 @@ nonisolated enum RetentionEventRecorder {
             source: .app,
             occurredAt: occurredAt,
             questID: questID,
-            keyComponent: questID.uuidString,
+            keyComponent: "\(questID.uuidString):\(attemptID.uuidString)",
             in: context
         )
+    }
+
+    static func normalizeLegacyQuestRetryDeduplicationKeys(
+        in context: ModelContext
+    ) throws {
+        let retryName = RetentionEventName.questRetried.rawValue
+        let descriptor = FetchDescriptor<RetentionEvent>(
+            predicate: #Predicate { $0.nameRawValue == retryName }
+        )
+        var changed = false
+
+        for event in try context.fetch(descriptor) {
+            let questComponent = event.questID?.uuidString ?? "missing-quest"
+            let prefix = "\(retryName):\(event.installationID.uuidString):\(questComponent):"
+            let component = event.deduplicationKey.hasPrefix(prefix)
+                ? String(event.deduplicationKey.dropFirst(prefix.count))
+                : ""
+            guard UUID(uuidString: component) == nil else { continue }
+
+            event.deduplicationKey = "\(prefix)\(event.id.uuidString)"
+            changed = true
+        }
+
+        if changed {
+            try context.save()
+        }
     }
 
     static func recordExperimentExposed(

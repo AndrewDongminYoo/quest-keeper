@@ -150,7 +150,69 @@ struct RetentionPersistenceTests {
         #expect(try upgraded.mainContext.fetch(FetchDescriptor<DailyFocusSelection>()).isEmpty)
     }
 
+    @Test("opening the shared store removes legacy deadline-bearing retry keys")
+    func openingStoreNormalizesLegacyRetryKeys() throws {
+        let storeURL = FileManager.default.temporaryDirectory
+            .appending(path: "QuestKeeper-retry-key-\(UUID().uuidString).store")
+        let firstEventID = UUID(uuidString: "00000000-0000-0000-0000-000000000301")!
+        let secondEventID = UUID(uuidString: "00000000-0000-0000-0000-000000000302")!
+        let firstDeadlineBits = startedAt.addingTimeInterval(86_400)
+            .timeIntervalSinceReferenceDate.bitPattern
+        let secondDeadlineBits = startedAt.addingTimeInterval(172_800)
+            .timeIntervalSinceReferenceDate.bitPattern
+
+        do {
+            let legacy = try measurementContainer(storeURL: storeURL)
+            legacy.mainContext.insert(RetentionInstallation(
+                installationID: installationID,
+                measurementStartedAt: startedAt
+            ))
+            legacy.mainContext.insert(RetentionEvent(
+                id: firstEventID,
+                name: .questRetried,
+                installationID: installationID,
+                occurredAt: startedAt,
+                source: .app,
+                questID: questID,
+                deduplicationKey: "quest_retried:\(installationID):\(questID):\(firstDeadlineBits)"
+            ))
+            legacy.mainContext.insert(RetentionEvent(
+                id: secondEventID,
+                name: .questRetried,
+                installationID: installationID,
+                occurredAt: startedAt.addingTimeInterval(86_400),
+                source: .app,
+                questID: questID,
+                deduplicationKey: "quest_retried:\(installationID):\(questID):\(secondDeadlineBits)"
+            ))
+            try legacy.mainContext.save()
+        }
+
+        let upgraded = try QuestModelContainer.make(storeURL: storeURL)
+        let events = try upgraded.mainContext.fetch(FetchDescriptor<RetentionEvent>())
+
+        #expect(Set(events.map(\.deduplicationKey)) == [
+            "quest_retried:\(installationID):\(questID):\(firstEventID)",
+            "quest_retried:\(installationID):\(questID):\(secondEventID)",
+        ])
+    }
+
     private func measurementContainer() throws -> ModelContainer {
+        try measurementContainer(
+            configuration: ModelConfiguration(
+                schema: measurementSchema,
+                isStoredInMemoryOnly: true
+            )
+        )
+    }
+
+    private func measurementContainer(storeURL: URL) throws -> ModelContainer {
+        try measurementContainer(
+            configuration: ModelConfiguration(schema: measurementSchema, url: storeURL)
+        )
+    }
+
+    private var measurementSchema: Schema {
         let schema = Schema([
             Quest.self,
             RetentionInstallation.self,
@@ -158,9 +220,14 @@ struct RetentionPersistenceTests {
             ExperimentAssignment.self,
             DailyFocusSelection.self,
         ])
+        return schema
+    }
+
+    private func measurementContainer(configuration: ModelConfiguration) throws -> ModelContainer {
+        let schema = measurementSchema
         return try ModelContainer(
             for: schema,
-            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+            configurations: [configuration]
         )
     }
 }

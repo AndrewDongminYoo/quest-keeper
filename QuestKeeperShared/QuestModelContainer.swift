@@ -32,6 +32,10 @@ enum QuestModelContainer {
                 groupContainer: .identifier(WidgetDungeonSnapshotStore.appGroupIdentifier)
             )
         }
-        return try ModelContainer(for: schema, configurations: [configuration])
+        let container = try ModelContainer(for: schema, configurations: [configuration])
+        try RetentionEventRecorder.normalizeLegacyQuestRetryDeduplicationKeys(
+            in: ModelContext(container)
+        )
+        return container
     }
 }

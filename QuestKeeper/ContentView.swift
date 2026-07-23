@@ -284,6 +284,7 @@ struct ContentView: View {
         QuestActions.retryTomorrow(quest, now: now)
         _ = RetentionEventRecorder.recordQuestRetried(
             questID: quest.id,
+            attemptID: UUID(),
             at: now,
             in: modelContext
         )

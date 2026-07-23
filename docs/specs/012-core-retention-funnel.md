@@ -125,7 +125,7 @@ Meaning: retry tomorrow moved a grave into a new active attempt.
 
 Owner: the app retry-tomorrow mutation.
 
-Required fields: installation ID, occurrence time, app source, quest UUID, and a key derived from installation ID plus quest UUID plus the new deadline.
+Required fields: installation ID, occurrence time, app source, quest UUID, and a key derived from installation ID plus quest UUID plus an opaque UUID created once for that retry attempt.
 
 Do not emit for an edit that merely changes a deadline.
 This event describes a recovery branch and is not a required step in the core funnel.
