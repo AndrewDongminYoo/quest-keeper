@@ -196,6 +196,11 @@ struct ContentView: View {
                     return didSave
                 }
             }
+            .onChange(of: recoveryOffer) { _, offer in
+                if offer == nil, dailyFocusEditor?.dismissesRecoveryOnSave == true {
+                    dailyFocusEditor = nil
+                }
+            }
             .task {
                 notificationAuthorization = await notificationService.authorizationStatus()
             }
