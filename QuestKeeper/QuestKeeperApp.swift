@@ -18,6 +18,10 @@ struct QuestKeeperApp: App {
     /// True once we've actually been backgrounded — gates the container swap so a mere Control
     /// Center / notification-banner peek (`.inactive` → `.active`, never `.background`) doesn't refresh.
     @State private var didBackground = false
+    @State private var hasPerformedActivationReplay = false
+    @State private var activationReplay: ActivationReplayResult?
+    @State private var recoveryOffer: RecoveryActivationOffer?
+    @AppStorage("lastOpenedTIRD") private var lastOpenedRaw: Double = 0
     @State private var hasRecordedRetentionActivation = false
     @State private var retentionActivationSessionID = UUID()
     @State private var hasDeferredOnboardingThisRun = false
@@ -188,9 +192,10 @@ struct QuestKeeperApp: App {
                 onboardingAssignment: onboardingAssignment,
                 onboardingMeasurementAvailable: onboardingMeasurementAvailable,
                 hasDeferredOnboardingThisRun: $hasDeferredOnboardingThisRun,
+                recoveryOffer: $recoveryOffer,
+                activationReplay: activationReplay,
                 onboardingSessionID: onboardingSessionID,
-                dailyFocusLoopEnabled: isDailyFocusLoopEnabled,
-                recoveryLoopVariant: recoveryLoopVariant
+                dailyFocusLoopEnabled: isDailyFocusLoopEnabled
             )
         }
         .modelContainer(sharedModelContainer)
@@ -224,6 +229,13 @@ struct QuestKeeperApp: App {
                 } else {
                     container = sharedModelContainer
                 }
+                if shouldReplayActivation(
+                    hasPerformedActivationReplay: hasPerformedActivationReplay,
+                    didBackground: wasBackgrounded
+                ) {
+                    hasPerformedActivationReplay = true
+                    replayActivation(using: container, at: .now)
+                }
                 if shouldAttemptOnboardingExposure(
                     hasAssignment: onboardingAssignment != nil,
                     hasAttempted: hasAttemptedOnboardingExposure,
@@ -255,7 +267,7 @@ struct QuestKeeperApp: App {
     }
 
     /// Reconcile notifications and rewrite the widget snapshot from the *current* (freshly swapped)
-    /// container. This runs here — not in `ContentView.onBecameActive` — because a warm foreground's
+    /// container. This runs here — not in `ContentView` — because a warm foreground's
     /// `@Query` is stale, and opening a second container for the same store to read fresh would trap
     /// in SwiftData. Using the one live container avoids both the staleness and the trap.
     private func syncActivation(using container: ModelContainer) {
@@ -268,6 +280,42 @@ struct QuestKeeperApp: App {
             _ = await notificationService.reconcile(quests: quests, now: .now)
             await writer.submit(WidgetDungeonPayload.make(from: quests))
         }
+    }
+
+    private func replayActivation(using container: ModelContainer, at now: Date) {
+        let previousLastOpened = lastOpenedRaw == 0
+            ? nil
+            : Date(timeIntervalSinceReferenceDate: lastOpenedRaw)
+        let calendar = DailyFocusDay.gregorianCalendar(timeZone: .current)
+        guard let quests = try? container.mainContext.fetch(
+            FetchDescriptor<Quest>(sortBy: [SortDescriptor(\.deadline)])
+        ),
+        let dailyFocusSelections = try? container.mainContext.fetch(
+            FetchDescriptor<DailyFocusSelection>(
+                sortBy: [SortDescriptor(\.recordedAt)]
+            )
+        ) else {
+            recoveryOffer = nil
+            activationReplay = ActivationReplayResult(
+                id: UUID(),
+                deaths: [],
+                recoveryOffer: nil
+            )
+            lastOpenedRaw = now.timeIntervalSinceReferenceDate
+            return
+        }
+        let replay = makeActivationReplay(
+            quests: quests.map(\.snapshot),
+            dailyFocusSelections: dailyFocusSelections.map(\.snapshot),
+            previousLastOpened: previousLastOpened,
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: isDailyFocusLoopEnabled,
+            recoveryLoopVariant: recoveryLoopVariant
+        )
+        recoveryOffer = replay.result.recoveryOffer
+        activationReplay = replay.result
+        lastOpenedRaw = replay.newLastOpened.timeIntervalSinceReferenceDate
     }
 }
 
@@ -309,6 +357,13 @@ nonisolated func shouldReuseContainerOnBackground(
     uiTestingStoreURL: URL?
 ) -> Bool {
     usesInMemoryStore || uiTestingStoreURL != nil
+}
+
+nonisolated func shouldReplayActivation(
+    hasPerformedActivationReplay: Bool,
+    didBackground: Bool
+) -> Bool {
+    !hasPerformedActivationReplay || didBackground
 }
 
 nonisolated func shouldSeedDailyFocusGraveFixture(

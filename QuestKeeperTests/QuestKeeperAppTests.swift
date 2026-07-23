@@ -95,6 +95,82 @@ struct QuestKeeperAppTests {
         ))
     }
 
+    @Test(
+        "activation replay runs only for launch and genuine background return",
+        arguments: [
+            (false, false, true),
+            (true, false, false),
+            (true, true, true),
+        ]
+    )
+    func activationReplayGate(
+        hasPerformedActivationReplay: Bool,
+        didBackground: Bool,
+        expected: Bool
+    ) {
+        #expect(shouldReplayActivation(
+            hasPerformedActivationReplay: hasPerformedActivationReplay,
+            didBackground: didBackground
+        ) == expected)
+    }
+
+    @Test("activation replay derives recovery from refreshed completion facts")
+    func recoveryUsesRefreshedFacts() {
+        let now = Date(timeIntervalSinceReferenceDate: 806_000_000)
+        let previous = now.addingTimeInterval(-86_400)
+        let calendar = DailyFocusDay.gregorianCalendar(
+            timeZone: TimeZone(identifier: "Asia/Seoul")!
+        )
+        let firstID = UUID()
+        let secondID = UUID()
+        let staleQuests = [
+            QuestSnapshot(
+                id: firstID,
+                deadline: now.addingTimeInterval(-3_600),
+                completedAt: nil,
+                importance: .medium
+            ),
+            QuestSnapshot(
+                id: secondID,
+                deadline: now.addingTimeInterval(-1_800),
+                completedAt: nil,
+                importance: .medium
+            ),
+        ]
+        let refreshedQuests = staleQuests.map {
+            QuestSnapshot(
+                id: $0.id,
+                deadline: $0.deadline,
+                completedAt: $0.deadline.addingTimeInterval(-60),
+                importance: $0.importance
+            )
+        }
+
+        let stale = makeActivationReplay(
+            quests: staleQuests,
+            dailyFocusSelections: [],
+            previousLastOpened: previous,
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: true,
+            recoveryLoopVariant: .singleQuest
+        )
+        let refreshed = makeActivationReplay(
+            quests: refreshedQuests,
+            dailyFocusSelections: [],
+            previousLastOpened: previous,
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: true,
+            recoveryLoopVariant: .singleQuest
+        )
+
+        #expect(stale.result.deaths.count == 2)
+        #expect(stale.result.recoveryOffer != nil)
+        #expect(refreshed.result.deaths.isEmpty)
+        #expect(refreshed.result.recoveryOffer == nil)
+    }
+
 #if DEBUG
     @Test("UI test store URL requires an explicit path argument")
     func uiTestStoreURL() {

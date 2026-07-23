@@ -73,6 +73,49 @@ struct RecoveryStateTests {
         ) == RecoveryActivationOffer(variant: .chooseToday, localDayKey: "2026-07-23"))
     }
 
+    @Test("next-day return with one away grave stays ineligible")
+    func nextDayAndOneGraveStayIneligible() {
+        let previousDay = calendar.date(byAdding: .day, value: -1, to: thursday)!
+
+        #expect(RecoveryState.offer(
+            previousLastOpened: previousDay,
+            now: thursday,
+            calendar: calendar,
+            deathsWhileAway: [firstID],
+            hasStoredQuests: true,
+            dailyFocusPresentation: .recommended([firstID]),
+            variant: .singleQuest
+        ) == nil)
+    }
+
+    @Test("Gregorian date boundaries remain stable across daylight saving time")
+    func daylightSavingBoundary() {
+        let losAngeles = TimeZone(identifier: "America/Los_Angeles")!
+        let calendar = DailyFocusDay.gregorianCalendar(timeZone: losAngeles)
+        let thursday = calendar.date(from: DateComponents(
+            year: 2026,
+            month: 3,
+            day: 12,
+            hour: 9
+        ))!
+        let monday = calendar.date(from: DateComponents(
+            year: 2026,
+            month: 3,
+            day: 9,
+            hour: 9
+        ))!
+
+        #expect(RecoveryState.offer(
+            previousLastOpened: monday,
+            now: thursday,
+            calendar: calendar,
+            deathsWhileAway: [],
+            hasStoredQuests: true,
+            dailyFocusPresentation: .recommended([firstID]),
+            variant: .singleQuest
+        ) == RecoveryActivationOffer(variant: .singleQuest, localDayKey: "2026-03-12"))
+    }
+
     @Test("no stored quest, confirmed focus, invalid clock, and disabled variant suppress recovery")
     func existingBoundariesSuppressOffer() {
         let monday = calendar.date(byAdding: .day, value: -3, to: thursday)!
@@ -171,6 +214,31 @@ struct RecoveryStateTests {
             now: thursday,
             calendar: calendar
         ) == .createQuest)
+        #expect(RecoveryState.presentation(
+            offer: offer,
+            quests: [
+                QuestSnapshot(
+                    id: firstID,
+                    deadline: thursday.addingTimeInterval(300),
+                    completedAt: thursday,
+                    importance: .medium
+                ),
+                quests[0],
+            ],
+            dailyFocusPresentation: .recommended([secondID]),
+            now: thursday,
+            calendar: calendar
+        ) == .singleQuest(secondID))
+        #expect(RecoveryState.presentation(
+            offer: offer,
+            quests: quests,
+            dailyFocusPresentation: .confirmed(
+                selectedQuestIDs: [firstID],
+                completedQuestIDs: []
+            ),
+            now: thursday,
+            calendar: calendar
+        ) == nil)
     }
 }
 
