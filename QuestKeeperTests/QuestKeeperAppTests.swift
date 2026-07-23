@@ -98,17 +98,21 @@ struct QuestKeeperAppTests {
     @Test(
         "recovery derivation runs only for launch and genuine background return",
         arguments: [
-            (false, false, true),
-            (true, false, false),
-            (true, true, true),
+            (true, false, false, true),
+            (true, true, false, false),
+            (true, true, true, true),
+            (false, false, false, false),
+            (false, true, true, false),
         ]
     )
     func activationReplayGate(
+        hasRecoveryVariant: Bool,
         hasPerformedActivationReplay: Bool,
         didBackground: Bool,
         expected: Bool
     ) {
         #expect(shouldDeriveRecoveryOffer(
+            hasRecoveryVariant: hasRecoveryVariant,
             hasPerformedActivationReplay: hasPerformedActivationReplay,
             didBackground: didBackground
         ) == expected)

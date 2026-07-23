@@ -230,17 +230,18 @@ struct QuestKeeperApp: App {
                     container = sharedModelContainer
                 }
                 let shouldDeriveRecovery = shouldDeriveRecoveryOffer(
+                    hasRecoveryVariant: recoveryLoopVariant != nil,
                     hasPerformedActivationReplay: hasPerformedActivationReplay,
                     didBackground: wasBackgrounded
                 )
-                if shouldDeriveRecovery {
-                    hasPerformedActivationReplay = true
-                }
-                replayActivation(
+                let didDeriveRecovery = replayActivation(
                     using: container,
                     at: .now,
                     shouldDeriveRecovery: shouldDeriveRecovery
                 )
+                if didDeriveRecovery {
+                    hasPerformedActivationReplay = true
+                }
                 if shouldAttemptOnboardingExposure(
                     hasAssignment: onboardingAssignment != nil,
                     hasAttempted: hasAttemptedOnboardingExposure,
@@ -291,7 +292,7 @@ struct QuestKeeperApp: App {
         using container: ModelContainer,
         at now: Date,
         shouldDeriveRecovery: Bool
-    ) {
+    ) -> Bool {
         let previousLastOpened = lastOpenedRaw == 0
             ? nil
             : Date(timeIntervalSinceReferenceDate: lastOpenedRaw)
@@ -302,7 +303,7 @@ struct QuestKeeperApp: App {
             if shouldDeriveRecovery {
                 recoveryOffer = nil
             }
-            return
+            return false
         }
         guard shouldDeriveRecovery else {
             let (deaths, newLastOpened) = reconstructOnActivation(
@@ -318,7 +319,7 @@ struct QuestKeeperApp: App {
                 )
             }
             lastOpenedRaw = newLastOpened.timeIntervalSinceReferenceDate
-            return
+            return false
         }
         guard let dailyFocusSelections = try? container.mainContext.fetch(
             FetchDescriptor<DailyFocusSelection>(
@@ -326,7 +327,7 @@ struct QuestKeeperApp: App {
             )
         ) else {
             recoveryOffer = nil
-            return
+            return false
         }
         let replay = makeActivationReplay(
             quests: quests.map(\.snapshot),
@@ -340,6 +341,7 @@ struct QuestKeeperApp: App {
         recoveryOffer = replay.result.recoveryOffer
         activationReplay = replay.result
         lastOpenedRaw = replay.newLastOpened.timeIntervalSinceReferenceDate
+        return true
     }
 }
 
@@ -384,10 +386,11 @@ nonisolated func shouldReuseContainerOnBackground(
 }
 
 nonisolated func shouldDeriveRecoveryOffer(
+    hasRecoveryVariant: Bool,
     hasPerformedActivationReplay: Bool,
     didBackground: Bool
 ) -> Bool {
-    !hasPerformedActivationReplay || didBackground
+    hasRecoveryVariant && (!hasPerformedActivationReplay || didBackground)
 }
 
 nonisolated func shouldSeedDailyFocusGraveFixture(
