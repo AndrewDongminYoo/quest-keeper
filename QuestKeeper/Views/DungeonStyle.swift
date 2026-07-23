@@ -25,11 +25,12 @@ extension DungeonUrgencyTone {
 /// system `.borderedProminent` (whose soft capsule reads as native-iOS, not game).
 struct PixelButtonStyle: ButtonStyle {
     var fill: Color = DungeonPalette.hero
+    var foreground: Color = .white
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.footnote.weight(.black))
-            .foregroundStyle(.white)
+            .foregroundStyle(foreground)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(fill, in: RoundedRectangle(cornerRadius: PixelStyle.corner))

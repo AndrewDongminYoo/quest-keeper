@@ -16,10 +16,11 @@ struct RecoveryCardView: View {
             Text("다시 와서 반가워요")
                 .font(.headline.weight(.black))
                 .foregroundStyle(DungeonPalette.ink)
-            Text("쉬었다 와도 괜찮아요. 오늘 할 일부터 가볍게 시작해볼까요?")
+            Text("쉬었다 와도 괜찮아요. 오늘\u{00A0}할\u{00A0}일부터 가볍게 시작해볼까요?")
                 .font(.subheadline)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.76))
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel("쉬었다 와도 괜찮아요. 오늘 할 일부터 가볍게 시작해볼까요?")
 
             if case .singleQuest = presentation, let quest {
                 VStack(alignment: .leading, spacing: 4) {
@@ -36,7 +37,10 @@ struct RecoveryCardView: View {
             }
 
             Button(primaryTitle, action: primaryAction)
-                .buttonStyle(.pixel)
+                .buttonStyle(PixelButtonStyle(
+                    fill: DungeonPalette.hero,
+                    foreground: DungeonPalette.dungeon
+                ))
                 .frame(maxWidth: .infinity, minHeight: 44)
             Button("지금은 괜찮아요", action: onDismiss)
                 .frame(maxWidth: .infinity, minHeight: 44)
