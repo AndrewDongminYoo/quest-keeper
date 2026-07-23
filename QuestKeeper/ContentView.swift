@@ -22,6 +22,7 @@ struct ContentView: View {
 
     /// Transient: the deaths to mourn this activation. Drives the "꿱" frame, then resets.
     @State private var pendingDeaths: Set<UUID> = []
+    @State private var recoveryOffer: RecoveryActivationOffer?
     @State private var route: EditorRoute?
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
@@ -85,6 +86,13 @@ struct ContentView: View {
                     now: now,
                     calendar: .current
                 )
+                let recoveryPresentation = RecoveryState.presentation(
+                    offer: recoveryOffer,
+                    quests: snapshots,
+                    dailyFocusPresentation: dailyFocusPresentation,
+                    now: now,
+                    calendar: .current
+                )
 
                 HomeDungeonBoardView(
                     state: state,
@@ -97,6 +105,7 @@ struct ContentView: View {
                     showsNotificationPermissionBanner: notificationAuthorization == .denied,
                     onboardingPresentation: onboardingPresentation,
                     dailyFocusPresentation: dailyFocusPresentation,
+                    recoveryPresentation: recoveryPresentation,
                     onCreate: { beginQuestCreation(draft: nil) },
                     onStartGuidedQuest: {
                         beginQuestCreation(draft: .guided(at: .now))
@@ -109,9 +118,16 @@ struct ContentView: View {
                         dailyFocusEditor = DailyFocusEditorRoute(
                             initialSelectedQuestIDs: questIDs,
                             kind: kind,
-                            localDayKey: DailyFocusDay.key(for: now, calendar: .current)
+                            localDayKey: DailyFocusDay.key(for: now, calendar: .current),
+                            dismissesRecoveryOnSave: false
                         )
                     },
+                    onConfirmRecoveryQuest: confirmRecoveryQuest,
+                    onChooseRecoveryFocus: beginRecoveryFocusSelection,
+                    onCreateRecoveryQuest: {
+                        route = .recoveryCreate(.guided(at: .now))
+                    },
+                    onDismissRecovery: { recoveryOffer = nil },
                     onOpenNotificationSettings: openNotificationSettings,
                     onComplete: complete,
                     onRetryTomorrow: retryTomorrow,
@@ -128,6 +144,17 @@ struct ContentView: View {
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
                         onSaved: writeWidgetSnapshot(including:)
+                    )
+                case .recoveryCreate(let draft):
+                    QuestEditor(
+                        quest: nil,
+                        draft: draft,
+                        notificationService: notificationService,
+                        onAuthorizationChange: { notificationAuthorization = $0 },
+                        onSaved: { quest in
+                            recoveryOffer = nil
+                            writeWidgetSnapshot(including: quest)
+                        }
                     )
                 case .edit(let quest):
                     QuestEditor(
@@ -162,7 +189,15 @@ struct ContentView: View {
                     let savedAt = Date.now
                     guard DailyFocusDay.key(for: savedAt, calendar: .current)
                             == editor.localDayKey else { return false }
-                    return recordDailyFocus(questIDs, kind: editor.kind, at: savedAt)
+                    let didSave = recordDailyFocus(
+                        questIDs,
+                        kind: editor.kind,
+                        at: savedAt
+                    )
+                    if didSave, editor.dismissesRecoveryOnSave {
+                        recoveryOffer = nil
+                    }
+                    return didSave
                 }
             }
             .task {
@@ -184,8 +219,28 @@ struct ContentView: View {
 
     private func onBecameActive(now: Date) {
         let previous = lastOpenedRaw == 0 ? nil : Date(timeIntervalSinceReferenceDate: lastOpenedRaw)
+        let snapshots = quests.map(\.snapshot)
+        let dailyFocusPresentation = DailyFocusState.make(
+            enabled: dailyFocusLoopEnabled,
+            quests: snapshots,
+            selections: dailyFocusSelections.map(\.snapshot),
+            now: now,
+            calendar: .current
+        )
         let (deaths, newLastOpened) = reconstructOnActivation(
-            quests: quests.map(\.snapshot), now: now, previousLastOpened: previous)
+            quests: snapshots,
+            now: now,
+            previousLastOpened: previous
+        )
+        recoveryOffer = RecoveryState.offer(
+            previousLastOpened: previous,
+            now: now,
+            calendar: .current,
+            deathsWhileAway: deaths,
+            hasStoredQuests: !quests.isEmpty,
+            dailyFocusPresentation: dailyFocusPresentation,
+            variant: recoveryLoopVariant
+        )
         lastOpenedRaw = newLastOpened.timeIntervalSinceReferenceDate
 
         // Only the permission banner is refreshed here — it needs no quest data, so the `@Query`'s
@@ -265,6 +320,46 @@ struct ContentView: View {
         )
         guard displayedQuestIDs == currentRecommendation else { return }
         _ = recordDailyFocus(currentRecommendation, kind: .confirmation, at: tappedAt)
+    }
+
+    private func confirmRecoveryQuest(_ questID: UUID) -> Bool {
+        let now = Date.now
+        let dailyFocusPresentation = DailyFocusState.make(
+            enabled: dailyFocusLoopEnabled,
+            quests: quests.map(\.snapshot),
+            selections: dailyFocusSelections.map(\.snapshot),
+            now: now,
+            calendar: .current
+        )
+        guard RecoveryState.presentation(
+            offer: recoveryOffer,
+            quests: quests.map(\.snapshot),
+            dailyFocusPresentation: dailyFocusPresentation,
+            now: now,
+            calendar: .current
+        ) == .singleQuest(questID) else {
+            return false
+        }
+        guard recordDailyFocus([questID], kind: .confirmation, at: now) else {
+            return false
+        }
+        recoveryOffer = nil
+        return true
+    }
+
+    private func beginRecoveryFocusSelection() {
+        let now = Date.now
+        let recommendation = DailyFocusState.recommend(
+            quests: quests.map(\.snapshot),
+            now: now
+        )
+        guard !recommendation.isEmpty else { return }
+        dailyFocusEditor = DailyFocusEditorRoute(
+            initialSelectedQuestIDs: recommendation,
+            kind: .confirmation,
+            localDayKey: DailyFocusDay.key(for: now, calendar: .current),
+            dismissesRecoveryOnSave: true
+        )
     }
 
     private func complete(_ quest: Quest, at completedAt: Date = .now) {
@@ -354,6 +449,7 @@ struct ContentView: View {
 /// Which quest, if any, the editor sheet is editing. `.create` inserts a new one.
 enum EditorRoute: Identifiable {
     case create(QuestEditorDraft?)
+    case recoveryCreate(QuestEditorDraft)
     case edit(Quest)
     case dailyGrave(Quest)
     case resolved(Quest)
@@ -361,6 +457,7 @@ enum EditorRoute: Identifiable {
     var id: String {
         switch self {
         case .create: "create"
+        case .recoveryCreate: "recovery-create"
         case .edit(let quest): quest.id.uuidString
         case .dailyGrave(let quest): "daily-grave-\(quest.id.uuidString)"
         case .resolved(let quest): "resolved-\(quest.id.uuidString)"
@@ -373,6 +470,7 @@ struct DailyFocusEditorRoute: Identifiable {
     let initialSelectedQuestIDs: [UUID]
     let kind: DailyFocusSelectionKind
     let localDayKey: String
+    let dismissesRecoveryOnSave: Bool
 }
 
 nonisolated enum NotificationQuestDestination: Equatable {
