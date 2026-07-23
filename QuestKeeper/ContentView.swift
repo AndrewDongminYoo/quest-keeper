@@ -9,6 +9,7 @@ import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Quest.deadline) private var quests: [Quest]
     @Query(sort: \RetentionEvent.occurredAt) private var retentionEvents: [RetentionEvent]
     @Query(sort: \DailyFocusSelection.recordedAt) private var dailyFocusSelections: [DailyFocusSelection]
@@ -208,21 +209,15 @@ struct ContentView: View {
         .onChange(of: activationReplay?.id, initial: true) { _, _ in
             applyActivationReplay()
         }
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            guard phase == .active else { return }
+            refreshNotificationAuthorization()
+        }
     }
 
     // MARK: - Lifecycle
 
     private func applyActivationReplay() {
-        // Only the permission banner is refreshed here — it needs no quest data, so the `@Query`'s
-        // post-warm-foreground staleness can't affect it. The quest-data-dependent activation sync
-        // (notification reconcile + widget snapshot) runs in `QuestKeeperApp` against the freshly
-        // swapped container: acting on a stale `@Query` here would re-schedule a widget-completed
-        // quest's notifications and overwrite the widget's snapshot, and opening a second container
-        // for the same store in this process traps in SwiftData.
-        Task { @MainActor in
-            notificationAuthorization = await notificationService.authorizationStatus()
-        }
-
         let deaths = activationReplay?.deaths ?? []
         guard !deaths.isEmpty else { return }
         mourningTask?.cancel()
@@ -232,6 +227,12 @@ struct ContentView: View {
             try? await Task.sleep(for: .seconds(GameBalance.mourningDuration))
             guard !Task.isCancelled else { return }
             withAnimation { pendingDeaths = [] }
+        }
+    }
+
+    private func refreshNotificationAuthorization() {
+        Task { @MainActor in
+            notificationAuthorization = await notificationService.authorizationStatus()
         }
     }
 

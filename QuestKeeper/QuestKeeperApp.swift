@@ -239,8 +239,8 @@ struct QuestKeeperApp: App {
                     at: .now,
                     shouldDeriveRecovery: shouldDeriveRecovery
                 )
-                if didDeriveRecovery {
-                    hasPerformedActivationReplay = true
+                if shouldDeriveRecovery {
+                    hasPerformedActivationReplay = didDeriveRecovery
                 }
                 if shouldAttemptOnboardingExposure(
                     hasAssignment: onboardingAssignment != nil,
