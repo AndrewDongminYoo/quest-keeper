@@ -1,6 +1,6 @@
 # Spec 015 — Recovery Loop Prototype
 
-Status: design approved; written spec pending review
+Status: approved for implementation
 Tracks: AND-36
 Builds on: AND-35
 
