@@ -40,7 +40,6 @@ struct QuestNotificationPlannerTests {
     func pastDeadlineSkipsScheduling() {
         let plans = QuestNotificationPlanner.plans(
             for: snapshot(deadlineOffset: -hour),
-            title: "빨래",
             now: now
         )
 
@@ -51,7 +50,6 @@ struct QuestNotificationPlannerTests {
     func completedQuestSkipsScheduling() {
         let plans = QuestNotificationPlanner.plans(
             for: snapshot(deadlineOffset: 2 * hour, completedOffset: -hour),
-            title: "운동",
             now: now
         )
 
@@ -62,7 +60,6 @@ struct QuestNotificationPlannerTests {
     func dueSoonSkipDeadlineKeep() {
         let plans = QuestNotificationPlanner.plans(
             for: snapshot(deadlineOffset: 30 * 60),
-            title: "리포트",
             now: now
         )
 
@@ -74,7 +71,6 @@ struct QuestNotificationPlannerTests {
         let questID = UUID()
         let plans = QuestNotificationPlanner.plans(
             for: snapshot(id: questID, deadlineOffset: 3 * hour),
-            title: "헬스장 가기",
             now: now
         )
 
@@ -86,10 +82,10 @@ struct QuestNotificationPlannerTests {
 
     @Test("notification previews do not disclose quest titles")
     func notificationPreviewsKeepQuestTitlesPrivate() {
-        let sensitiveTitle = "HIV clinic follow-up with Dr. Kim"
+        // The planner takes no title argument at all, so a private quest title has
+        // no path into a notification body — the bodies are fixed localized constants.
         let plans = QuestNotificationPlanner.plans(
             for: snapshot(deadlineOffset: 3 * hour),
-            title: sensitiveTitle,
             now: now
         )
 
@@ -97,6 +93,5 @@ struct QuestNotificationPlannerTests {
             String(localized: "퀘스트가 곧 마감됩니다"),
             String(localized: "퀘스트 마감 시간이 되었습니다"),
         ])
-        #expect(plans.allSatisfy { !$0.body.contains(sensitiveTitle) })
     }
 }

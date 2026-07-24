@@ -126,10 +126,9 @@ final class QuestNotificationService {
     func sync(quest: Quest, now: Date) async -> QuestNotificationAuthorization {
         let questID = quest.id
         let snapshot = quest.snapshot
-        let title = quest.title
 
         return await enqueue {
-            await self.performSync(questID: questID, snapshot: snapshot, title: title, now: now)
+            await self.performSync(questID: questID, snapshot: snapshot, now: now)
         }
     }
 
@@ -142,7 +141,7 @@ final class QuestNotificationService {
     @discardableResult
     func reconcile(quests: [Quest], now: Date) async -> QuestNotificationAuthorization {
         let plans = quests.flatMap { quest in
-            QuestNotificationPlanner.plans(for: quest.snapshot, title: quest.title, now: now)
+            QuestNotificationPlanner.plans(for: quest.snapshot, now: now)
         }
         let deliveredIdentifiersToRemove = quests.flatMap { quest in
             QuestNotificationPlanner.identifiers(for: quest.id)
@@ -159,14 +158,13 @@ final class QuestNotificationService {
     private func performSync(
         questID: UUID,
         snapshot: QuestSnapshot,
-        title: String,
         now: Date
     ) async -> QuestNotificationAuthorization {
         let identifiers = QuestNotificationPlanner.identifiers(for: questID)
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
 
-        let plans = QuestNotificationPlanner.plans(for: snapshot, title: title, now: now)
+        let plans = QuestNotificationPlanner.plans(for: snapshot, now: now)
         guard !plans.isEmpty else { return await authorizationStatus() }
 
         let authorization = await requestAuthorizationIfNeeded()
