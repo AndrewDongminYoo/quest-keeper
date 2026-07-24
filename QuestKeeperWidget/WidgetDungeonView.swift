@@ -89,6 +89,7 @@ struct WidgetDungeonView: View {
             StatusText("던전이 조용합니다", tone: .muted)
         } else if let mob = entry.state.activeMobs.first {
             StatusText(deadlineText(for: mob), tone: .color(urgencyTint(for: mob)))
+                .privacySensitive()
         }
     }
 
@@ -102,6 +103,7 @@ struct WidgetDungeonView: View {
                     .lineLimit(1)
 
                 Text(grave.title)
+                    .privacySensitive()
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(DungeonPalette.ink.opacity(0.88))
                     .lineLimit(2)
@@ -192,6 +194,7 @@ private struct MobBadge: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(mob.title)
+                    .privacySensitive()
                     .font(.system(size: compact ? 12 : 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(DungeonPalette.ink)
                     .lineLimit(compact ? 2 : 1)
@@ -202,6 +205,7 @@ private struct MobBadge: View {
                         .foregroundStyle(DungeonPalette.ink.opacity(0.56))
 
                     Text(mob.deadline, style: .timer)
+                        .privacySensitive()
                         .foregroundStyle(DungeonPalette.ink.opacity(0.9))
                 }
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
