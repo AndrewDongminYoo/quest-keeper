@@ -411,12 +411,13 @@ private nonisolated func makeJourney(
     let completions = laterEvents.filter { $0.name == .questCompleted }
     let contradictoryCompletions = completions.filter { completion in
         guard let firstCreation else { return true }
-        return completion.questID != firstCreation.questID
-            || !eventOrdering(firstCreation, completion)
+        return !eventOrdering(firstCreation, completion)
     }
     quality.orderingFailureCount += contradictoryCompletions.count
     guard contradictoryCompletions.isEmpty else { return nil }
-    let firstCompletion = completions.first
+    let firstCompletion = completions.first {
+        $0.questID == firstCreation?.questID
+    }
     let boundary = exposure.occurredAt.addingTimeInterval(120)
     let twoMinuteWindowMatured = boundary <= asOf
     let d1 = retention(
