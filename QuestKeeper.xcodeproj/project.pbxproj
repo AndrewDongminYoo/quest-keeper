@@ -500,13 +500,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = QuestKeeper/QuestKeeper.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26072410;
+				CURRENT_PROJECT_VERSION = 26072412;
 				DEVELOPMENT_TEAM = 393JTTV68D;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Quest Keeper";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -545,13 +546,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = QuestKeeper/QuestKeeper.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26072410;
+				CURRENT_PROJECT_VERSION = 26072412;
 				DEVELOPMENT_TEAM = 393JTTV68D;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Quest Keeper";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -588,7 +590,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26072410;
+				CURRENT_PROJECT_VERSION = 26072412;
 				DEVELOPMENT_TEAM = 393JTTV68D;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
@@ -613,7 +615,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26072410;
+				CURRENT_PROJECT_VERSION = 26072412;
 				DEVELOPMENT_TEAM = 393JTTV68D;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
@@ -637,7 +639,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26072410;
+				CURRENT_PROJECT_VERSION = 26072412;
 				DEVELOPMENT_TEAM = 393JTTV68D;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
@@ -661,7 +663,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26072410;
+				CURRENT_PROJECT_VERSION = 26072412;
 				DEVELOPMENT_TEAM = 393JTTV68D;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
@@ -686,7 +688,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = QuestKeeperWidget/QuestKeeperWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26072410;
+				CURRENT_PROJECT_VERSION = 26072412;
 				DEVELOPMENT_TEAM = 393JTTV68D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = QuestKeeperWidget/Info.plist;
@@ -714,7 +716,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = QuestKeeperWidget/QuestKeeperWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26072410;
+				CURRENT_PROJECT_VERSION = 26072412;
 				DEVELOPMENT_TEAM = 393JTTV68D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = QuestKeeperWidget/Info.plist;

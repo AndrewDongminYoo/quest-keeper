@@ -25,5 +25,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added local-only retention measurement with privacy-safe retry-event identity and upgrade handling.
 - Added deterministic tests for quest derivation, notifications, widgets, onboarding, daily focus, and recovery flows.
 
-[Unreleased]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.0.0+26072410...HEAD
-[1.0.0]: https://github.com/AndrewDongminYoo/quest-keeper/releases/tag/v1.0.0+26072410
+[Unreleased]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.0.0+26072412...HEAD
+[1.0.0]: https://github.com/AndrewDongminYoo/quest-keeper/releases/tag/v1.0.0+26072412
