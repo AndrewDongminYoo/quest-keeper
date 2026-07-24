@@ -101,8 +101,8 @@ struct WidgetDungeonSnapshotStoreTests {
         #expect(store.load() == .empty)
     }
 
-    @Test("store returns empty payload for invalid quest importance")
-    func storeReturnsEmptyPayloadForInvalidQuestImportance() throws {
+    @Test("store returns empty payload for invalid quest importance", arguments: [Int.min, 0, 4, Int.max])
+    func storeReturnsEmptyPayloadForInvalidQuestImportance(_ importanceRawValue: Int) throws {
         let directory = temporaryDirectory()
         let fileURL = directory.appending(path: "widget-dungeon-snapshot.json")
         let payload = WidgetDungeonPayload(
@@ -114,7 +114,7 @@ struct WidgetDungeonSnapshotStoreTests {
                     title: "Invalid importance",
                     deadline: now.addingTimeInterval(600),
                     completedAt: nil,
-                    importanceRawValue: .max
+                    importanceRawValue: importanceRawValue
                 )
             ]
         )

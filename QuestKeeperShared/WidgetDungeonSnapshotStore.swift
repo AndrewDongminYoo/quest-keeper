@@ -49,7 +49,7 @@ nonisolated struct WidgetDungeonSnapshotStore: Sendable {
             let data = try Data(contentsOf: fileURL)
             let payload = try JSONDecoder.widgetDungeon.decode(WidgetDungeonPayload.self, from: data)
             guard payload.schemaVersion == WidgetDungeonPayload.currentSchemaVersion,
-                  payload.quests.allSatisfy({ (1...3).contains($0.importanceRawValue) }) else {
+                  payload.quests.allSatisfy({ Importance(rawValue: $0.importanceRawValue) != nil }) else {
                 return .empty
             }
             return payload
