@@ -9,7 +9,7 @@ The gamification (deadline miss → the pixel hero dies) is the vehicle that pul
 
 `BLUEPRINT.md` is the authoritative roadmap — read it before any feature work.
 It defines the phases, success criteria, and the non-negotiable core principle below.
-This file summarizes the parts that shape *how* to write code here; BLUEPRINT owns *what* to build and in *what order*.
+This file summarizes the parts that shape _how_ to write code here; BLUEPRINT owns _what_ to build and in _what order_.
 
 **Current state:** the boilerplate template is gone — `Quest` (`@Model`) replaced `Item`, and `ContentView` is now the Phase 2 dungeon root, not template scaffolding.
 Phases 1–5 are largely implemented: the fact-only SwiftData model (`QuestKeeper/Models/`), the pure derivation layer (`QuestKeeper/Derivation/`), the dungeon UI with completion/retry/daily-grave/edit flows (`QuestKeeper/Views/`), the local-notification lifecycle (`QuestKeeper/Notifications/`), and the WidgetKit App Group snapshot (`QuestKeeperShared/`, `QuestKeeperWidget/`).
@@ -38,12 +38,12 @@ The derivation entry point `HeroDerivation.state(quests:now:lastOpened:calendar:
 
 Scheme `QuestKeeper`, project `QuestKeeper.xcodeproj` (no workspace, no SPM/CocoaPods yet).
 
-**Prefer the XcodeBuildMCP tools (`mcp__xcodebuild__*`) over raw `xcodebuild` for all headless build/run/test/screenshot work.**
-Raw `xcodebuild -destination 'platform=iOS Simulator,name=iPhone 17e'` spins up a fresh ephemeral test clone per run and, because a duplicate device named `iPhone 17e` exists, hits destination-name ambiguity — together these exhaust simulator memory and wedge the runtime (repeated `server died` / `crashed before establishing connection`).
-XcodeBuildMCP avoids both: it reuses one dedicated workspace and pins the simulator by **UDID**.
+**Which toolchain depends on the environment: the XcodeBuildMCP tools (`mcp__xcodebuild__*`) are exposed only in the Codex environment.**
+In Claude Code and any other agent they are not available, so raw `xcodebuild` (below) is the path there — do not assume the MCP is present.
 
-Session defaults are already set and persisted (`.xcodebuildmcp/config.yaml`, git-ignored):
-project `QuestKeeper.xcodeproj`, scheme `QuestKeeper`, configuration `Debug`, simulator UDID `7ED9020C-A21E-425F-AF74-C71C40DA0A13` (`iPhone 17e`).
+**Codex — prefer XcodeBuildMCP.** It reuses one dedicated workspace and pins the simulator by **UDID**, avoiding the raw-`xcodebuild` failure mode described below.
+Session defaults are persisted in `.xcodebuildmcp/config.yaml` (git-ignored): project `QuestKeeper.xcodeproj`, scheme `QuestKeeper`, configuration `Debug`, and a pinned simulator UDID.
+**Confirm the pinned UDID against your machine** with `xcrun simctl list devices available` — simulator UDIDs are recreated and drift (the previously documented `7ED9020C-A21E-425F-AF74-C71C40DA0A13` is already stale; `iPhone 17e` is currently `CDF2239B-B46C-4A44-A09E-ED656EF7F9EA`).
 
 ```text
 # Once per session, confirm defaults (required before the first build/run/test):
@@ -57,16 +57,17 @@ mcp__xcodebuild__test_sim  extraArgs: ["-only-testing:QuestKeeperTests/Derivatio
 mcp__xcodebuild__screenshot             # capture the running sim
 ```
 
-Fallback only if the MCP is unavailable — always target the device by **id (UDID), never `name`**, to dodge the duplicate-name ambiguity:
+**Claude Code and any non-Codex agent — use raw `xcodebuild` (this is the primary path there, not a fallback).**
+Always target the device by **id (UDID), never `name`**: `xcodebuild -destination 'platform=iOS Simulator,name=iPhone 17e'` spins up a fresh ephemeral clone per run and, because a duplicate device named `iPhone 17e` exists, hits destination-name ambiguity — together these exhaust simulator memory and wedge the runtime (`server died` / `crashed before establishing connection`).
+Confirm/replace the UDID with `xcrun simctl list devices available` first, and prefer an already-booted simulator to respect the one-heavy-job-at-a-time limit.
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=7ED9020C-A21E-425F-AF74-C71C40DA0A13' \
+  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
   -only-testing:QuestKeeperTests
 ```
 
-Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP for headless verification.
-Confirm the UDID against your machine with `xcrun simctl list devices available` if the pinned simulator is missing.
+Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or raw `xcodebuild` (elsewhere) for headless verification.
 
 ## Conventions & Constraints
 
@@ -84,4 +85,7 @@ Confirm the UDID against your machine with `xcrun simctl list devices available`
   Local-only, single-device, offline-first.
 - **Language:** Korean comments and user-facing strings are intentional — do not translate them.
   Code identifiers and commit messages are English.
+
+```
+
 ```
