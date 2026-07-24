@@ -1,0 +1,89 @@
+---
+name: Create release tag
+
+"on":
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Tag current release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require main branch
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          if [[ "$RELEASE_REF" != "refs/heads/main" ]]; then
+            echo "::error::Run this workflow from the main branch."
+            exit 1
+          fi
+
+      - name: Check out release commit with checkout v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Read release version
+        id: version
+        run: bash scripts/release-version.sh
+
+      - name: Validate release documents
+        env:
+          VERSION: ${{ steps.version.outputs.marketing_version }}
+        run: |
+          grep -Fq "## [$VERSION] - " CHANGELOG.md
+          test -s "docs/releases/$VERSION/ko.txt"
+
+      - name: Check existing tag
+        id: existing
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            existing_sha="$(git rev-list -n 1 "$TAG")"
+            if [[ "$existing_sha" != "$RELEASE_SHA" ]]; then
+              echo "::error::Tag $TAG already points to $existing_sha."
+              exit 1
+            fi
+            echo "already_exists=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "already_exists=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Create annotated tag
+        if: steps.existing.outputs.already_exists == 'false'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.marketing_version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --annotate "$TAG" "$RELEASE_SHA" \
+            --message "QuestKeeper $VERSION ($BUILD_NUMBER)"
+          git push origin "refs/tags/$TAG"
+
+      - name: Summarize release tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_SHA: ${{ github.sha }}
+          ALREADY_EXISTS: ${{ steps.existing.outputs.already_exists }}
+        run: |
+          {
+            echo "## QuestKeeper release tag"
+            echo
+            echo "- Tag: \`$TAG\`"
+            echo "- Commit: \`$RELEASE_SHA\`"
+            echo "- Already existed: \`$ALREADY_EXISTS\`"
+          } >>"$GITHUB_STEP_SUMMARY"
