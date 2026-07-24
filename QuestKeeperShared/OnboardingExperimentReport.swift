@@ -408,16 +408,20 @@ private nonisolated func makeJourney(
         quality.orderingFailureCount += 1
         return nil
     }
+    let boundary = exposure.occurredAt.addingTimeInterval(120)
     let completions = laterEvents.filter { $0.name == .questCompleted }
     let contradictoryCompletions = completions.filter { completion in
         guard let firstCreation else { return true }
-        return completion.questID != firstCreation.questID
-            || !eventOrdering(firstCreation, completion)
+        if !eventOrdering(firstCreation, completion) { return true }
+        // spec 013: 다른 quest 정체성의 완료는 관측 윈도우 *안*에서만 오염으로 본다.
+        // 성숙한 경계 이후의 완료는 정상 활동이므로 데이터 품질을 훼손하지 않는다.
+        return completion.questID != firstCreation.questID && completion.occurredAt < boundary
     }
     quality.orderingFailureCount += contradictoryCompletions.count
     guard contradictoryCompletions.isEmpty else { return nil }
-    let firstCompletion = completions.first
-    let boundary = exposure.occurredAt.addingTimeInterval(120)
+    let firstCompletion = completions.first {
+        $0.questID == firstCreation?.questID
+    }
     let twoMinuteWindowMatured = boundary <= asOf
     let d1 = retention(
         dayOffset: 1,
