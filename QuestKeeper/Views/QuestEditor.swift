@@ -35,7 +35,7 @@ struct QuestEditor: View {
         self.onAuthorizationChange = onAuthorizationChange
         self.onSaved = onSaved
         let now = Date.now
-        let initialTitle = quest?.title ?? draft?.title ?? ""
+        let initialTitle = QuestTitlePolicy.constrainedInput(quest?.title ?? draft?.title ?? "")
         let initialDeadline = quest?.deadline ?? draft?.deadline ?? now.addingTimeInterval(60 * 60)
         let initialImportance = quest?.importance ?? draft?.importance ?? .medium
         _title = State(initialValue: initialTitle)
@@ -46,7 +46,10 @@ struct QuestEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("제목", text: $title)
+                TextField("제목", text: Binding(
+                    get: { title },
+                    set: { title = QuestTitlePolicy.constrainedInput($0) }
+                ))
                 DatePicker("마감", selection: $deadline, in: Date.now...)
                 Picker("중요도", selection: $importance) {
                     Text("낮음").tag(Importance.low)
@@ -62,7 +65,7 @@ struct QuestEditor: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { attemptSave() }
-                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .disabled(QuestTitlePolicy.normalized(title).isEmpty)
                 }
             }
             .alert("너무 큰 퀘스트예요", isPresented: $showingChunkingGuide) {
@@ -86,7 +89,7 @@ struct QuestEditor: View {
 
     private func save() {
         let savedAt = Date.now
-        let trimmed = title.trimmingCharacters(in: .whitespaces)
+        let trimmed = QuestTitlePolicy.normalized(title)
         let savedQuest: Quest
         if let quest {
             quest.title = trimmed
