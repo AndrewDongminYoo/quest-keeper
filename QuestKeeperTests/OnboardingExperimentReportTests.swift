@@ -100,7 +100,7 @@ struct OnboardingExperimentReportTests {
         #expect(afterTargetDay.control.d1 == RetentionRate(achieved: 0, eligible: 1))
     }
 
-    @Test("completion for another quest receives no onboarding credit")
+    @Test("completion for another quest inside the window excludes the contaminated installation")
     func differentQuestCompletion() {
         var events = OnboardingExperimentFixture.events.filter { $0.id != OnboardingExperimentFixture.uuid(1_012) }
         events.append(OnboardingExperimentFixture.event(
@@ -113,10 +113,10 @@ struct OnboardingExperimentReportTests {
 
         let report = makeReport(events: events)
 
-        #expect(report.guided.funnel.firstCompletion == 0)
-        #expect(report.guided.firstSuccessWithinTwoMinutes == RetentionRate(achieved: 0, eligible: 2))
-        #expect(report.dataQuality.orderingFailureCount == 0)
-        #expect(report.dataQuality.status == .complete)
+        #expect(report.guided.funnel.exposed == 1)
+        #expect(report.guided.funnel.firstValue == 1)
+        #expect(report.dataQuality.orderingFailureCount == 1)
+        #expect(report.dataQuality.status == .partial)
     }
 
     @Test("a later completion for another quest preserves the onboarding journey")
