@@ -272,6 +272,48 @@ struct RetentionReportTests {
         #expect(report.dataQuality.orphanCompletionCount == 1)
     }
 
+    @Test("completion for a different quest is orphaned and receives no funnel credit")
+    func mismatchedQuestCompletion() {
+        let installationID = RetentionBaselineFixture.uuid(21)
+        let installation = RetentionInstallationSnapshot(
+            schemaVersion: 1,
+            installationID: installationID,
+            measurementStartedAt: RetentionBaselineFixture.date("2026-07-10T15:00:00Z")
+        )
+        let activation = RetentionBaselineFixture.event(
+            311,
+            "mismatched-activation",
+            .appActivated,
+            installationID,
+            "2026-07-10T15:00:00Z"
+        )
+        let creation = RetentionBaselineFixture.event(
+            312,
+            "mismatched-creation",
+            .questCreated,
+            installationID,
+            "2026-07-10T15:01:00Z",
+            RetentionBaselineFixture.uuid(211)
+        )
+        let completion = RetentionBaselineFixture.event(
+            313,
+            "mismatched-completion",
+            .questCompleted,
+            installationID,
+            "2026-07-10T15:02:00Z",
+            RetentionBaselineFixture.uuid(212)
+        )
+        let report = makeReport(
+            installations: RetentionBaselineFixture.installations + [installation],
+            events: RetentionBaselineFixture.events + [activation, creation, completion],
+            expectation: nil
+        )
+
+        #expect(report.firstValue == RetentionRate(achieved: 4, eligible: 5))
+        #expect(report.firstCompletion == RetentionRate(achieved: 2, eligible: 4))
+        #expect(report.dataQuality.orphanCompletionCount == 1)
+    }
+
     @Test("D1 requires the exact local day and D7 excludes a young installation")
     func calendarWindows() {
         let d2Activation = RetentionBaselineFixture.event(
