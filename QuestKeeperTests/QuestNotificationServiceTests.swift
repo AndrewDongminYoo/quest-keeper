@@ -41,7 +41,7 @@ struct QuestNotificationServiceTests {
         let trigger = request.trigger as? UNCalendarNotificationTrigger
         #expect(trigger?.repeats == false)
         #expect(request.content.title == "퀘스트 마감 임박")
-        #expect(request.content.body == "리포트 · 곧 마감됩니다")
+        #expect(request.content.body == "퀘스트가 곧 마감됩니다")
         #expect(request.content.userInfo["questID"] as? String == questID.uuidString)
         #expect(request.content.userInfo["kind"] as? String == QuestNotificationKind.dueSoon.rawValue)
     }

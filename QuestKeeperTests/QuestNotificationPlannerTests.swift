@@ -83,4 +83,20 @@ struct QuestNotificationPlannerTests {
         #expect(plans[0].fireDate == now.addingTimeInterval(2 * hour))
         #expect(plans[1].fireDate == now.addingTimeInterval(3 * hour))
     }
+
+    @Test("notification previews do not disclose quest titles")
+    func notificationPreviewsKeepQuestTitlesPrivate() {
+        let sensitiveTitle = "HIV clinic follow-up with Dr. Kim"
+        let plans = QuestNotificationPlanner.plans(
+            for: snapshot(deadlineOffset: 3 * hour),
+            title: sensitiveTitle,
+            now: now
+        )
+
+        #expect(plans.map(\.body) == [
+            String(localized: "퀘스트가 곧 마감됩니다"),
+            String(localized: "퀘스트 마감 시간이 되었습니다"),
+        ])
+        #expect(plans.allSatisfy { !$0.body.contains(sensitiveTitle) })
+    }
 }
