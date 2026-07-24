@@ -16,7 +16,7 @@ nonisolated enum QuestNotificationPlanner {
         identifier.hasPrefix(QuestNotificationKind.identifierPrefix)
     }
 
-    static func plans(for snapshot: QuestSnapshot, title: String, now: Date) -> [QuestNotificationPlan] {
+    static func plans(for snapshot: QuestSnapshot, now: Date) -> [QuestNotificationPlan] {
         guard snapshot.completedAt == nil, snapshot.deadline > now else { return [] }
 
         let dueSoonDate = snapshot.deadline.addingTimeInterval(-GameBalance.notificationLeadTime)

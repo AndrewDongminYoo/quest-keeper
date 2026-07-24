@@ -137,6 +137,27 @@ struct OnboardingExperimentReportTests {
         #expect(report.dataQuality.status == .complete)
     }
 
+    @Test("a different-quest completion at the exact boundary still contaminates")
+    func differentQuestCompletionAtBoundary() {
+        var events = OnboardingExperimentFixture.events.filter { $0.id != OnboardingExperimentFixture.uuid(1_012) }
+        // Boundary is exposure (15:00:00) + 120s = 15:02:00. A mismatched completion at the
+        // exact boundary is still inside the observation window, so it must contaminate.
+        events.append(OnboardingExperimentFixture.event(
+            302,
+            .questCompleted,
+            OnboardingExperimentFixture.guidedA,
+            "2026-07-01T15:02:00Z",
+            OnboardingExperimentFixture.uuid(999)
+        ))
+
+        let report = makeReport(events: events)
+
+        #expect(report.guided.funnel.exposed == 1)
+        #expect(report.guided.funnel.firstValue == 1)
+        #expect(report.dataQuality.orderingFailureCount == 1)
+        #expect(report.dataQuality.status == .partial)
+    }
+
     @Test("duplicate event keys exclude the contaminated installation")
     func duplicateEvents() {
         let original = OnboardingExperimentFixture.events[10]
