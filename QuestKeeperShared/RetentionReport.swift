@@ -128,7 +128,9 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
         for installation in supportedInstallations.values {
             let ordered = (eventsByInstallation[installation.installationID] ?? []).sorted(by: eventOrdering)
             for (index, event) in ordered.enumerated() where event.name == .questCompleted {
-                let hasEarlierCreation = ordered[..<index].contains { $0.name == .questCreated }
+                let hasEarlierCreation = ordered[..<index].contains {
+                    $0.name == .questCreated && $0.questID == event.questID
+                }
                 if !hasEarlierCreation { orphanCompletionCount += 1 }
             }
 
@@ -146,8 +148,11 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
                 $0 > activationIndex && ordered[$0].name == .questCreated
             }) {
                 firstValueAchieved += 1
+                let createdQuestID = ordered[creationIndex].questID
                 if ordered.indices.contains(where: {
-                    $0 > creationIndex && ordered[$0].name == .questCompleted
+                    $0 > creationIndex
+                        && ordered[$0].name == .questCompleted
+                        && ordered[$0].questID == createdQuestID
                 }) {
                     firstCompletionAchieved += 1
                 }
