@@ -414,8 +414,9 @@ private nonisolated func makeJourney(
         guard let firstCreation else { return true }
         if !eventOrdering(firstCreation, completion) { return true }
         // spec 013: 다른 quest 정체성의 완료는 관측 윈도우 *안*에서만 오염으로 본다.
-        // 성숙한 경계 이후의 완료는 정상 활동이므로 데이터 품질을 훼손하지 않는다.
-        return completion.questID != firstCreation.questID && completion.occurredAt < boundary
+        // 경계 이후(strictly-after)의 완료만 정상 활동이므로, 경계 정각은 아직 윈도우 안이다.
+        // 형제 지표(firstValueWithinTwoMinutes 등)의 `<= boundary`와도 일치시킨다.
+        return completion.questID != firstCreation.questID && completion.occurredAt <= boundary
     }
     quality.orderingFailureCount += contradictoryCompletions.count
     guard contradictoryCompletions.isEmpty else { return nil }
