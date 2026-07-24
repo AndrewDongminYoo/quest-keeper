@@ -101,6 +101,31 @@ struct WidgetDungeonSnapshotStoreTests {
         #expect(store.load() == .empty)
     }
 
+    @Test("store returns empty payload for invalid quest importance")
+    func storeReturnsEmptyPayloadForInvalidQuestImportance() throws {
+        let directory = temporaryDirectory()
+        let fileURL = directory.appending(path: "widget-dungeon-snapshot.json")
+        let payload = WidgetDungeonPayload(
+            schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
+            generatedAt: now,
+            quests: [
+                WidgetQuestPayload(
+                    id: UUID(),
+                    title: "Invalid importance",
+                    deadline: now.addingTimeInterval(600),
+                    completedAt: nil,
+                    importanceRawValue: .max
+                )
+            ]
+        )
+
+        try JSONEncoder.widgetDungeon.encode(payload).write(to: fileURL)
+
+        let store = WidgetDungeonSnapshotStore(fileURL: fileURL)
+
+        #expect(store.load() == .empty)
+    }
+
     private func temporaryDirectory() -> URL {
         let url = FileManager.default.temporaryDirectory
             .appending(path: "QuestKeeper-\(UUID().uuidString)", directoryHint: .isDirectory)
