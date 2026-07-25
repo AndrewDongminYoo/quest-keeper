@@ -80,4 +80,5 @@ Quest Keeper 첫 출시! 할 일을 던전 몬스터로, 완료를 승리로 바
 
 - **카테고리:** 생산성(Productivity) — 코드 설정과 일치(`public.app-category.productivity`).
 - **연령 등급:** 만화적 폭력 표현(픽셀 몬스터 처치) 유무를 연령 설문에서 정직하게 표기. 경미하나 전무는 아닐 수 있으니 확인.
-- **지원 URL / 개인정보처리방침 URL:** `docs/legal/` 문서를 호스팅(예: GitHub Pages)한 뒤 URL 연결.
+- **지원 URL:** `https://quest-keeper-landing.vercel.app/ko` (랜딩 사이트, `quest-keeper-landing` 리포에서 Vercel 배포).
+- **개인정보처리방침 URL:** `https://quest-keeper-landing.vercel.app/ko/privacy` (이용약관: `https://quest-keeper-landing.vercel.app/ko/terms`). 원본은 `docs/legal/`이며 변경 시 랜딩 리포 `content/legal/*.ko.md`로 재복사.
