@@ -85,7 +85,3 @@ Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or 
   Local-only, single-device, offline-first.
 - **Language:** Korean comments and user-facing strings are intentional — do not translate them.
   Code identifiers and commit messages are English.
-
-```
-
-```

@@ -19,6 +19,7 @@ Weekly repeated completion: 1 / 3, 33.3%.
 ## Data Quality
 
 Status: complete.
+
 - Duplicate rows: 0.
 - Missing scenario keys: 0.
 - Forbidden scenario keys: 0.

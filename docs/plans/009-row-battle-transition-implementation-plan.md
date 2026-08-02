@@ -50,10 +50,12 @@ Render battle feedback in `QuestRow` from an explicit `QuestBattlePhase`.
 ### Task 1: Battle Resolution Policy
 
 **Files:**
+
 - Create: `QuestKeeper/Views/QuestBattleResolution.swift`
 - Create: `QuestKeeperTests/QuestBattleResolutionTests.swift`
 
 **Interfaces:**
+
 - Produces: `nonisolated enum QuestBattlePhase: Equatable`
 - Produces: `nonisolated enum QuestBattleResolution`
 - Produces: `QuestBattleResolution.defeatedPhaseDelay: TimeInterval`
@@ -160,12 +162,14 @@ git commit -m "test(ui): cover quest battle resolution policy"
 ### Task 2: Timestamp-Aware Completion Callback
 
 **Files:**
+
 - Modify: `QuestKeeper/ContentView.swift`
 - Modify: `QuestKeeper/Views/HomeDungeonBoardView.swift`
 - Modify: `QuestKeeper/Views/QuestListSections.swift`
 - Test: `QuestKeeperTests/QuestActionsTests.swift`
 
 **Interfaces:**
+
 - Consumes: `QuestActions.complete(_ quest: Quest, at completedAt: Date)`
 - Produces: timestamp-aware callback type `(Quest, Date) -> Void` through the home board.
 - Preserves: notification cancellation and widget snapshot writes in `ContentView.complete`.
@@ -275,10 +279,12 @@ git commit -m "feat(ui): pass completion action timestamp"
 ### Task 3: Row-Delayed Battle Commit
 
 **Files:**
+
 - Modify: `QuestKeeper/Views/QuestListSections.swift`
 - Test: `QuestKeeperTests/QuestBattleResolutionTests.swift`
 
 **Interfaces:**
+
 - Consumes: `QuestBattleResolution.shouldAcceptCompletion(isResolving:)`
 - Consumes: `QuestBattleResolution.defeatedPhaseDelay`
 - Consumes: `QuestBattleResolution.commitDelay`
@@ -452,10 +458,12 @@ git commit -m "feat(ui): delay quest completion for battle feedback"
 ### Task 4: Battle Row Presentation
 
 **Files:**
+
 - Modify: `QuestKeeper/Views/QuestRow.swift`
 - Modify: `QuestKeeper/Views/QuestListSections.swift`
 
 **Interfaces:**
+
 - Consumes: `QuestBattlePhase`
 - Produces: `QuestRow.init(quest: Quest, now: Date, battlePhase: QuestBattlePhase = .idle)`
 - Preserves: default idle rendering for all existing callers.
@@ -582,9 +590,11 @@ git commit -m "feat(ui): render quest row battle feedback"
 ### Task 5: Final Verification
 
 **Files:**
+
 - Validate only.
 
 **Interfaces:**
+
 - Verifies all prior tasks together.
 
 - [ ] **Step 1: Run full QuestKeeper tests**

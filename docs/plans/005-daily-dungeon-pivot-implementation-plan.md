@@ -61,6 +61,7 @@
 ### Task 1: Daily Grave Derivation
 
 **Files:**
+
 - Modify: `QuestKeeperTests/DerivationTests.swift`
 - Modify: `QuestKeeper/Derivation/GameBalance.swift`
 - Modify: `QuestKeeper/Derivation/QuestOutcome.swift`
@@ -68,6 +69,7 @@
 - Modify: `QuestKeeper/Views/HeroHeader.swift`
 
 **Interfaces:**
+
 - Consumes: `QuestSnapshot.outcome(at:)`, `QuestSnapshot.mobLevel(at:)`
 - Produces:
   - `QuestSnapshot.isVisibleDailyGrave(at:calendar:) -> Bool`
@@ -225,11 +227,13 @@ Expected: PASS.
 ### Task 2: Retry Tomorrow and Chunking Action Seams
 
 **Files:**
+
 - Modify: `QuestKeeperTests/QuestActionsTests.swift`
 - Modify: `QuestKeeper/Actions/QuestActions.swift`
 - Modify: `QuestKeeper/Derivation/QuestOutcome.swift`
 
 **Interfaces:**
+
 - Consumes: `Quest`, `QuestSnapshot`, `GameBalance.longQuestWarningHorizon`
 - Produces:
   - `retryDeadlineTomorrow(from:calendar:) -> Date`
@@ -337,12 +341,14 @@ Expected: PASS.
 ### Task 3: Retry Notification Lifecycle Wiring
 
 **Files:**
+
 - Modify: `QuestKeeperTests/QuestNotificationServiceTests.swift`
 - Modify: `QuestKeeper/ContentView.swift`
 - Modify: `QuestKeeper/Views/QuestListSections.swift`
 - Modify: `QuestKeeper/Views/QuestRow.swift`
 
 **Interfaces:**
+
 - Consumes: `QuestActions.retryTomorrow(_:now:calendar:)`
 - Consumes: `QuestNotificationService.sync(quest:now:)`
 - Produces: retry UI action that clears old notification IDs and schedules new future notifications through the existing sync path.
@@ -437,12 +443,14 @@ Expected: PASS.
 ### Task 4: First-Pass Dungeon Root UI
 
 **Files:**
+
 - Modify: `QuestKeeper/ContentView.swift`
 - Modify: `QuestKeeper/Views/HeroHeader.swift`
 - Modify: `QuestKeeper/Views/QuestListSections.swift`
 - Modify: `QuestKeeper/Views/QuestRow.swift`
 
 **Interfaces:**
+
 - Consumes: `HeroState.totalVictories`, `QuestSnapshot.mobLevel(at:)`, `QuestSnapshot.isVisibleDailyGrave(at:)`
 - Produces: a SwiftUI-only dungeon shell using existing navigation/editor flows.
 
@@ -522,10 +530,12 @@ Expected: BUILD SUCCEEDED with no new warnings.
 ### Task 5: Chunking Guide Alert
 
 **Files:**
+
 - Modify: `QuestKeeper/Views/QuestEditor.swift`
 - Covered by: `QuestKeeperTests/QuestActionsTests.swift` from Task 2
 
 **Interfaces:**
+
 - Consumes: `QuestActions.needsChunkingGuide(deadline:now:)`
 - Produces: oversized quest save warning with fixed local copy.
 
@@ -588,9 +598,11 @@ Expected: PASS and BUILD SUCCEEDED.
 ### Task 6: Full Verification
 
 **Files:**
+
 - All modified production and test files
 
 **Interfaces:**
+
 - Verifies the complete daily dungeon baseline.
 
 - [x] **Step 1: Run full unit tests**

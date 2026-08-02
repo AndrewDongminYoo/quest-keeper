@@ -68,6 +68,7 @@ sqlite3 "$STORE" "UPDATE ZQUEST SET ZCOMPLETEDAT=$NOW_TIRD WHERE ZCOMPLETEDAT IS
 
 Foreground via `xcrun simctl launch` again (no terminate) and capture with `xcrun simctl io … screenshot`.
 Expected outcomes:
+
 - If it already reflects warm → SwiftData default cross-process merge works; Task 8 only needs to ensure `reconstructOnActivation` reads a fresh fetch.
 - If it stays pending warm but updates on relaunch → Task 8 must force a refresh (rollback/refetch) on `.active`.
 
@@ -83,10 +84,12 @@ git commit -m "docs(plan): record cross-process visibility spike result"
 ### Task 2: Move `Quest` + `Importance` to `QuestKeeperShared`
 
 **Files:**
+
 - Move: `QuestKeeper/Models/Quest.swift` → `QuestKeeperShared/Quest.swift`
 - Modify: `QuestKeeper.xcodeproj/project.pbxproj` (target membership)
 
 **Interfaces:**
+
 - Produces: `Quest` (`@Model`), `Importance` — now in the shared module, linked by app + widget.
 
 - [ ] **Step 1: Move the file and re-target it.** `git mv QuestKeeper/Models/Quest.swift QuestKeeperShared/Quest.swift`. In Xcode, remove it from the `QuestKeeper` target's Compile Sources and add it to the `QuestKeeperShared` target (which the widget already links). The file contents are unchanged (it already imports only `Foundation` + `SwiftData`).
@@ -94,10 +97,12 @@ git commit -m "docs(plan): record cross-process visibility spike result"
 - [ ] **Step 2: Build both schemes to verify the model resolves in the app and widget.**
 
 Run:
+
 ```bash
 xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -quiet
 xcodebuild build -scheme QuestKeeperWidget -destination 'platform=iOS Simulator,name=iPhone 17e' -quiet
 ```
+
 Expected: both succeed. `QuestSnapshot.swift` still compiles in the app (its `extension Quest` sees the shared type).
 
 - [ ] **Step 3: Run the unit suite (no behavior change expected).**
@@ -117,10 +122,12 @@ git commit -m "refactor(model): share Quest and Importance via QuestKeeperShared
 ### Task 3: Shared container factory + explicit App Group store
 
 **Files:**
+
 - Create: `QuestKeeperShared/QuestModelContainer.swift`
 - Modify: `QuestKeeper/QuestKeeperApp.swift`
 
 **Interfaces:**
+
 - Produces: `enum QuestModelContainer { static func make() throws -> ModelContainer }` — a `ModelContainer` over `[Quest.self]` in the App Group. Callable off the main actor (the widget intent uses it). Cross-process change visibility is framework-managed SwiftData behavior validated empirically by the Task 1 spike and guaranteed by the Task 8 `.active` refresh — this factory does not toggle history tracking manually.
 
 - [ ] **Step 1: Create the factory.**
@@ -157,10 +164,12 @@ var sharedModelContainer: ModelContainer = {
 - [ ] **Step 3: Verify the store URL vs. the spike's path (no unintended reset).** Build+run once, then confirm the store still resolves to the same App Group path found in Task 1.
 
 Run:
+
 ```bash
 xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -quiet
 find "$HOME/Library/Developer/CoreSimulator/Devices/7ED9020C-A21E-425F-AF74-C71C40DA0A13/data/Containers" -name default.store
 ```
+
 Expected: same App Group container path as Task 1 (explicit `groupContainer` matches the prior implicit location). If the path differs, note the one-time dev reset in the commit body.
 
 - [ ] **Step 4: Run the unit suite.**
@@ -180,11 +189,13 @@ git commit -m "feat(store): open the SwiftData store via explicit App Group cont
 ### Task 4: Share `QuestNotificationKind` (widget cancels the app's identifiers)
 
 **Files:**
+
 - Move: `QuestKeeper/Notifications/QuestNotificationKind.swift` → `QuestKeeperShared/QuestNotificationKind.swift`
 - Modify: `QuestKeeper.xcodeproj/project.pbxproj` (target membership)
 - Test: `QuestKeeperTests/WidgetNotificationCancellationTests.swift`
 
 **Interfaces:**
+
 - Consumes: `QuestNotificationKind.identifier(for: UUID) -> String`, `QuestNotificationKind.allCases`.
 - Produces: the shared cancellation identifiers `QuestNotificationKind.allCases.map { $0.identifier(for: id) }`.
 
@@ -216,10 +227,12 @@ Expected: PASS.
 - [ ] **Step 4: Build both schemes and re-run the parity test.**
 
 Run:
+
 ```bash
 xcodebuild build -scheme QuestKeeperWidget -destination 'platform=iOS Simulator,name=iPhone 17e' -quiet
 xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:QuestKeeperTests -quiet
 ```
+
 Expected: both PASS (`QuestNotificationPlanner` in the app still sees `QuestNotificationKind` via the shared import).
 
 - [ ] **Step 5: Commit.**
@@ -234,10 +247,12 @@ git commit -m "refactor(notifications): share QuestNotificationKind for widget c
 ### Task 5: Share the payload mapping off the main actor
 
 **Files:**
+
 - Move: `QuestKeeper/WidgetSupport/WidgetDungeonPayload+Quest.swift` → `QuestKeeperShared/WidgetDungeonPayload+Quest.swift`
 - Modify: `QuestKeeper.xcodeproj/project.pbxproj` (target membership)
 
 **Interfaces:**
+
 - Produces: `WidgetDungeonPayload.make(from:including:excluding:generatedAt:)` reachable from the widget, callable within an actor over `[Quest]`.
 
 - [ ] **Step 1: Move the file to `QuestKeeperShared` and adjust isolation.** Drop the `@MainActor` on `make(...)` and make it callable from any actor context — the caller (the app `@MainActor` writer and the widget `@ModelActor`) each passes quests bound to its own context, so the mapping only reads properties within that isolation. Keep the signature identical otherwise.
@@ -260,10 +275,12 @@ extension WidgetDungeonPayload {
 - [ ] **Step 2: Build both schemes; fix any actor-isolation diagnostics at the two call sites** (`ContentView` writer stays on `@MainActor`; the widget calls it inside its `@ModelActor` — Task 7).
 
 Run:
+
 ```bash
 xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -quiet
 xcodebuild build -scheme QuestKeeperWidget -destination 'platform=iOS Simulator,name=iPhone 17e' -quiet
 ```
+
 Expected: both succeed.
 
 - [ ] **Step 3: Run the unit suite** (existing `WidgetDungeonPayloadTests` cover `make`).
@@ -283,10 +300,12 @@ git commit -m "refactor(widget): share payload mapping for cross-process snapsho
 ### Task 6: Completion core on a `@ModelActor`
 
 **Files:**
+
 - Create: `QuestKeeperShared/QuestStoreActor.swift`
 - Test: `QuestKeeperTests/QuestStoreActorTests.swift`
 
 **Interfaces:**
+
 - Produces: `@ModelActor actor QuestStoreActor { func complete(id: UUID, now: Date) throws -> Bool }` — returns `true` if it wrote the fact, `false` if no-op (already completed / missing). Raw fact only.
 
 - [ ] **Step 1: Write the failing test** (in-memory container; single-process correctness of the mutation).
@@ -385,9 +404,11 @@ git commit -m "feat(store): add QuestStoreActor completion mutation"
 ### Task 7: `CompleteQuestIntent`
 
 **Files:**
+
 - Create: `QuestKeeperWidget/CompleteQuestIntent.swift`
 
 **Interfaces:**
+
 - Consumes: `QuestModelContainer.make()`, `QuestStoreActor`, `QuestNotificationKind`, `WidgetDungeonSnapshotStore`.
 - Produces: `struct CompleteQuestIntent: AppIntent` with `@Parameter var questID: String`.
 
@@ -450,9 +471,11 @@ git commit -m "feat(widget): add CompleteQuestIntent for one-tap completion"
 ### Task 8: App refreshes on `.active` (per spike result)
 
 **Files:**
+
 - Modify: `QuestKeeper/ContentView.swift`
 
 **Interfaces:**
+
 - Consumes: the spike's decision (Task 1). Ensures a warm foreground reflects widget writes before `reconstructOnActivation`.
 
 Spike result (Task 1): warm foreground is **stale** — the rendered `@Query` list does not reflect an external write. So the fix must refresh the `@Query`-bound view itself, not merely feed `reconstructOnActivation` a fresh fetch.
@@ -496,9 +519,11 @@ git commit -m "fix(app): refresh store on activation so warm foreground sees wid
 ### Task 9: Widget complete buttons
 
 **Files:**
+
 - Modify: `QuestKeeperWidget/WidgetDungeonView.swift`
 
 **Interfaces:**
+
 - Consumes: `CompleteQuestIntent(questID:)`, the entry's pending mobs (which carry `id`).
 
 - [ ] **Step 1: Add a `Button(intent:)` to each pending mob row (medium) and to the top mob (small).** Read `WidgetDungeonView.swift` first to match its row rendering and `WidgetDungeonEntryState` shape; wrap the complete affordance in:
@@ -536,6 +561,7 @@ git commit -m "feat(widget): render one-tap 완료 buttons on pending mobs"
 - [ ] **Step 1: Full gate.**
 
 Run:
+
 ```bash
 xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:QuestKeeperTests -quiet
 xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -quiet
@@ -543,6 +569,7 @@ xcodebuild build -scheme QuestKeeperWidget -destination 'platform=iOS Simulator,
 git diff --check
 ! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/ QuestKeeperShared/
 ```
+
 Expected: all pass; guard returns nothing.
 
 - [ ] **Step 2: Manual cross-process gate (the acceptance point).** Add the widget, create a near-deadline quest, background the app, tap `완료` on the widget, foreground the app: the quest shows completed **warm**, its notification no longer fires, and a second tap is a no-op.

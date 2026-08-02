@@ -45,10 +45,12 @@ Add pure presentation helpers only for countdown and urgency text that are worth
 ### Task 1: Presentation Helpers
 
 **Files:**
+
 - Create: `QuestKeeper/Views/DungeonPresentation.swift`
 - Create: `QuestKeeperTests/DungeonPresentationTests.swift`
 
 **Interfaces:**
+
 - Produces: `nonisolated enum DungeonUrgencyTone: Equatable`
 - Produces: `nonisolated enum DungeonPresentation`
 - Produces: `DungeonPresentation.countdownText(deadline: Date, now: Date) -> String`
@@ -161,10 +163,12 @@ git commit -m "test(ui): cover dungeon row presentation helpers"
 ### Task 2: Home Board Shell
 
 **Files:**
+
 - Create: `QuestKeeper/Views/HomeDungeonBoardView.swift`
 - Modify: `QuestKeeper/ContentView.swift`
 
 **Interfaces:**
+
 - Consumes: `HeroState`, `[Quest]`, `Date`, and existing `ContentView` callbacks.
 - Produces: `HomeDungeonBoardView`, a SwiftUI view that replaces the root `List` surface.
 
@@ -368,10 +372,12 @@ git commit -m "feat(ui): add home dungeon board shell"
 ### Task 3: Dungeon Row Visuals
 
 **Files:**
+
 - Modify: `QuestKeeper/Views/QuestListSections.swift`
 - Modify: `QuestKeeper/Views/QuestRow.swift`
 
 **Interfaces:**
+
 - Consumes: `DungeonPresentation.countdownText(deadline:now:)`
 - Consumes: `DungeonPresentation.urgencyTone(deadline:mobLevel:now:)`
 - Preserves: `QuestListSections` callbacks through a custom swipe action rail.
@@ -586,9 +592,11 @@ git commit -m "feat(ui): redesign quest rows as dungeon floors"
 ### Task 4: Final Verification And Manual Screenshot
 
 **Files:**
+
 - Modify only if validation exposes a real issue.
 
 **Interfaces:**
+
 - Consumes: all files touched in Tasks 1-3.
 - Produces: review-ready branch.
 

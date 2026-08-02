@@ -79,17 +79,17 @@ The app may be game-like, but it still runs on iOS:
 Use a dungeon-at-night palette with state-driven accents.
 Avoid a one-note brown/orange screen; the dungeon can be dark, but state colors must be legible.
 
-| Token | Light | Dark | Meaning |
-| --- | --- | --- | --- |
-| `ink` | `#17151D` | `#F2EDF7` | Primary text |
-| `dungeon` | `#E9E5EF` | `#17131F` | Main background |
-| `stone` | `#F7F5FA` | `#414758` | Floor tiles / elevated surfaces |
-| `torch` | `#A85E0A` | `#FFB14A` | Warm dungeon light / warning step |
-| `hero` | `#3A73D9` | `#6FA0FF` | Hero / primary action |
-| `victory` | `#85690C` | `#FFD95A` | Coins, stars, completed state |
-| `danger` | `#C0392B` | `#FF705A` | Urgency and high-level monsters |
-| `grave` | `#5E6462` | `#A5AAA8` | Today's missed quest marker |
-| `guide` | `#5CC9B5` | `#7FE0D0` | Elder guide / safe advice |
+| Token     | Light     | Dark      | Meaning                           |
+| --------- | --------- | --------- | --------------------------------- |
+| `ink`     | `#17151D` | `#F2EDF7` | Primary text                      |
+| `dungeon` | `#E9E5EF` | `#17131F` | Main background                   |
+| `stone`   | `#F7F5FA` | `#414758` | Floor tiles / elevated surfaces   |
+| `torch`   | `#A85E0A` | `#FFB14A` | Warm dungeon light / warning step |
+| `hero`    | `#3A73D9` | `#6FA0FF` | Hero / primary action             |
+| `victory` | `#85690C` | `#FFD95A` | Coins, stars, completed state     |
+| `danger`  | `#C0392B` | `#FF705A` | Urgency and high-level monsters   |
+| `grave`   | `#5E6462` | `#A5AAA8` | Today's missed quest marker       |
+| `guide`   | `#5CC9B5` | `#7FE0D0` | Elder guide / safe advice         |
 
 The **light** column was reworked from the original draft; the dark column is the original spec, unchanged.
 Two corrections, both forced by legibility:

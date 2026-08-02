@@ -61,12 +61,14 @@
 ### Task 1: Shared Widget Payload and Derivation
 
 **Files:**
+
 - Create: `QuestKeeperShared/WidgetDungeonPayload.swift`
 - Create: `QuestKeeperShared/WidgetDungeonDerivation.swift`
 - Create: `QuestKeeperTests/WidgetDungeonPayloadTests.swift`
 - Modify: `QuestKeeper.xcodeproj/project.pbxproj`
 
 **Interfaces:**
+
 - Consumes:
   - Raw quest facts from app code: `id`, `title`, `deadline`, `completedAt`, `importance.rawValue`.
 - Produces:
@@ -412,10 +414,12 @@ git commit -m "feat: add widget dungeon payload derivation"
 ### Task 2: App Group Snapshot Store
 
 **Files:**
+
 - Create: `QuestKeeperShared/WidgetDungeonSnapshotStore.swift`
 - Create: `QuestKeeperTests/WidgetDungeonSnapshotStoreTests.swift`
 
 **Interfaces:**
+
 - Consumes:
   - `WidgetDungeonPayload`
   - `JSONEncoder.widgetDungeon`
@@ -586,11 +590,13 @@ git commit -m "feat: add widget snapshot store"
 ### Task 3: App Snapshot Writing
 
 **Files:**
+
 - Modify: `QuestKeeper/ContentView.swift`
 - Modify: `QuestKeeper/Views/QuestEditor.swift`
 - Test: `QuestKeeperTests/WidgetDungeonPayloadTests.swift`
 
 **Interfaces:**
+
 - Consumes:
   - `Quest.snapshot`
   - `Quest.title`
@@ -758,6 +764,7 @@ git commit -m "feat: write widget snapshots from quest mutations"
 ### Task 4: Widget Target and App Group Entitlements
 
 **Files:**
+
 - Modify: `QuestKeeper.xcodeproj/project.pbxproj`
 - Create: `QuestKeeper/QuestKeeper.entitlements`
 - Create: `QuestKeeperWidget/QuestKeeperWidget.entitlements`
@@ -766,6 +773,7 @@ git commit -m "feat: write widget snapshots from quest mutations"
 - Create: `QuestKeeperWidget/WidgetDungeonView.swift`
 
 **Interfaces:**
+
 - Consumes:
   - `QuestKeeperShared` files from Tasks 1 and 2.
 - Produces:
@@ -924,10 +932,12 @@ git commit -m "feat: add QuestKeeper widget target"
 ### Task 5: Widget Timeline Provider
 
 **Files:**
+
 - Modify: `QuestKeeperWidget/QuestKeeperWidget.swift`
 - Create: `QuestKeeperTests/WidgetTimelinePolicyTests.swift`
 
 **Interfaces:**
+
 - Consumes:
   - `WidgetDungeonSnapshotStore.load()`
   - `WidgetDungeonDerivation.derive(payload:at:calendar:)`
@@ -1116,9 +1126,11 @@ git commit -m "feat: load widget timelines from app group snapshots"
 ### Task 6: Widget Dungeon UI
 
 **Files:**
+
 - Modify: `QuestKeeperWidget/WidgetDungeonView.swift`
 
 **Interfaces:**
+
 - Consumes:
   - `QuestKeeperWidgetEntry.state`
   - `WidgetDungeonEntryState.activeMobs`
@@ -1314,9 +1326,11 @@ git commit -m "feat: render quest keeper widget dungeon"
 ### Task 7: Final Verification
 
 **Files:**
+
 - Inspect only changed files from Tasks 1-6.
 
 **Interfaces:**
+
 - Consumes all previous task outputs.
 - Produces verified Phase 4 baseline ready for PR.
 

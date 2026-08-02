@@ -7,6 +7,7 @@ Pure, deterministic layer in `QuestKeeper/Derivation/`. All game state is comput
 - `GameBalance.swift` — `GameBalance` enum: tunable constants. `longQuestWarningHorizon` (7 days) gates the elder-guide chunking prompt in the quest editor. Mob level = `importance` (stored) × urgency (derived); urgency = f(time remaining until deadline).
 
 Fact mutations (not derivation) live in `QuestKeeper/Actions/`:
+
 - `QuestActions.retryDeadlineTomorrow` — "내일 도전하기": overwrites the `deadline` fact to tomorrow.
 - `Activation.reconstructOnActivation` — scenePhase `.active` replay: reconstructs deaths between `lastOpened` and `now`.
 

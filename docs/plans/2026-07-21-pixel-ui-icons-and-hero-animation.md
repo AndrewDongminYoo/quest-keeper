@@ -197,24 +197,24 @@ Create `Contents.json` in every new imageset with the corresponding PNG filename
 
 ```json
 {
-  "images" : [
+  "images": [
     {
-      "filename" : "icon-battle-flag.png",
-      "idiom" : "universal",
-      "scale" : "1x"
+      "filename": "icon-battle-flag.png",
+      "idiom": "universal",
+      "scale": "1x"
     },
     {
-      "idiom" : "universal",
-      "scale" : "2x"
+      "idiom": "universal",
+      "scale": "2x"
     },
     {
-      "idiom" : "universal",
-      "scale" : "3x"
+      "idiom": "universal",
+      "scale": "3x"
     }
   ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
+  "info": {
+    "author": "xcode",
+    "version": 1
   }
 }
 ```

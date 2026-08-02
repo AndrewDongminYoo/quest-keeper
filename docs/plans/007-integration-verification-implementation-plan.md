@@ -38,11 +38,13 @@
 ### Task 1: Cross-Surface Integration Tests
 
 **Files:**
+
 - Create: `QuestKeeperTests/IntegrationVerificationTests.swift`
 - Modify: `QuestKeeper/Derivation/HeroDerivation.swift`
 - Modify: `QuestKeeperShared/WidgetDungeonDerivation.swift`
 
 **Interfaces:**
+
 - Consumes:
   - `QuestSnapshot(id:deadline:completedAt:importance:)`
   - `HeroDerivation.state(quests:now:lastOpened:calendar:) -> HeroState`
@@ -322,9 +324,11 @@ Expected: a commit containing only the new integration test file and any product
 ### Task 2: Source-Guard and Full Automated Verification
 
 **Files:**
+
 - Modify only if required by real failures found by the commands below.
 
 **Interfaces:**
+
 - Consumes:
   - `QuestKeeper/Models/Quest.swift`
   - all `QuestKeeperTests`
@@ -398,9 +402,11 @@ If no code changes were required, do not create an empty commit.
 ### Task 3: Manual Verification Log
 
 **Files:**
+
 - Create: `docs/notes/006-phase-5-verification-log.md`
 
 **Interfaces:**
+
 - Consumes:
   - Spec scenarios from `docs/specs/006-integration-verification.md`
   - The app installed from the current commit
@@ -440,6 +446,7 @@ Tester:
 ### 1. Fresh Install And First Launch
 
 Steps:
+
 1. Install a clean build.
 2. Launch the app.
 3. Grant or deny notification permission explicitly.
@@ -452,6 +459,7 @@ Result:
 ### 2. Create Due-Soon And Later Quests
 
 Steps:
+
 1. Create one quest due within the due-soon window.
 2. Create one quest due later.
 3. Inspect pending notification requests in the debugger or app logs.
@@ -464,6 +472,7 @@ Result:
 ### 3. Edit Deadline
 
 Steps:
+
 1. Edit an existing quest deadline.
 2. Confirm old notification identifiers are removed before replacement requests are scheduled.
 3. Confirm the widget reflects the updated deadline after reload or normal refresh.
@@ -475,6 +484,7 @@ Result:
 ### 4. Complete Quest
 
 Steps:
+
 1. Complete a pending quest.
 2. Confirm pending and delivered QuestKeeper notifications for that quest are removed.
 3. Confirm total victories increase.
@@ -487,6 +497,7 @@ Result:
 ### 5. Retry Tomorrow
 
 Steps:
+
 1. Use `내일 도전하기` on a visible daily grave.
 2. Confirm the deadline moves to tomorrow and `completedAt` clears.
 3. Confirm notifications are recreated for the new future deadline.
@@ -499,6 +510,7 @@ Result:
 ### 6. Delete Quest
 
 Steps:
+
 1. Delete a pending quest.
 2. Confirm notifications are removed.
 3. Confirm the widget payload no longer includes the quest.
@@ -510,6 +522,7 @@ Result:
 ### 7. Reopen After Missed Deadline
 
 Steps:
+
 1. Create a quest with a near deadline.
 2. Leave the app inactive until after the deadline.
 3. Reopen the app.
@@ -560,9 +573,11 @@ Expected: a docs-only commit.
 ### Task 4: Retrospective Closeout
 
 **Files:**
+
 - Create: `docs/notes/006-phase-5-retrospective.md`
 
 **Interfaces:**
+
 - Consumes:
   - `BLUEPRINT.md`
   - `docs/specs/006-integration-verification.md`
@@ -646,9 +661,11 @@ Expected: a docs-only commit.
 ### Task 5: Final Phase 5 Gate
 
 **Files:**
+
 - Modify only if final verification exposes a real issue.
 
 **Interfaces:**
+
 - Consumes:
   - all code and docs touched in Tasks 1-4
 - Produces:

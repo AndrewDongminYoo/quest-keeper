@@ -14,9 +14,9 @@ set -euo pipefail
 # next-line adjacency and broke on any of those).
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-widget_view="$repo_root/QuestKeeperWidget/WidgetDungeonView.swift"
+widget_view="${repo_root}/QuestKeeperWidget/WidgetDungeonView.swift"
 
-python3 - "$widget_view" <<'PY'
+python3 - "${widget_view}" <<'PY'
 import sys
 from pathlib import Path
 

@@ -212,24 +212,24 @@ Each file follows this exact contract, with `filename` set to the PNG already na
 
 ```json
 {
-  "images" : [
+  "images": [
     {
-      "filename" : "sprite-hero-idle.png",
-      "idiom" : "universal",
-      "scale" : "1x"
+      "filename": "sprite-hero-idle.png",
+      "idiom": "universal",
+      "scale": "1x"
     },
     {
-      "idiom" : "universal",
-      "scale" : "2x"
+      "idiom": "universal",
+      "scale": "2x"
     },
     {
-      "idiom" : "universal",
-      "scale" : "3x"
+      "idiom": "universal",
+      "scale": "3x"
     }
   ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
+  "info": {
+    "author": "xcode",
+    "version": 1
   }
 }
 ```
@@ -240,7 +240,7 @@ Expected: each imageset has one PNG and one valid `Contents.json`; no generated 
 
 Create `docs/notes/010-pixel-asset-generation.md` with the approved prompt and fixed asset inventory:
 
-```markdown
+````markdown
 # Pixel Asset Generation Record
 
 ## Source
@@ -266,6 +266,7 @@ Exact row-major cell order:
 
 Cells 1 and 2 must depict exactly the same hero design: same clothing, hair, proportions, palette, and outline, changing only the pose. Cell 6 is a compact muted slate-gray temporary grave marker with one simple centered plus-shaped inset or cutout; it is not a medical symbol, number, counter, or permanent memorial. Every subject must be isolated and fully contained inside its own cell. Keep silhouettes distinct at 20 to 30 point display sizes. No text, letters, numbers, logos, UI panels, buttons, scenery, character names, signatures, watermarks, extra objects, repeated subjects, gore, gradients, soft painting, 3D rendering, or reference-app imitation.
 ```
+````
 
 ## Cell Order
 
@@ -291,7 +292,6 @@ python "${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chrom
   --despill
 /opt/homebrew/bin/magick docs/assets/pixel-home-dungeon/questkeeper-home-dungeon-sheet-transparent.png \
   -crop 4x2@ +repage +adjoin "$asset_work_dir/cell-%d.png"
-```
 ```
 
 - [ ] **Step 7: Inspect every extracted image before committing**

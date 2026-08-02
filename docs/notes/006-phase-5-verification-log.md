@@ -28,6 +28,7 @@ Tester: Codex via XcodeBuildMCP
 ### 1. Fresh Install And First Launch
 
 Steps:
+
 1. Install a clean build.
 2. Launch the app.
 3. Grant or deny notification permission explicitly.
@@ -40,6 +41,7 @@ Result: blocked
 ### 2. Create Due-Soon And Later Quests
 
 Steps:
+
 1. Create one quest due within the due-soon window.
 2. Create one quest due later.
 3. Inspect pending notification requests in the debugger or app logs.
@@ -52,6 +54,7 @@ Result: blocked
 ### 3. Edit Deadline
 
 Steps:
+
 1. Edit an existing quest deadline.
 2. Confirm old notification identifiers are removed before replacement requests are scheduled.
 3. Confirm the widget reflects the updated deadline after reload or normal refresh.
@@ -63,6 +66,7 @@ Result: blocked
 ### 4. Complete Quest
 
 Steps:
+
 1. Complete a pending quest.
 2. Confirm pending and delivered QuestKeeper notifications for that quest are removed.
 3. Confirm total victories increase.
@@ -75,6 +79,7 @@ Result: blocked
 ### 5. Retry Tomorrow
 
 Steps:
+
 1. Use `내일 도전하기` on a visible daily grave.
 2. Confirm the deadline moves to tomorrow and `completedAt` clears.
 3. Confirm notifications are recreated for the new future deadline.
@@ -87,6 +92,7 @@ Result: pass
 ### 6. Delete Quest
 
 Steps:
+
 1. Delete a pending quest.
 2. Confirm notifications are removed.
 3. Confirm the widget payload no longer includes the quest.
@@ -98,6 +104,7 @@ Result: blocked
 ### 7. Reopen After Missed Deadline
 
 Steps:
+
 1. Create a quest with a near deadline.
 2. Leave the app inactive until after the deadline.
 3. Reopen the app.
