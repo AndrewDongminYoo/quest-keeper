@@ -25,7 +25,6 @@ lines = Path(sys.argv[1]).read_text().splitlines()
 # label -> stable substring anchoring the view that renders private quest data.
 sensitive = {
     "active quest status": "StatusText(deadlineText(for: mob)",
-    "grave title": "Text(grave.title)",
     "active quest title": "Text(mob.title)",
     "active quest deadline": "Text(mob.deadline",
 }

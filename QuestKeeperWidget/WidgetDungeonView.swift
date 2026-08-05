@@ -32,35 +32,74 @@ struct WidgetDungeonView: View {
             }
 
             Spacer(minLength: 0)
-            footer
+            footer(fontSize: 9, iconSize: 12)
         }
         .padding(12)
     }
 
     private var mediumLayout: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                header
-                statusLine
-                gravePanel
-                Spacer(minLength: 0)
-                footer
-            }
-            .frame(width: 96, alignment: .leading)
+        VStack(alignment: .leading, spacing: 6) {
+            mediumHeader
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 let mobs = Array(entry.state.activeMobs.prefix(3))
+                let usesDenseRows = mobs.count == 3
                 if mobs.isEmpty {
                     emptyState
                 } else {
                     ForEach(mobs) { mob in
-                        MobBadge(mob: mob, compact: false)
+                        MobBadge(mob: mob, compact: false, dense: usesDenseRows)
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+
+            HStack(spacing: 8) {
+                Text(mediumSummary)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(DungeonPalette.ink.opacity(0.76))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Spacer(minLength: 0)
+                footer(fontSize: 11, iconSize: 13)
+            }
         }
         .padding(12)
+    }
+
+    private var mediumHeader: some View {
+        HStack(spacing: 8) {
+            Text("QUEST KEEPER")
+                .font(.system(size: 15, weight: .black, design: .monospaced))
+                .foregroundStyle(DungeonPalette.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 6) {
+                StatPill(label: "전투", value: "\(entry.state.activeMobs.count)", tint: DungeonPalette.guide)
+                StatPill(label: "승리", value: "\(entry.state.totalVictories)", tint: DungeonPalette.victory)
+
+                if !entry.state.dailyGraves.isEmpty {
+                    StatPill(label: "묘비", value: "\(entry.state.dailyGraves.count)", tint: DungeonPalette.grave)
+                }
+            }
+        }
+    }
+
+    private var mediumSummary: String {
+        if entry.state.isStale {
+            return "앱을 열면 갱신됩니다"
+        }
+        if entry.state.activeMobs.isEmpty {
+            return "던전이 조용합니다"
+        }
+        if entry.state.activeMobs.count == 1 {
+            return "오늘의 최우선 퀘스트"
+        }
+        return "오늘의 퀘스트 \(entry.state.activeMobs.count)"
     }
 
     private var header: some View {
@@ -93,32 +132,6 @@ struct WidgetDungeonView: View {
         }
     }
 
-    @ViewBuilder
-    private var gravePanel: some View {
-        if let grave = entry.state.dailyGraves.first {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("오늘의 묘비")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(DungeonPalette.ink.opacity(0.72))
-                    .lineLimit(1)
-
-                Text(grave.title)
-                    .privacySensitive()
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(DungeonPalette.ink.opacity(0.88))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.75)
-            }
-            .padding(8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
-            .overlay {
-                RoundedRectangle(cornerRadius: PixelStyle.corner)
-                    .stroke(DungeonPalette.ink.opacity(0.14), lineWidth: 1)
-            }
-        }
-    }
-
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(entry.state.isStale ? "던전 정보가 오래됐습니다" : "활성 퀘스트가 없습니다")
@@ -143,15 +156,15 @@ struct WidgetDungeonView: View {
         }
     }
 
-    private var footer: some View {
+    private func footer(fontSize: CGFloat, iconSize: CGFloat) -> some View {
         HStack(spacing: 6) {
             WidgetArtworkView(
                 artwork: entry.state.isStale ? .staleWarning : .protectionShield,
-                size: 12
+                size: iconSize
             )
 
             Text(entry.state.generatedAt, style: .time)
-                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .font(.system(size: fontSize, weight: .semibold, design: .monospaced))
                 .foregroundStyle(DungeonPalette.ink.opacity(0.62))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -181,21 +194,24 @@ struct WidgetDungeonView: View {
 private struct MobBadge: View {
     let mob: WidgetMobState
     let compact: Bool
+    var dense = false
 
     var body: some View {
         HStack(spacing: 8) {
-            // Pixel monster — same sprite + tier tint the app renders (shared PixelSprite).
-            PixelSprite(
-                rows: DungeonSprites.monster(level: mob.mobLevel),
-                palette: ["#": MobVisual.tint(level: mob.mobLevel), "o": DungeonPalette.stone]
+            WidgetArtworkView(
+                artwork: .monster(level: mob.mobLevel),
+                size: compact ? 28 : dense ? 18 : 22
             )
-            .frame(width: compact ? 28 : 24, height: compact ? 28 : 24)
+            .frame(
+                width: compact ? 28 : dense ? 20 : 24,
+                height: compact ? 28 : dense ? 20 : 24
+            )
             .accessibilityLabel("몹 레벨 \(mob.mobLevel)")
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: compact ? 2 : dense ? 0 : 1) {
                 Text(mob.title)
                     .privacySensitive()
-                    .font(.system(size: compact ? 12 : 11, weight: .bold, design: .monospaced))
+                    .font(.system(size: compact ? 12 : dense ? 10 : 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(DungeonPalette.ink)
                     .lineLimit(compact ? 2 : 1)
                     .minimumScaleFactor(0.74)
@@ -208,7 +224,7 @@ private struct MobBadge: View {
                         .privacySensitive()
                         .foregroundStyle(DungeonPalette.ink.opacity(0.9))
                 }
-                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .font(.system(size: dense ? 8 : 9, weight: .semibold, design: .monospaced))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
             }
@@ -217,18 +233,37 @@ private struct MobBadge: View {
 
             // One-tap completion — runs CompleteQuestIntent in the widget process (spec 009).
             Button(intent: CompleteQuestIntent(questID: mob.id)) {
-                WidgetArtworkView(artwork: .complete, size: compact ? 13 : 12)
-                    .frame(width: compact ? 28 : 24, height: compact ? 28 : 24)
+                if compact {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .black))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(
+                            DungeonPalette.hero,
+                            in: RoundedRectangle(cornerRadius: PixelStyle.corner)
+                        )
+                } else {
+                    Label {
+                        Text("완료")
+                    } icon: {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: dense ? 8 : 10, weight: .black))
+                    }
+                    .font(.system(size: dense ? 8 : 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, dense ? 5 : 7)
+                    .frame(minHeight: dense ? 22 : 26)
                     .background(
                         DungeonPalette.hero,
                         in: RoundedRectangle(cornerRadius: PixelStyle.corner)
                     )
+                }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("완료")
         }
-        .padding(.vertical, compact ? 7 : 5)
-        .padding(.horizontal, 8)
+        .padding(.vertical, compact ? 7 : dense ? 0 : 2)
+        .padding(.horizontal, compact ? 8 : 7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
         .overlay {
@@ -239,9 +274,28 @@ private struct MobBadge: View {
 }
 
 private enum WidgetArtwork: String {
-    case complete = "icon-complete"
+    case slime = "sprite-slime"
+    case skeleton = "sprite-skeleton"
+    case dragon = "sprite-dragon"
     case staleWarning = "icon-stale-warning"
     case protectionShield = "icon-protection-shield"
+
+    var contentScale: CGFloat {
+        switch self {
+        case .staleWarning, .protectionShield:
+            1.5
+        case .slime, .skeleton, .dragon:
+            1
+        }
+    }
+
+    static func monster(level: Int) -> WidgetArtwork {
+        switch level {
+        case ..<2: .slime
+        case 2..<4: .skeleton
+        default: .dragon
+        }
+    }
 }
 
 private struct WidgetArtworkView: View {
@@ -254,7 +308,7 @@ private struct WidgetArtworkView: View {
             .interpolation(.none)
             .scaledToFit()
             .frame(width: size, height: size)
-            .scaleEffect(1.5)
+            .scaleEffect(artwork.contentScale)
     }
 }
 
@@ -268,12 +322,12 @@ private struct StatPill: View {
             Text(label)
             Text(value)
         }
-        .font(.system(size: 9, weight: .bold, design: .monospaced))
+        .font(.system(size: 10, weight: .bold, design: .monospaced))
         .foregroundStyle(tint)
         .lineLimit(1)
         .minimumScaleFactor(0.75)
         .padding(.vertical, 3)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 7)
         .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: PixelStyle.corner))
     }
 }
