@@ -53,46 +53,46 @@
 
 목표: 저장/파생 경계를 코드로 못박는다. 실패의 누적(무덤 카운트)을 없애고 긍정적인 '작은 성공'을 기록하는 구조로 변경.
 
-- [ ] SwiftData `@Model Task(또는 Quest)` 정의 — 원시 사실만 저장 (`id`, `title`, `deadline`, `completedAt?`, `importance`)
-- [ ] `HeroDerivation` + `QuestSnapshot.urgency(at:)` / `QuestSnapshot.mobLevel(at:)` 파생 로직 작성
-- [ ] `HeroState` 파생 로직 — 영구적인 무덤 카운트를 제거하고, '오늘 발생한 무덤(Daily Graves)'과 '누적된 작은 성공(Total Victories)'만 계산
-- [ ] 단위 테스트: "저장은 사실만" 원칙 검증 및 날짜 변경 시 무덤이 화면에서 사라지는 필터링(리셋) 검증
-- [ ] Swift 6 strict concurrency 켜고 경고 0으로 컴파일
+- [x] SwiftData `@Model Task(또는 Quest)` 정의 — 원시 사실만 저장 (`id`, `title`, `deadline`, `completedAt?`, `importance`)
+- [x] `HeroDerivation` + `QuestSnapshot.urgency(at:)` / `QuestSnapshot.mobLevel(at:)` 파생 로직 작성
+- [x] `HeroState` 파생 로직 — 영구적인 무덤 카운트를 제거하고, '오늘 발생한 무덤(Daily Graves)'과 '누적된 작은 성공(Total Victories)'만 계산
+- [x] 단위 테스트: "저장은 사실만" 원칙 검증 및 날짜 변경 시 무덤이 화면에서 사라지는 필터링(리셋) 검증
+- [x] Swift 6 strict concurrency 켜고 경고 0으로 컴파일
 
 ## Phase 2 — 태스크 CRUD & 긍정 UX (앱 생명주기)
 
 목표: 사용자의 심리적 장벽을 낮추는 UX(이월, 쪼개기 가이드, 트랜지션 타격감) 구현.
 
-- [ ] SwiftData `ModelContainer` 구성, `@Query`로 태스크 목록 바인딩
-- [ ] **"내일 도전하기" (이월 액션)**: 태스크를 꾹 눌러(Long press) `deadline` 사실 자체를 내일로 덮어쓰는 헬퍼 로직 추가
-- [ ] **수수께끼 노인 (Chunking Guide)**: 생성/수정 시 `deadline`이 너무 먼 미래(예: 7일 이상)일 경우, Alert 팝업을 띄워 유머러스하게 태스크 분할을 권유 (MVP 타협안 적용)
-- [ ] **스와이프 전투 트랜지션**: 완료 제스처 시 몹에게 날아가는 직관적인 타격감 트랜지션 / 기한 초과 시 몹이 다가와 용사가 죽는(꿱) 트랜지션 구현
-- [ ] `scenePhase` 감지 → `.active` 전환 시 `lastOpened` 갱신 및 상태 재구성 트리거 (밤새 죽은 몹/용사 처리)
+- [x] SwiftData `ModelContainer` 구성, `@Query`로 태스크 목록 바인딩
+- [x] **"내일 도전하기" (이월 액션)**: `deadline` 사실 자체를 내일로 덮어쓰는 헬퍼 로직 추가 (구현 시 롱프레스 대신 무덤 행의 명시적 버튼으로 노출)
+- [x] **수수께끼 노인 (Chunking Guide)**: 생성/수정 시 `deadline`이 너무 먼 미래(예: 7일 이상)일 경우, Alert 팝업을 띄워 유머러스하게 태스크 분할을 권유 (MVP 타협안 적용)
+- [x] **스와이프 전투 트랜지션**: 완료 제스처 시 몹에게 날아가는 직관적인 타격감 트랜지션 / 기한 초과 시 몹이 다가와 용사가 죽는(꿱) 트랜지션 구현
+- [x] `scenePhase` 감지 → `.active` 전환 시 `lastOpened` 갱신 및 상태 재구성 트리거 (밤새 죽은 몹/용사 처리)
 
 ## Phase 3 — 로컬 알림 라이프사이클 (UserNotifications)
 
 목표: 스케줄→취소→재등록 사이클을 정확히 하되, 부담스럽지 않게.
 
-- [ ] 알림 권한 요청 플로우 (`UNUserNotificationCenter`)
-- [ ] 태스크 생성/수정 시 `UNCalendarNotificationTrigger`로 마감 임박·초과 알림 스케줄
-- [ ] 태스크 완료 및 **"내일 도전하기"로 이월 시** pending 알림 취소 및 재등록
-- [ ] 알림 내용은 '무덤이 생겼습니다' 같은 부정적 피드백을 피하고 정보 전달에 집중
+- [x] 알림 권한 요청 플로우 (`UNUserNotificationCenter`)
+- [x] 태스크 생성/수정 시 `UNCalendarNotificationTrigger`로 마감 임박·초과 알림 스케줄
+- [x] 태스크 완료 및 **"내일 도전하기"로 이월 시** pending 알림 취소 및 재등록
+- [x] 알림 내용은 '무덤이 생겼습니다' 같은 부정적 피드백을 피하고 정보 전달에 집중
 
 ## Phase 4 — 홈 화면 위젯 (WidgetKit + App Group)
 
 목표: 앱을 열지 않고도 오늘의 남은 몹(할 일)들을 시각적으로 확인.
 
-- [ ] App Group 설정, SwiftData 스토어를 앱↔위젯 공유 컨테이너로 이동
-- [ ] Widget Extension 생성, `TimelineProvider`로 몹들의 스냅샷 제공
-- [ ] 시간이 지남에 따라 몹의 크기나 외형(긴급도)이 변하는 것을 위젯에서도 파생 상태로 렌더링
+- [x] App Group 설정, SwiftData 스토어를 앱↔위젯 공유 컨테이너로 이동
+- [x] Widget Extension 생성, `TimelineProvider`로 몹들의 스냅샷 제공
+- [x] 시간이 지남에 따라 몹의 크기나 외형(긴급도)이 변하는 것을 위젯에서도 파생 상태로 렌더링
 
 ## Phase 5 — 통합 검증 & 회고
 
 목표: 관통 라인 완성 확인, 학습 정리.
 
-- [ ] "저장은 사실만" 원칙이 지켜졌는지 최종 검증 (무덤 삭제나 이월 로직이 DB를 꼬이게 하지 않았는지)
-- [ ] 실기기에서 장시간 방치 후 재오픈 시나리오(다음 날 아침 던전 리셋) 테스트
-- [ ] 짧은 회고 메모 작성
+- [x] "저장은 사실만" 원칙이 지켜졌는지 최종 검증 (무덤 삭제나 이월 로직이 DB를 꼬이게 하지 않았는지)
+- [ ] 실기기에서 장시간 방치 후 재오픈 시나리오(다음 날 아침 던전 리셋) 테스트 — `docs/notes/006-phase-5-verification-log.md` 기준 시뮬레이터만 수행했고 해당 시나리오는 `blocked`, 실기기 프로비저닝도 미검증
+- [x] 짧은 회고 메모 작성 (`docs/notes/006-phase-5-retrospective.md`)
 
 ---
 
