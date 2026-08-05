@@ -26,13 +26,55 @@ This is the architectural spine.
 Every gamification rule must preserve it:
 
 - **Persist**: only immutable raw facts — `task.deadline`, `task.completedAt`, `task.importance`.
-- **Derive**: hero HP, `isDead`, mob level, urgency — all computed **against the current time at read time**, never stored.
+- **Derive**: outcome, urgency, mob level, victory and daily-grave counts — all computed **against the current time at read time**, never stored.
 - Deadline judgment is **state replay, not event-driven**: on app reopen, compare `lastOpened` against each task's `deadline` to retroactively reconstruct which heroes should have died in between.
 - `urgency = f(time remaining until deadline)` — a derived, time-varying axis (turns the Eisenhower matrix into a live-moving one). `mobLevel = importance (stored) × urgency (derived)`.
 
 Concrete guardrail: a `@Model` must never contain a derived-state field (`hp`, `isDead`, `mobLevel`, `urgency`).
 If you're tempted to store one, it belongs in a pure derivation function instead.
 The derivation entry point `HeroDerivation.state(quests:now:lastOpened:calendar:)` must stay a pure function — same inputs, same output (deterministic).
+
+Whenever anything under `QuestKeeper/Models/` changes, this guard must return nothing:
+
+```bash
+! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/
+```
+
+## Source Map
+
+Feature code is grouped by role under `QuestKeeper/`; the widget and the code it shares with the app live in sibling targets.
+
+- `Models/` — `Quest` (`@Model`) and the `Importance` enum, plus the `QuestSnapshot` value type. Facts only.
+- `Derivation/` — the pure layer. New gamification rules belong here, never as stored state.
+  - `QuestOutcome.swift`: the `QuestOutcome` enum (per-quest derived status) plus the `QuestSnapshot` methods that read it — `outcome(at:)`, `urgency(at:)` (0…1, rising as the deadline nears within `GameBalance.urgencyHorizon`, and 0 unless `.pending`), `mobLevel(at:)` (`importance` × `urgency`, mapped into `0…GameBalance.maxMobLevel`), and `isVisibleDailyGrave(at:calendar:)`.
+    A grave is visible **only while its `deadline` falls on the same local calendar day as `now`** (`Calendar.isDate(_:inSameDayAs:)`) — misses outside that day are hidden by derivation, never deleted from the store.
+  - `HeroDerivation.swift`: produces `HeroState` — `totalVictories`, `dailyGraves`, and `deathsWhileAway` (quests whose deadline fell in `(lastOpened, now]` and resolved to a grave, which drives the reopen replay).
+    It is **a scoreboard, not a health meter: the hero is always alive.** There is no `hp` and no `isDead` anywhere in the codebase — a missed deadline is a momentary "꿱 → revive" _event_, not a lingering state.
+  - `GameBalance.swift`: tunable constants — `maxMobLevel`, `urgencyHorizon` (7 days), `mourningDuration`, `notificationLeadTime` (1 hour), and `longQuestWarningHorizon` (7 days), which gates the elder-guide chunking prompt in the quest editor.
+- `Actions/` — fact mutations, as opposed to derivation. `QuestActions.retryDeadlineTomorrow` ("내일 도전하기") overwrites the `deadline` fact to tomorrow; `Activation.reconstructOnActivation` runs the scenePhase `.active` replay that reconstructs deaths between `lastOpened` and `now`.
+- `Views/` — the SwiftUI dungeon UI. Root is `HomeDungeonBoardView`, rows are `QuestRow`, battle transitions are `QuestBattleResolution`.
+- `Notifications/` and `WidgetSupport/` — see the section below.
+- `QuestKeeperShared/` — code shared app↔widget: `WidgetDungeonPayload` (`Codable`), `WidgetDungeonDerivation`, `WidgetDungeonSnapshotStore`. The widget-side derivation is deliberately duplicated here so the widget can render derived state without the app running.
+- `QuestKeeperWidget/` — the WidgetKit extension; a read-only Home Screen dungeon in `systemSmall` / `systemMedium`.
+- `QuestKeeperTests/` — Swift Testing coverage: `DerivationTests`, `QuestActionsTests`, `QuestBattleResolutionTests`, `DungeonPresentationTests`, plus the notification and widget suites listed below.
+
+Bundle IDs are `kr.donminzzi.QuestKeeper` (app) and `kr.donminzzi.QuestKeeper.Widget` (widget); the App Group `group.kr.donminzzi.QuestKeeper` appears in both entitlements files and in `WidgetDungeonSnapshotStore.appGroupIdentifier`.
+
+## Notifications and the Widget Are Side Effects
+
+Neither is a source of truth, and neither may write back into `Quest` — no notification IDs, widget IDs, or fired-at timestamps on a `@Model`.
+
+- `QuestNotificationService` is the service class, and `QuestNotificationCenter` is a protocol whose `SystemQuestNotificationCenter` implementation wraps `UNUserNotificationCenter`.
+  **That protocol is the test seam** — inject a fake instead of reaching for the real notification center in tests.
+  Authorization state is the `QuestNotificationAuthorization` enum.
+- `QuestNotificationPlanner` does the planning purely: given quests plus `now` it computes the desired pending requests (due-soon and deadline) as a `QuestNotificationPlan` / `QuestNotificationKind`.
+  Triggers are `UNCalendarNotificationTrigger`.
+- The lifecycle is **remove-before-add sync**: completion or delete cancels, retry-tomorrow reschedules, and activation reconciles pending against desired.
+  Tap routing goes through `NotificationDelegate` and `NotificationRouteStore`.
+- The app writes an App Group JSON snapshot through `QuestKeeper/WidgetSupport/WidgetDungeonSnapshotWriter.swift`, which maps quests to `WidgetDungeonPayload`; `WidgetDungeonSnapshotStore` persists it.
+  The widget reads that snapshot read-only, and WidgetKit refreshes after app mutations.
+- Notification copy is informational, never shame-based.
+- Suites: `QuestNotificationServiceTests`, `QuestNotificationPlannerTests`, `NotificationRoutingTests`, `WidgetDungeonPayloadTests`, `WidgetDungeonSnapshotStoreTests`, `WidgetDungeonSnapshotWriterTests`, `WidgetTimelinePolicyTests`.
 
 ## Build, Run, Test
 
@@ -83,5 +125,8 @@ Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or 
   In-scope stacks: SwiftData (`@Model`, `@Query`), UserNotifications (`UNCalendarNotificationTrigger`), WidgetKit + App Group, `TimelineView`.
 - **Out of scope (Phase 1):** CloudKit/sync, accounts/login, backend, ARKit, SpriteKit particles, multi-device.
   Local-only, single-device, offline-first.
+- **Naming:** derivation and action namespaces are caseless `nonisolated enum`s used as static-function namespaces (`HeroDerivation`, `GameBalance`, `QuestActions`, `QuestNotificationPlanner`, `WidgetDungeonDerivation`); state values are `nonisolated struct`s (`HeroState`, `QuestSnapshot`, `WidgetDungeonPayload`).
 - **Language:** Korean comments and user-facing strings are intentional — do not translate them.
   Code identifiers and commit messages are English.
+- **Voice:** quest-flavored but shame-free — `전투 추가`, `내일 도전하기`, `완료`; never `실패했습니다`, `무덤이 누적되었습니다`, `HP가 감소했습니다`.
+  `DESIGN.md` (Voice) owns this.
