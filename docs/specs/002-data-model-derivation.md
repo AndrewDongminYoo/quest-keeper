@@ -93,11 +93,11 @@ extension QuestSnapshot {
 Default:
 
 - visible if `outcome(at: now) == .grave`;
-- and the missed `deadline` is within the current local day or within `GameBalance.dailyGraveVisibilityWindow`;
+- and the missed `deadline` falls on the same local calendar day as `now` (`Calendar.isDate(_:inSameDayAs:)`);
 - not counted as a permanent scoreboard.
 
-Prefer current-local-day semantics for UI grouping.
-Use a 24-hour rolling window only if local-day boundary behavior proves awkward in manual testing.
+Resolved: current-local-day semantics, not a 24-hour rolling window.
+The rolling-window alternative was evaluated and dropped, so no `dailyGraveVisibilityWindow` constant exists.
 
 ## Hero State
 
@@ -128,7 +128,6 @@ nonisolated enum GameBalance {
     static let urgencyHorizon: TimeInterval = 7 * 24 * 60 * 60
     static let mourningDuration: TimeInterval = 2
     static let notificationLeadTime: TimeInterval = 60 * 60
-    static let dailyGraveVisibilityWindow: TimeInterval = 24 * 60 * 60
     static let longQuestWarningHorizon: TimeInterval = 7 * 24 * 60 * 60
 }
 ```

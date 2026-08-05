@@ -12,7 +12,8 @@ It defines the phases, success criteria, and the non-negotiable core principle b
 This file summarizes the parts that shape _how_ to write code here; BLUEPRINT owns _what_ to build and in _what order_.
 
 **Current state:** the boilerplate template is gone — `Quest` (`@Model`) replaced `Item`, and `ContentView` is now the Phase 2 dungeon root, not template scaffolding.
-Phases 1–5 are largely implemented: the fact-only SwiftData model (`QuestKeeper/Models/`), the pure derivation layer (`QuestKeeper/Derivation/`), the dungeon UI with completion/retry/daily-grave/edit flows (`QuestKeeper/Views/`), the local-notification lifecycle (`QuestKeeper/Notifications/`), and the WidgetKit App Group snapshot (`QuestKeeperShared/`, `QuestKeeperWidget/`).
+BLUEPRINT's Phases 1–5 are implemented: the fact-only SwiftData model (`QuestKeeperShared/Quest.swift`), the pure derivation layer (`QuestKeeper/Derivation/`), the dungeon UI with completion/retry/daily-grave/edit flows (`QuestKeeper/Views/`), the local-notification lifecycle (`QuestKeeper/Notifications/`), and the WidgetKit App Group snapshot (`QuestKeeperShared/`, `QuestKeeperWidget/`).
+Work past the BLUEPRINT roadmap has since added interactive widget completion, pixel art, retention measurement, an onboarding experiment, the daily-focus loop, and the recovery-loop prototype — `docs/specs/` runs to `015-recovery-loop-prototype.md`.
 Extend the established per-role layer conventions; `docs/specs/` holds the per-phase contracts.
 
 ## Docs Layout
@@ -30,21 +31,27 @@ Every gamification rule must preserve it:
 - Deadline judgment is **state replay, not event-driven**: on app reopen, compare `lastOpened` against each task's `deadline` to retroactively reconstruct which heroes should have died in between.
 - `urgency = f(time remaining until deadline)` — a derived, time-varying axis (turns the Eisenhower matrix into a live-moving one). `mobLevel = importance (stored) × urgency (derived)`.
 
-Concrete guardrail: a `@Model` must never contain a derived-state field (`hp`, `isDead`, `mobLevel`, `urgency`).
+Concrete guardrail: the quest `@Model` must never contain a derived-state field (`hp`, `isDead`, `mobLevel`, `urgency`).
 If you're tempted to store one, it belongs in a pure derivation function instead.
+This is about gamification state on `Quest`. The other `@Model`s in `QuestKeeperShared/` — `RetentionEvent`, `RetentionInstallation`, `ExperimentAssignment`, `DailyFocusSelection` — are append-only measurement records, not game state, and are deliberately outside the guard below.
 The derivation entry point `HeroDerivation.state(quests:now:lastOpened:calendar:)` must stay a pure function — same inputs, same output (deterministic).
 
-Whenever anything under `QuestKeeper/Models/` changes, this guard must return nothing:
+Whenever the quest persistence or snapshot types change, this guard must return nothing.
+Its scope must cover **both** paths — `Quest` (`@Model`) lives in `QuestKeeperShared/`, so a guard pointed only at `QuestKeeper/Models/` scans no `@Model` at all and passes vacuously:
 
 ```bash
-! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/
+! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/ QuestKeeperShared/Quest.swift
 ```
+
+Scope it to those two paths, not to `QuestKeeperShared/` as a whole: `WidgetDungeonDerivation` and `RetentionEventRecorder` legitimately hold local `urgency`/`mobLevel`/`retry` bindings that the pattern would flag.
+If `Quest` moves again, move the guard with it.
 
 ## Source Map
 
 Feature code is grouped by role under `QuestKeeper/`; the widget and the code it shares with the app live in sibling targets.
 
-- `Models/` — `Quest` (`@Model`) and the `Importance` enum, plus the `QuestSnapshot` value type. Facts only.
+- `Models/` — the app-side value types: `QuestSnapshot` (what derivation operates on, never the `@Model` class) and `QuestTitlePolicy`.
+  The `Quest` `@Model` itself and the `Importance` enum live in `QuestKeeperShared/Quest.swift`, because the widget extension needs them too.
 - `Derivation/` — the pure layer. New gamification rules belong here, never as stored state.
   - `QuestOutcome.swift`: the `QuestOutcome` enum (per-quest derived status) plus the `QuestSnapshot` methods that read it — `outcome(at:)`, `urgency(at:)` (0…1, rising as the deadline nears within `GameBalance.urgencyHorizon`, and 0 unless `.pending`), `mobLevel(at:)` (`importance` × `urgency`, mapped into `0…GameBalance.maxMobLevel`), and `isVisibleDailyGrave(at:calendar:)`.
     A grave is visible **only while its `deadline` falls on the same local calendar day as `now`** (`Calendar.isDate(_:inSameDayAs:)`) — misses outside that day are hidden by derivation, never deleted from the store.
@@ -53,16 +60,20 @@ Feature code is grouped by role under `QuestKeeper/`; the widget and the code it
   - `GameBalance.swift`: tunable constants — `maxMobLevel`, `urgencyHorizon` (7 days), `mourningDuration`, `notificationLeadTime` (1 hour), and `longQuestWarningHorizon` (7 days), which gates the elder-guide chunking prompt in the quest editor.
 - `Actions/` — fact mutations, as opposed to derivation. `QuestActions.retryDeadlineTomorrow` ("내일 도전하기") overwrites the `deadline` fact to tomorrow; `Activation.reconstructOnActivation` runs the scenePhase `.active` replay that reconstructs deaths between `lastOpened` and `now`.
 - `Views/` — the SwiftUI dungeon UI. Root is `HomeDungeonBoardView`, rows are `QuestRow`, battle transitions are `QuestBattleResolution`.
+- `DailyFocus/`, `Onboarding/`, `Recovery/` — later behavior layers, each following the same pure-function shape as `Derivation/`: `DailyFocusState`, `OnboardingFlowState`, and `RecoveryState` compute a presentation value from facts plus `now`, and hold no stored state of their own.
+- `Measurement/` — `RetentionBaselineWriter`, the app-side writer for the retention baseline report.
 - `Notifications/` and `WidgetSupport/` — see the section below.
-- `QuestKeeperShared/` — code shared app↔widget: `WidgetDungeonPayload` (`Codable`), `WidgetDungeonDerivation`, `WidgetDungeonSnapshotStore`. The widget-side derivation is deliberately duplicated here so the widget can render derived state without the app running.
-- `QuestKeeperWidget/` — the WidgetKit extension; a read-only Home Screen dungeon in `systemSmall` / `systemMedium`.
-- `QuestKeeperTests/` — Swift Testing coverage: `DerivationTests`, `QuestActionsTests`, `QuestBattleResolutionTests`, `DungeonPresentationTests`, plus the notification and widget suites listed below.
+- `QuestKeeperShared/` — everything both targets need. Beyond the widget payload trio (`WidgetDungeonPayload`, `WidgetDungeonDerivation`, `WidgetDungeonSnapshotStore`) it holds the `Quest`/`Importance` model, `QuestModelContainer` (opens the App Group store), the `QuestStoreActor` (`@ModelActor`) the widget writes through, the pixel-art primitives (`PixelSprite`, `DungeonPalette`), and the measurement stack — retention, onboarding-experiment, and daily-focus models, recorders, and report types.
+  The widget-side derivation is deliberately duplicated here so the widget can render derived state without the app running.
+- `QuestKeeperWidget/` — the WidgetKit extension; a Home Screen dungeon in `systemSmall` / `systemMedium`. Mostly a read view over the snapshot, plus `CompleteQuestIntent` for one-tap completion (see below).
+- `QuestKeeperTests/` — Swift Testing coverage, one `<Subject>Tests.swift` file per subject (`DerivationTests`, `QuestActionsTests`, `WidgetTimelinePolicyTests`, …); `Fixtures/` holds the shared builders. `QuestKeeperUITests/` is the XCTest target.
 
 Bundle IDs are `kr.donminzzi.QuestKeeper` (app) and `kr.donminzzi.QuestKeeper.Widget` (widget); the App Group `group.kr.donminzzi.QuestKeeper` appears in both entitlements files and in `WidgetDungeonSnapshotStore.appGroupIdentifier`.
 
 ## Notifications and the Widget Are Side Effects
 
-Neither is a source of truth, and neither may write back into `Quest` — no notification IDs, widget IDs, or fired-at timestamps on a `@Model`.
+Neither is a source of truth, and neither may put its own bookkeeping on `Quest` — no notification IDs, widget IDs, or fired-at timestamps on a `@Model`.
+The widget _may_ write a raw fact: `CompleteQuestIntent` commits `completedAt` through `QuestStoreActor`. That is the same fact the app writes, so the boundary is derived-state-vs-fact, not app-vs-widget.
 
 - `QuestNotificationService` is the service class, and `QuestNotificationCenter` is a protocol whose `SystemQuestNotificationCenter` implementation wraps `UNUserNotificationCenter`.
   **That protocol is the test seam** — inject a fake instead of reaching for the real notification center in tests.
@@ -72,9 +83,11 @@ Neither is a source of truth, and neither may write back into `Quest` — no not
 - The lifecycle is **remove-before-add sync**: completion or delete cancels, retry-tomorrow reschedules, and activation reconciles pending against desired.
   Tap routing goes through `NotificationDelegate` and `NotificationRouteStore`.
 - The app writes an App Group JSON snapshot through `QuestKeeper/WidgetSupport/WidgetDungeonSnapshotWriter.swift`, which maps quests to `WidgetDungeonPayload`; `WidgetDungeonSnapshotStore` persists it.
-  The widget reads that snapshot read-only, and WidgetKit refreshes after app mutations.
+  The widget renders from that snapshot, and WidgetKit refreshes after app mutations.
+- `CompleteQuestIntent` (widget process) opens the store via `QuestModelContainer.make()`, writes `completedAt` through `QuestStoreActor`, cancels that quest's notifications, rewrites the snapshot, and reloads the timeline. It is idempotent — a stale double-tap is a no-op.
+  A warm-foregrounded app does **not** see that cross-process write; `QuestKeeperApp.syncActivation(using:)` swaps in a fresh `ModelContainer` on the `.active` transition to pick it up. Quest-data-dependent activation work belongs there, never in `ContentView`.
 - Notification copy is informational, never shame-based.
-- Suites: `QuestNotificationServiceTests`, `QuestNotificationPlannerTests`, `NotificationRoutingTests`, `WidgetDungeonPayloadTests`, `WidgetDungeonSnapshotStoreTests`, `WidgetDungeonSnapshotWriterTests`, `WidgetTimelinePolicyTests`.
+- Suites: `QuestNotificationServiceTests`, `QuestNotificationPlannerTests`, `NotificationRoutingTests`, `WidgetDungeonPayloadTests`, `WidgetDungeonSnapshotStoreTests`, `WidgetDungeonSnapshotWriterTests`, `WidgetTimelinePolicyTests`, `WidgetNotificationCancellationTests`, `QuestStoreActorTests`.
 
 ## Build, Run, Test
 
@@ -100,7 +113,8 @@ mcp__xcodebuild__screenshot             # capture the running sim
 ```
 
 **Claude Code and any non-Codex agent — use raw `xcodebuild` (this is the primary path there, not a fallback).**
-Always target the device by **id (UDID), never `name`**: `xcodebuild -destination 'platform=iOS Simulator,name=iPhone 17e'` spins up a fresh ephemeral clone per run and, because a duplicate device named `iPhone 17e` exists, hits destination-name ambiguity — together these exhaust simulator memory and wedge the runtime (`server died` / `crashed before establishing connection`).
+Always target the device by **id (UDID), never `name`**: `xcodebuild -destination 'platform=iOS Simulator,name=iPhone 17e'` spins up a fresh ephemeral clone per run, which exhausts simulator memory and wedges the runtime (`server died` / `crashed before establishing connection`).
+Name matching also breaks outright whenever a duplicate device shares the name (destination-name ambiguity) — as of 2026-08-05 only one `iPhone 17e` exists, but a UDID destination is immune either way.
 Confirm/replace the UDID with `xcrun simctl list devices available` first, and prefer an already-booted simulator to respect the one-heavy-job-at-a-time limit.
 
 ```bash

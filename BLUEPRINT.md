@@ -44,7 +44,7 @@
 - **저장(persist)**: `task.deadline`, `task.completedAt`, `task.importance` — 시간이 지나도 변하지 않는 원시 사실.
 - **파생(derive)**: 몹 레벨, 긴급도, 오늘의 무덤 노출 여부 — 모두 **조회 시점의 현재 시각 대비 계산**.
 - 마감 판정은 **상태 재구성(state replay)**: 앱이 다시 열리는 순간 `lastOpened`와 각 태스크 `deadline`을 비교해 그 사이에 죽었어야 할 용사의 "꿱" 이벤트를 소급해서 한 번만 보여준다.
-- **매일 리셋되는 던전**: DB에 실패한 사실(Fact)은 남지만, 파생 계층(Derivation Layer)에서 `현재 시각 기준 24시간 이내의 무덤`만 UI에 노출되도록 필터링한다. 무덤 개수를 세거나 누적하지 않는다.
+- **매일 리셋되는 던전**: DB에 실패한 사실(Fact)은 남지만, 파생 계층(Derivation Layer)에서 `마감(deadline)이 현재와 같은 로컬 달력 날짜인 무덤`만 UI에 노출되도록 필터링한다. 무덤 개수를 세거나 누적하지 않는다.
 - **긴급도 = 마감까지 남은 시간의 함수**. 시간이 흐르면 몹이 강해지지만(몹 레벨 = 중요도 × 긴급도), 용사는 무조건 **원히트킬(단칼)**로 베어버린다.
 
 ---
@@ -54,7 +54,7 @@
 목표: 저장/파생 경계를 코드로 못박는다. 실패의 누적(무덤 카운트)을 없애고 긍정적인 '작은 성공'을 기록하는 구조로 변경.
 
 - [ ] SwiftData `@Model Task(또는 Quest)` 정의 — 원시 사실만 저장 (`id`, `title`, `deadline`, `completedAt?`, `importance`)
-- [ ] `TaskDerivation` — `urgency(at:)`, `mobLevel(at:)` 파생 로직 작성
+- [ ] `HeroDerivation` + `QuestSnapshot.urgency(at:)` / `QuestSnapshot.mobLevel(at:)` 파생 로직 작성
 - [ ] `HeroState` 파생 로직 — 영구적인 무덤 카운트를 제거하고, '오늘 발생한 무덤(Daily Graves)'과 '누적된 작은 성공(Total Victories)'만 계산
 - [ ] 단위 테스트: "저장은 사실만" 원칙 검증 및 날짜 변경 시 무덤이 화면에서 사라지는 필터링(리셋) 검증
 - [ ] Swift 6 strict concurrency 켜고 경고 0으로 컴파일

@@ -10,12 +10,13 @@ It crosses the OS surfaces that are easy to avoid from Flutter or React Native: 
 ## Current Status
 
 - iPhone-only SwiftUI app target with Swift 6 strict concurrency enabled.
-- SwiftData model stores raw quest facts only: `id`, `title`, `deadline`, `completedAt`, and `importance`.
+- SwiftData `Quest` model stores raw quest facts only: `id`, `title`, `deadline`, `completedAt`, and `importance`.
 - Pure derivation layer computes outcome, urgency, mob level, total victories, daily graves, and reopen death events from facts plus `now`.
 - Root app surface shows a dungeon-oriented quest list with a hero header, active quests, visible daily graves, completion, retry tomorrow, delete, and edit flows.
 - Quest editor includes the elder guide prompt when a deadline is beyond the long-quest warning horizon.
 - Local notification lifecycle supports deterministic due-soon and deadline requests, remove-before-add sync, completion/delete cancellation, activation reconcile, and notification tap routing.
-- WidgetKit target reads an App Group JSON snapshot and renders a read-only Home Screen dungeon for `systemSmall` and `systemMedium`.
+- WidgetKit target reads an App Group JSON snapshot and renders a Home Screen dungeon for `systemSmall` and `systemMedium`, with one-tap quest completion from the widget.
+- Later work adds pixel art, a retention measurement stack, an onboarding experiment, the daily-focus loop, and a DEBUG recovery-loop prototype.
 - Phase specs and implementation plans are tracked in `docs/specs/` and `docs/plans/`.
 
 ## Core Rules
@@ -50,10 +51,10 @@ final class Quest {
 
 ## Repository Map
 
-- `QuestKeeper/` contains the app target, SwiftData model, SwiftUI views, fact actions, notification integration, and app-side widget snapshot writer.
-- `QuestKeeperShared/` contains the shared Codable widget payload, widget derivation, and App Group snapshot store.
-- `QuestKeeperWidget/` contains the WidgetKit extension, timeline provider, and widget views.
-- `QuestKeeperTests/` contains Swift Testing coverage for derivation, actions, notifications, widget payloads, snapshot storage, and timeline policy.
+- `QuestKeeper/` contains the app target: derivation, fact actions, SwiftUI views, notification integration, the app-side widget snapshot writer, and the daily-focus, onboarding, recovery, and measurement layers.
+- `QuestKeeperShared/` contains everything both targets need: the `Quest` SwiftData model, App Group model container and store actor, the Codable widget payload and widget derivation, the snapshot store, pixel-art primitives, and the measurement models and reports.
+- `QuestKeeperWidget/` contains the WidgetKit extension, timeline provider, widget views, and the one-tap completion App Intent.
+- `QuestKeeperTests/` contains Swift Testing coverage for derivation, actions, notifications, widget payloads, snapshot storage, timeline policy, and the measurement and experiment stacks.
 - `docs/specs/` contains phase contracts and source-of-truth design decisions.
 - `docs/plans/` contains implementation plans for larger phase work.
 - `DESIGN.md` owns visual and UX direction.
@@ -63,7 +64,7 @@ final class Quest {
 
 - macOS with Xcode installed.
 - iOS Simulator runtime matching the project deployment target.
-- An `iPhone 17e` simulator for the documented verification commands, or another available iPhone simulator if you adjust the destination.
+- An iPhone simulator for the documented verification commands. They target a UDID, not a name — resolve yours with `xcrun simctl list devices available` and substitute it.
 - Apple Developer signing that supports `group.kr.donminzzi.QuestKeeper` when testing App Group behavior on device or signed simulator builds.
 
 ## Run
@@ -94,19 +95,22 @@ QuestKeeperWidget
 Use the focused unit-test gate for normal development:
 
 ```bash
-xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:QuestKeeperTests
+xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests
 ```
 
 Use the build gate when target or signing wiring changes:
 
 ```bash
-xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,name=iPhone 17e'
+xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA'
 ```
 
-Use this guard when changing persistence:
+Target the simulator by UDID, never by `name`: a name destination clones a fresh ephemeral simulator per run and wedges the runtime.
+Simulator UDIDs are recreated over time, so confirm the id above with `xcrun simctl list devices available` before relying on it.
+
+Use this guard when changing persistence — it must cover both paths, since `Quest` lives in `QuestKeeperShared/` and a guard pointed only at `QuestKeeper/Models/` scans no `@Model` at all:
 
 ```bash
-! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/
+! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/ QuestKeeperShared/Quest.swift
 ```
 
 ## Manual QA
@@ -135,5 +139,4 @@ Use `docs/specs/` for behavior contracts, `docs/plans/` for implementation plans
 - SpriteKit combat engine.
 - Complex recurring quests.
 - LLM task splitting.
-- Interactive widget actions.
 - Permanent graveyard or shame dashboard.
