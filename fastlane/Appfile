@@ -1,0 +1,7 @@
+app_identifier("kr.donminzzi.QuestKeeper") # The bundle identifier of your app
+
+itc_team_id("127513048") # App Store Connect Team ID
+team_id("393JTTV68D") # Developer Portal Team ID
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/#appfile

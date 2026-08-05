@@ -6,3 +6,9 @@ DerivedData/
 
 # XcodeBuildMCP local session config (machine-specific simulator UDID / paths)
 .xcodebuildmcp/
+
+# Fastlane generated reports
+fastlane/README.md
+fastlane/report.xml
+fastlane/screenshots/generated/screenshots.html
+fastlane/metadata/review_information/

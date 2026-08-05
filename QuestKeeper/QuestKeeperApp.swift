@@ -99,6 +99,24 @@ struct QuestKeeperApp: App {
                 ))
                 try container.mainContext.save()
             }
+            if usesInMemoryStore,
+               arguments.contains("-storeScreenshotFixture") {
+                let now = Date.now
+                let fixtures: [(String, TimeInterval, Importance)] = [
+                    ("앱 스크린샷 준비하기", 3_600, .high),
+                    ("개인정보처리방침 확인", 86_400, .medium),
+                    ("랜딩 페이지 다듬기", 2 * 86_400, .high),
+                    ("앱 출시 체크리스트", 5 * 86_400, .low),
+                ]
+                for (title, interval, importance) in fixtures {
+                    container.mainContext.insert(Quest(
+                        title: title,
+                        deadline: now.addingTimeInterval(interval),
+                        importance: importance
+                    ))
+                }
+                try container.mainContext.save()
+            }
             if shouldSeedRecoveryFixture(
                 usesUITestingStore: usesUITestingStore,
                 arguments: arguments

@@ -1,0 +1,43 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Capture and validate deterministic Korean App Store screenshots"
+  lane :screenshots do
+    snapshot
+    sh("bash", "../scripts/process-store-screenshots.sh")
+    sh("bash", "../scripts/validate-store-screenshots.sh")
+  end
+
+  desc "Generate and validate What's New metadata for the current version"
+  lane :release_notes do
+    sh("bash", "../scripts/prepare-release-notes.sh")
+  end
+
+  desc "Prepare all local App Store assets without uploading"
+  lane :store_assets do
+    release_notes
+    screenshots
+  end
+
+  desc "Push a new release build to the App Store"
+  lane :release do
+    increment_build_number(xcodeproj: "QuestKeeper.xcodeproj")
+    build_app(scheme: "QuestKeeper")
+    upload_to_app_store
+  end
+end

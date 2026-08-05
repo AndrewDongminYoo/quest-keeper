@@ -1,0 +1,2 @@
+metadata_path("./fastlane/metadata")
+screenshots_path("./fastlane/screenshots/generated")
