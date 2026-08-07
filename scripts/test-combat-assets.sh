@@ -211,6 +211,9 @@ if [[ ${QUESTKEEPER_SKIP_GENERATION_CHECK:-0} != 1 ]]; then
 		'done' \
 		'exec "${QUESTKEEPER_REAL_MAGICK:?}" "$@"' >"$monitor_magick"
 	chmod +x "$monitor_magick"
+	stale_imageset="$temporary_root/first/QuestKeeper/Assets.xcassets/sprite-hero-idle.imageset"
+	mkdir -p "$stale_imageset"
+	: >"$stale_imageset/sprite-hero-idle.png"
 	QUESTKEEPER_ORIGINAL_MONSTER="$approved_monster_source" \
 		QUESTKEEPER_ORIGINAL_HERO="$approved_hero_source" \
 		QUESTKEEPER_REAL_MAGICK="$real_magick" \
@@ -222,6 +225,10 @@ if [[ ${QUESTKEEPER_SKIP_GENERATION_CHECK:-0} != 1 ]]; then
 		"$temporary_root/first" >/dev/null
 	if [[ -e $source_marker ]]; then
 		echo "generator reopened an approved source path after copying it" >&2
+		exit 1
+	fi
+	if [[ -e $stale_imageset ]]; then
+		echo "generator retained a stale managed imageset: $stale_imageset" >&2
 		exit 1
 	fi
 	/bin/bash "$script_root/process-combat-assets.sh" \

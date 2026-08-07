@@ -263,6 +263,13 @@ done
 
 /usr/bin/env QUESTKEEPER_SKIP_GENERATION_CHECK=1 /bin/bash "$script_root/test-combat-assets.sh" "$generated_root" >/dev/null
 mkdir -p "$output_app_catalog" "$output_widget_catalog"
+# 이 생성기가 sprite-hero-* 네임스페이스 전체를 소유하므로,
+# 덮어쓰기 전에 더 이상 생성하지 않는 오래된 구성원을 먼저 제거한다.
+for stale_imageset in "$output_app_catalog"/sprite-hero-*.imageset; do
+	if [[ -d $stale_imageset ]]; then
+		rm -rf "$stale_imageset"
+	fi
+done
 cp -R "$app_catalog"/. "$output_app_catalog"/
 cp -R "$widget_catalog"/. "$output_widget_catalog"/
 
