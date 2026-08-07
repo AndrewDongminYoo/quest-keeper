@@ -55,6 +55,12 @@ monster_count=0
 for monster_name in $monster_names; do
 	validate_imageset "$app_catalog" "sprite-$monster_name"
 	validate_imageset "$widget_catalog" "sprite-$monster_name"
+	if ! cmp -s \
+		"$app_catalog/sprite-$monster_name.imageset/sprite-$monster_name.png" \
+		"$widget_catalog/sprite-$monster_name.imageset/sprite-$monster_name.png"; then
+		echo "app and widget monster assets differ: $monster_name" >&2
+		exit 1
+	fi
 	monster_count=$((monster_count + 1))
 done
 
@@ -98,17 +104,19 @@ for hero_gender in $hero_genders; do
 	done
 done
 
-temporary_root="$(mktemp -d)"
-trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
-for output_name in first second; do
-	/bin/bash "$script_root/process-combat-assets.sh" \
-		"$asset_root/docs/assets/pixel-combat-customization/questkeeper-monsters-left-source.png" \
-		"$asset_root/docs/assets/pixel-combat-customization/questkeeper-heroes-source.png" \
-		"$temporary_root/$output_name" >/dev/null
-done
-if ! diff -qr "$temporary_root/first" "$temporary_root/second" >/dev/null; then
-	echo "combat asset generation is not byte-identical across runs" >&2
-	exit 1
+if [[ ${QUESTKEEPER_SKIP_GENERATION_CHECK:-0} != 1 ]]; then
+	temporary_root="$(mktemp -d)"
+	trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
+	for output_name in first second; do
+		/bin/bash "$script_root/process-combat-assets.sh" \
+			"$asset_root/docs/assets/pixel-combat-customization/questkeeper-monsters-left-source.png" \
+			"$asset_root/docs/assets/pixel-combat-customization/questkeeper-heroes-source.png" \
+			"$temporary_root/$output_name" >/dev/null
+	done
+	if ! diff -qr "$temporary_root/first" "$temporary_root/second" >/dev/null; then
+		echo "combat asset generation is not byte-identical across runs" >&2
+		exit 1
+	fi
 fi
 
 echo "validated $monster_count monster kinds in app and widget catalogs, plus $hero_count app hero sprites"

@@ -11,6 +11,7 @@ fi
 monster_source="$1"
 hero_source="$2"
 output_root="$3"
+script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if ! command -v magick >/dev/null 2>&1; then
 	echo "magick is required" >&2
@@ -29,12 +30,14 @@ for source_path in "$monster_source" "$hero_source"; do
 	fi
 done
 
-app_catalog="$output_root/QuestKeeper/Assets.xcassets"
-widget_catalog="$output_root/QuestKeeperWidget/Assets.xcassets"
-mkdir -p "$app_catalog" "$widget_catalog"
-
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
+generated_root="$temporary_root/generated"
+app_catalog="$generated_root/QuestKeeper/Assets.xcassets"
+widget_catalog="$generated_root/QuestKeeperWidget/Assets.xcassets"
+output_app_catalog="$output_root/QuestKeeper/Assets.xcassets"
+output_widget_catalog="$output_root/QuestKeeperWidget/Assets.xcassets"
+mkdir -p "$app_catalog" "$widget_catalog"
 
 write_imageset() {
 	catalog_root="$1"
@@ -171,5 +174,10 @@ for hero_gender in $hero_genders; do
 	done
 	hero_row=$((hero_row + 1))
 done
+
+/usr/bin/env QUESTKEEPER_SKIP_GENERATION_CHECK=1 /bin/bash "$script_root/test-combat-assets.sh" "$generated_root" >/dev/null
+mkdir -p "$output_app_catalog" "$output_widget_catalog"
+cp -R "$app_catalog"/. "$output_app_catalog"/
+cp -R "$widget_catalog"/. "$output_widget_catalog"/
 
 echo "generated 49 app sprites and 9 widget sprites in $output_root"
