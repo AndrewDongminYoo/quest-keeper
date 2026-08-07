@@ -233,6 +233,10 @@ private struct SwipeableQuestRow: View {
             isTrackingSwipe = false
             offset = 0
         }
+        .onDisappear {
+            battleTask?.cancel()
+            battleTask = nil
+        }
     }
 
     private func actionButton(title: String, artwork: DungeonArtwork, color: Color, action: @escaping () -> Void) -> some View {
@@ -259,11 +263,18 @@ private struct SwipeableQuestRow: View {
         battleTask?.cancel()
         withAnimation(.snappy(duration: 0.18)) {
             offset = 0
-            battlePhase = .striking
+            battlePhase = .windUp
         }
 
         battleTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(QuestBattleResolution.defeatedPhaseDelay))
+            try? await Task.sleep(for: .seconds(QuestBattleResolution.strikingPhaseDelay))
+            guard !Task.isCancelled else { return }
+            withAnimation(.snappy(duration: 0.16)) {
+                battlePhase = .striking
+            }
+
+            let defeatedDelay = QuestBattleResolution.defeatedPhaseDelay - QuestBattleResolution.strikingPhaseDelay
+            try? await Task.sleep(for: .seconds(defeatedDelay))
             guard !Task.isCancelled else { return }
             withAnimation(.snappy(duration: 0.2)) {
                 battlePhase = .defeated

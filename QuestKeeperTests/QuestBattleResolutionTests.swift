@@ -3,22 +3,24 @@ import Testing
 @testable import QuestKeeper
 
 struct QuestBattleResolutionTests {
-    @Test("battle phases progress from idle to striking to defeated")
-    func battlePhasesProgress() {
+    @Test("battle phases progress through wind-up strike and defeat")
+    func phaseBoundaries() {
         #expect(QuestBattleResolution.phase(elapsed: -0.01) == .idle)
-        #expect(QuestBattleResolution.phase(elapsed: 0) == .striking)
-        #expect(QuestBattleResolution.phase(elapsed: QuestBattleResolution.defeatedPhaseDelay - 0.01) == .striking)
-        #expect(QuestBattleResolution.phase(elapsed: QuestBattleResolution.defeatedPhaseDelay) == .defeated)
-        #expect(QuestBattleResolution.phase(elapsed: QuestBattleResolution.commitDelay) == .defeated)
+        #expect(QuestBattleResolution.phase(elapsed: 0) == .windUp)
+        #expect(QuestBattleResolution.phase(elapsed: 0.179) == .windUp)
+        #expect(QuestBattleResolution.phase(elapsed: 0.18) == .striking)
+        #expect(QuestBattleResolution.phase(elapsed: 0.419) == .striking)
+        #expect(QuestBattleResolution.phase(elapsed: 0.42) == .defeated)
     }
 
     @Test("battle timing stays short and ordered")
     func battleTimingStaysShortAndOrdered() {
-        #expect(QuestBattleResolution.defeatedPhaseDelay == 0.34)
-        #expect(QuestBattleResolution.commitDelay == 0.82)
+        #expect(QuestBattleResolution.strikingPhaseDelay == 0.18)
+        #expect(QuestBattleResolution.defeatedPhaseDelay == 0.42)
+        #expect(QuestBattleResolution.commitDelay == 1.05)
         #expect(QuestBattleResolution.defeatedPhaseDelay > 0)
         #expect(QuestBattleResolution.defeatedPhaseDelay < QuestBattleResolution.commitDelay)
-        #expect(QuestBattleResolution.commitDelay < 1)
+        #expect(QuestBattleResolution.commitDelay < 1.1)
     }
 
     @Test("resolving rows reject duplicate completion")
