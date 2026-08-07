@@ -11,11 +11,14 @@ struct HeroAppearanceTests {
 
     @Test("every appearance resolves five unique asset names")
     func completeArtworkCatalog() {
+        let expectedFrames = ["idle", "breathe-in", "breathe-out", "wind-up", "strike"]
+
         for gender in HeroGender.allCases {
             for hairColor in HeroHairColor.allCases {
                 let appearance = HeroAppearance(gender: gender, hairColor: hairColor)
-                let names = Set(HeroFrame.allCases.map { HeroArtwork.assetName(appearance: appearance, frame: $0) })
-                #expect(names.count == 5)
+                let names = HeroFrame.allCases.map { HeroArtwork.assetName(appearance: appearance, frame: $0) }
+                let expectedNames = expectedFrames.map { "sprite-hero-\(gender.rawValue)-\(hairColor.rawValue)-\($0)" }
+                #expect(names == expectedNames)
             }
         }
     }
