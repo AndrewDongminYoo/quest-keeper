@@ -237,10 +237,12 @@ private struct SwipeableQuestRow: View {
             offset = 0
         }
         .onDisappear {
+            // 지연 스택에서 행이 화면 밖으로 스크롤될 때도 호출되므로,
+            // 이미 접수된 완료 처리는 취소하지 않고 그대로 커밋되게 둔다.
+            guard !isResolvingBattle else { return }
             battleTask?.cancel()
             battleTask = nil
             battlePhase = .idle
-            isResolvingBattle = false
             isTrackingSwipe = false
             offset = 0
         }
