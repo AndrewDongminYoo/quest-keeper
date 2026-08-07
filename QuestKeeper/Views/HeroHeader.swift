@@ -38,7 +38,9 @@ struct HeroHeader: View {
         HStack(spacing: 5) {
             HeroSprite(isMourning: isMourning, appearance: appearance, size: heroSize)
                 .accessibilityHidden(true)
-            Text("용사")
+            // 스프라이트는 장식이라 숨겨져 있고, 애니메이션도 Reduce Motion에서 꺼진다.
+            // 그래서 애도 상태는 이 텍스트가 직접 드러낸다.
+            Text(isMourning ? "쓰러진 용사" : "용사")
                 .foregroundStyle(DungeonPalette.ink)
             Button("외형", action: onEditAppearance)
                 .frame(minWidth: 44, minHeight: 44)
