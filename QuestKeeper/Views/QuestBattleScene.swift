@@ -43,11 +43,17 @@ struct QuestBattleScene: View {
             }
 
             if phase == .defeated {
-                DungeonArtworkView(artwork: .victoryReward, size: 24)
-                    .offset(x: 76, y: -30)
+                HStack(spacing: 2) {
+                    DungeonArtworkView(artwork: .victoryReward, size: 16)
+                    Text("승리")
+                        .font(.caption2.bold())
+                        .foregroundStyle(DungeonPalette.ink)
+                }
+                .fixedSize()
+                .offset(x: 63, y: -27)
             }
         }
-        .frame(width: 100, height: 58, alignment: .bottomLeading)
+        .frame(width: 100, height: 48, alignment: .bottomLeading)
         .clipped()
         .transaction { transaction in
             if reduceMotion {

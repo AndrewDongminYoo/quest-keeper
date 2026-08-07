@@ -35,19 +35,19 @@ struct HeroHeader: View {
     }
 
     private var hero: some View {
-        Button(action: onEditAppearance) {
-            HStack(spacing: 5) {
-                HeroSprite(isMourning: isMourning, appearance: appearance, size: heroSize)
-                Text("용사")
-                    .foregroundStyle(DungeonPalette.ink)
-                Image(systemName: "pencil")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(DungeonPalette.ink.opacity(0.62))
-            }
+        HStack(spacing: 5) {
+            HeroSprite(isMourning: isMourning, appearance: appearance, size: heroSize)
+                .accessibilityHidden(true)
+            Text("용사")
+                .foregroundStyle(DungeonPalette.ink)
+            Button("외형", action: onEditAppearance)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .foregroundStyle(DungeonPalette.ink.opacity(0.72))
+                .accessibilityLabel("용사 외형 설정")
         }
-        .buttonStyle(.plain)
         .fixedSize(horizontal: true, vertical: false)
-        .accessibilityLabel("용사 외형 설정")
     }
 
     private var stats: some View {

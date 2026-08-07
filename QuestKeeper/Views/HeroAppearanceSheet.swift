@@ -14,7 +14,7 @@ struct HeroAppearanceSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    HeroArtworkView(appearance: appearance, frame: .idle, size: 112)
+                    HeroSprite(isMourning: false, appearance: appearance, size: 112)
                         .frame(maxWidth: .infinity)
                         .accessibilityHidden(true)
                 }
