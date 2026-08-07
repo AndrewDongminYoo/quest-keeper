@@ -30,17 +30,11 @@ nonisolated enum DungeonArtwork: String, CaseIterable, Sendable {
     }
 
     static func monster(level: Int, questID: UUID) -> DungeonArtwork {
-        switch MonsterArtworkSelection.monster(forMobLevel: level, questID: questID) {
-        case .slime: .slime
-        case .bat: .bat
-        case .mushroom: .mushroom
-        case .skeleton: .skeleton
-        case .orc: .orc
-        case .mimic: .mimic
-        case .dragon: .dragon
-        case .golem: .golem
-        case .lich: .lich
+        let assetName = MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).assetName
+        guard let artwork = DungeonArtwork(rawValue: assetName) else {
+            preconditionFailure("Missing app monster artwork for \(assetName)")
         }
+        return artwork
     }
 }
 

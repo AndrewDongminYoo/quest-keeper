@@ -177,6 +177,8 @@ private struct SwipeableQuestRow: View {
             }
             .frame(maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 2))
+            .disabled(isResolvingBattle)
+            .accessibilityHidden(isResolvingBattle)
 
             QuestRow(
                 quest: quest,
@@ -237,6 +239,10 @@ private struct SwipeableQuestRow: View {
         .onDisappear {
             battleTask?.cancel()
             battleTask = nil
+            battlePhase = .idle
+            isResolvingBattle = false
+            isTrackingSwipe = false
+            offset = 0
         }
     }
 

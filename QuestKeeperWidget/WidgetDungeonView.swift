@@ -298,17 +298,11 @@ private enum WidgetArtwork: String {
     }
 
     static func monster(level: Int, questID: UUID) -> WidgetArtwork {
-        switch MonsterArtworkSelection.monster(forMobLevel: level, questID: questID) {
-        case .slime: .slime
-        case .bat: .bat
-        case .mushroom: .mushroom
-        case .skeleton: .skeleton
-        case .orc: .orc
-        case .mimic: .mimic
-        case .dragon: .dragon
-        case .golem: .golem
-        case .lich: .lich
+        let assetName = MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).assetName
+        guard let artwork = WidgetArtwork(rawValue: assetName) else {
+            preconditionFailure("Missing widget monster artwork for \(assetName)")
         }
+        return artwork
     }
 }
 

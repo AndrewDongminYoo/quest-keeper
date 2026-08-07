@@ -33,4 +33,20 @@ struct MonsterArtworkSelectionTests {
         #expect(MonsterArtworkSelection.monster(forMobLevel: 2, questID: id) == .orc)
         #expect(MonsterArtworkSelection.monster(forMobLevel: 4, questID: id) == .golem)
     }
+
+    @Test("app artwork resolves the shared monster identity")
+    func appArtworkUsesSharedIdentity() {
+        let ids = [
+            UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+            UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+        ]
+
+        for level in [0, 2, 4] {
+            for id in ids {
+                let identity = MonsterArtworkSelection.monster(forMobLevel: level, questID: id)
+                #expect(DungeonArtwork.monster(level: level, questID: id).rawValue == identity.assetName)
+            }
+        }
+    }
 }

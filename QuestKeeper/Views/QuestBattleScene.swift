@@ -31,9 +31,10 @@ struct QuestBattleScene: View {
                     Text("승리")
                         .font(.caption2.bold())
                         .foregroundStyle(DungeonPalette.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
-                .fixedSize()
-                .offset(x: 54, y: -27)
+                .frame(width: 100, height: 48, alignment: .topTrailing)
             }
         }
         .frame(width: 100, height: 48, alignment: .bottomLeading)
