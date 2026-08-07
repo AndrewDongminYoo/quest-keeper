@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct QuestListSections: View {
+    let heroAppearance: HeroAppearance
     let allQuests: [Quest]
     let pending: [Quest]
     let dailyGraves: [Quest]
@@ -81,7 +82,7 @@ struct QuestListSections: View {
                 VStack(spacing: 10) {
                     ForEach(focusQuests) { quest in
                         if completedDailyFocusQuestIDs.contains(quest.id) {
-                            QuestRow(quest: quest, now: now, isCompleted: true)
+                            QuestRow(quest: quest, now: now, heroAppearance: heroAppearance, isCompleted: true)
                         } else {
                             swipeableRow(quest)
                         }
@@ -114,6 +115,7 @@ struct QuestListSections: View {
         SwipeableQuestRow(
             quest: quest,
             now: now,
+            heroAppearance: heroAppearance,
             showsGuidedCompletion: quest.id == guidedCompletionQuestID,
             onComplete: onComplete,
             onDelete: onDelete,
@@ -148,6 +150,7 @@ private struct BoardSectionTitle: View {
 private struct SwipeableQuestRow: View {
     let quest: Quest
     let now: Date
+    let heroAppearance: HeroAppearance
     let showsGuidedCompletion: Bool
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
@@ -178,6 +181,7 @@ private struct SwipeableQuestRow: View {
             QuestRow(
                 quest: quest,
                 now: now,
+                heroAppearance: heroAppearance,
                 battlePhase: battlePhase,
                 guidanceText: showsGuidedCompletion ? "완료하면 첫 승리를 얻어요" : nil
             )

@@ -12,6 +12,7 @@ import SwiftUI
 struct QuestRow: View {
     let quest: Quest
     let now: Date
+    let heroAppearance: HeroAppearance
     let battlePhase: QuestBattlePhase
     let guidanceText: String?
     let isCompleted: Bool
@@ -21,12 +22,14 @@ struct QuestRow: View {
     init(
         quest: Quest,
         now: Date,
+        heroAppearance: HeroAppearance = .default,
         battlePhase: QuestBattlePhase = .idle,
         guidanceText: String? = nil,
         isCompleted: Bool = false
     ) {
         self.quest = quest
         self.now = now
+        self.heroAppearance = heroAppearance
         self.battlePhase = battlePhase
         self.guidanceText = guidanceText
         self.isCompleted = isCompleted

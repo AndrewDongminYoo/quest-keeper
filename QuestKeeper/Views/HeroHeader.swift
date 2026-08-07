@@ -13,6 +13,8 @@ struct HeroHeader: View {
     let state: HeroState
     let isMourning: Bool
     let activeQuestCount: Int
+    var appearance: HeroAppearance = .default
+    var onEditAppearance: () -> Void = {}
 
     @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 36
 
@@ -33,12 +35,19 @@ struct HeroHeader: View {
     }
 
     private var hero: some View {
-        HStack(spacing: 5) {
-            HeroSprite(isMourning: isMourning, size: heroSize)
-            Text("용사")
-                .foregroundStyle(DungeonPalette.ink)
+        Button(action: onEditAppearance) {
+            HStack(spacing: 5) {
+                HeroSprite(isMourning: isMourning, appearance: appearance, size: heroSize)
+                Text("용사")
+                    .foregroundStyle(DungeonPalette.ink)
+                Image(systemName: "pencil")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(DungeonPalette.ink.opacity(0.62))
+            }
         }
+        .buttonStyle(.plain)
         .fixedSize(horizontal: true, vertical: false)
+        .accessibilityLabel("용사 외형 설정")
     }
 
     private var stats: some View {
