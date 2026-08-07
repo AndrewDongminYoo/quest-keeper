@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HeroSprite: View {
     let isMourning: Bool
+    var appearance: HeroAppearance = .default
     var size: CGFloat = 22
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -19,17 +20,14 @@ struct HeroSprite: View {
         !isMourning && !reduceMotion
     }
 
-    private var artwork: DungeonArtwork {
-        HeroAnimation.artwork(
-            isMourning: isMourning,
-            reduceMotion: reduceMotion,
-            frameIndex: frameIndex
-        )
+    private var frame: HeroFrame {
+        isMourning ? .idle : HeroAnimation.frame(reduceMotion: reduceMotion, frameIndex: frameIndex)
     }
 
     var body: some View {
-        DungeonArtworkView(
-            artwork: artwork,
+        HeroArtworkView(
+            appearance: appearance,
+            frame: frame,
             size: size
         )
         .scaleEffect(reduceMotion ? 1 : isMourning ? 0.92 : 1)

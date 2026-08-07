@@ -97,10 +97,10 @@ struct DungeonArtworkTests {
     @Test("breathing uses three unique hero frames in a smooth loop")
     func breathingSequence() {
         #expect(HeroAnimation.breathingFrames == [
-            .heroIdle,
-            .heroBreatheIn,
-            .heroBreatheOut,
-            .heroBreatheIn,
+            .idle,
+            .breatheIn,
+            .breatheOut,
+            .breatheIn,
         ])
         #expect(Set(HeroAnimation.breathingFrames).count == 3)
     }
@@ -151,9 +151,8 @@ struct DungeonArtworkTests {
 
     @Test("mourning and Reduce Motion select stable artwork")
     func staticHeroArtwork() {
-        #expect(HeroAnimation.artwork(isMourning: true, reduceMotion: false, frameIndex: 2) == .heroMourning)
-        #expect(HeroAnimation.artwork(isMourning: false, reduceMotion: true, frameIndex: 2) == .heroIdle)
-        #expect(HeroAnimation.artwork(isMourning: false, reduceMotion: false, frameIndex: 2) == .heroBreatheOut)
+        #expect(HeroAnimation.frame(reduceMotion: true, frameIndex: 2) == .idle)
+        #expect(HeroAnimation.frame(reduceMotion: false, frameIndex: 2) == .breatheOut)
     }
 
     private func alphaBounds(of image: CGImage) throws -> CGRect {

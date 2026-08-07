@@ -14,7 +14,7 @@ struct HeroHeader: View {
     let isMourning: Bool
     let activeQuestCount: Int
 
-    @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 36
 
     var body: some View {
         ViewThatFits(in: .horizontal) {

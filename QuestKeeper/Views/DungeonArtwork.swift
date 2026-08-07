@@ -48,25 +48,6 @@ nonisolated enum DungeonArtwork: String, CaseIterable, Sendable {
     }
 }
 
-nonisolated enum HeroAnimation {
-    static let breathingFrames: [DungeonArtwork] = [
-        .heroIdle,
-        .heroBreatheIn,
-        .heroBreatheOut,
-        .heroBreatheIn,
-    ]
-
-    static func artwork(isMourning: Bool, reduceMotion: Bool, frameIndex: Int) -> DungeonArtwork {
-        if isMourning {
-            return .heroMourning
-        }
-        guard !reduceMotion else {
-            return .heroIdle
-        }
-        return breathingFrames[frameIndex % breathingFrames.count]
-    }
-}
-
 struct DungeonArtworkView: View {
     let artwork: DungeonArtwork
     let size: CGFloat
