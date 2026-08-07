@@ -3,14 +3,13 @@ import UIKit
 @testable import QuestKeeper
 
 struct DungeonArtworkTests {
-    @Test("mob levels map to the three visual tiers")
+    @Test("mob levels and quest IDs map to stable artwork")
     func monsterTierMapping() {
-        #expect(DungeonArtwork.monster(level: 0) == .slime)
-        #expect(DungeonArtwork.monster(level: 1) == .slime)
-        #expect(DungeonArtwork.monster(level: 2) == .skeleton)
-        #expect(DungeonArtwork.monster(level: 3) == .skeleton)
-        #expect(DungeonArtwork.monster(level: 4) == .dragon)
-        #expect(DungeonArtwork.monster(level: 5) == .dragon)
+        let id = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+        #expect(DungeonArtwork.monster(level: 0, questID: id) == .bat)
+        #expect(DungeonArtwork.monster(level: 2, questID: id) == .orc)
+        #expect(DungeonArtwork.monster(level: 4, questID: id) == .golem)
     }
 
     @Test("every artwork case has a unique asset name")

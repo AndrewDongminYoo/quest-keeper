@@ -88,7 +88,7 @@ struct QuestRow: View {
                 } else {
                     MobLevelBadge(level: level)
                 }
-                MonsterGlyph(level: level, battlePhase: battlePhase)
+                MonsterGlyph(level: level, questID: quest.id, battlePhase: battlePhase)
             }
         }
         .padding(14)
@@ -215,12 +215,14 @@ struct MobLevelBadge: View {
 
 struct MonsterGlyph: View {
     let level: Int
+    let questID: UUID
     let battlePhase: QuestBattlePhase
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(level: Int, battlePhase: QuestBattlePhase = .idle) {
+    init(level: Int, questID: UUID, battlePhase: QuestBattlePhase = .idle) {
         self.level = level
+        self.questID = questID
         self.battlePhase = battlePhase
     }
 
@@ -230,7 +232,7 @@ struct MonsterGlyph: View {
                 DungeonArtworkView(artwork: .battleImpact, size: 34)
                     .transition(.opacity)
             }
-            DungeonArtworkView(artwork: .monster(level: level), size: 30)
+            DungeonArtworkView(artwork: .monster(level: level, questID: questID), size: 30)
         }
         .frame(width: 34, height: 34)
         .scaleEffect(reduceMotion ? 1 : battlePhase == .striking ? 1.22 : battlePhase == .defeated ? 0.82 : 1)
@@ -242,6 +244,6 @@ struct MonsterGlyph: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("몹 레벨 \(level)")
+        .accessibilityLabel("\(MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).localizedName) 레벨 \(level)")
     }
 }

@@ -199,7 +199,7 @@ private struct MobBadge: View {
     var body: some View {
         HStack(spacing: 8) {
             WidgetArtworkView(
-                artwork: .monster(level: mob.mobLevel),
+                artwork: .monster(level: mob.mobLevel, questID: mob.id),
                 size: compact ? 28 : dense ? 18 : 22
             )
             .frame(
@@ -275,8 +275,14 @@ private struct MobBadge: View {
 
 private enum WidgetArtwork: String {
     case slime = "sprite-slime"
+    case bat = "sprite-bat"
+    case mushroom = "sprite-mushroom"
     case skeleton = "sprite-skeleton"
+    case orc = "sprite-orc"
+    case mimic = "sprite-mimic"
     case dragon = "sprite-dragon"
+    case golem = "sprite-golem"
+    case lich = "sprite-lich"
     case staleWarning = "icon-stale-warning"
     case protectionShield = "icon-protection-shield"
 
@@ -284,16 +290,22 @@ private enum WidgetArtwork: String {
         switch self {
         case .staleWarning, .protectionShield:
             1.5
-        case .slime, .skeleton, .dragon:
+        case .slime, .bat, .mushroom, .skeleton, .orc, .mimic, .dragon, .golem, .lich:
             1
         }
     }
 
-    static func monster(level: Int) -> WidgetArtwork {
-        switch level {
-        case ..<2: .slime
-        case 2..<4: .skeleton
-        default: .dragon
+    static func monster(level: Int, questID: UUID) -> WidgetArtwork {
+        switch MonsterArtworkSelection.monster(forMobLevel: level, questID: questID) {
+        case .slime: .slime
+        case .bat: .bat
+        case .mushroom: .mushroom
+        case .skeleton: .skeleton
+        case .orc: .orc
+        case .mimic: .mimic
+        case .dragon: .dragon
+        case .golem: .golem
+        case .lich: .lich
         }
     }
 }
