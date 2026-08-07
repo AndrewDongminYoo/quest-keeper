@@ -56,19 +56,23 @@ validate_imageset() {
 
 	fringe_edge_mask="$temporary_root/fringe-edge-mask.png"
 	fringe_chroma_mask="$temporary_root/fringe-chroma-mask.png"
+	fringe_mask="$temporary_root/fringe-mask.png"
+	fringe_allowed_mask="$temporary_root/fringe-allowed-mask.png"
 	magick "$png" -alpha extract -threshold 0 -morphology EdgeIn Diamond:1 "$fringe_edge_mask"
 	magick "$png" -alpha on \
 		-fx '((a > 0) * (r > 1.5 * g) * (b > 1.5 * g) * (r + b > 0.25)) ? 1 : 0' \
 		-alpha off "$fringe_chroma_mask"
-	fringe_count="$(magick "$fringe_edge_mask" "$fringe_chroma_mask" \
-		-compose multiply -composite -format '%[fx:round(mean*w*h)]' info:)"
-	fringe_limit=100
+	magick "$fringe_edge_mask" "$fringe_chroma_mask" -compose multiply -composite "$fringe_mask"
+	magick -size "${width}x${height}" xc:black "$fringe_allowed_mask"
 	case "$asset_name" in
-	*hero*) fringe_limit=0 ;;
+	sprite-bat) magick "$fringe_allowed_mask" -fill white -draw 'rectangle 152,261 206,279' "$fringe_allowed_mask" ;;
+	sprite-lich) magick "$fringe_allowed_mask" -fill white -draw 'rectangle 170,127 211,138' "$fringe_allowed_mask" ;;
 	*) ;;
 	esac
-	if ((fringe_count > fringe_limit)); then
-		echo "sprite retains excessive chroma fringe: $png ($fringe_count > $fringe_limit)" >&2
+	fringe_max="$(magick "$fringe_mask" \( "$fringe_allowed_mask" -negate \) \
+		-compose multiply -composite -format '%[fx:maxima]' info:)"
+	if [[ $fringe_max != "0" ]]; then
+		echo "sprite retains chroma fringe outside approved detail regions: $png" >&2
 		exit 1
 	fi
 }

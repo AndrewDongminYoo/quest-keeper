@@ -97,13 +97,16 @@ JSON
 remove_chroma_fringe() {
 	source_path="$1"
 	destination="$2"
+	preserve_edge_chroma="$3"
 	chroma_mask="$temporary_root/chroma-mask.png"
 	opaque_mask="$temporary_root/opaque-mask.png"
 	transparent_mask="$temporary_root/transparent-mask.png"
 	traversable_mask="$temporary_root/traversable-mask.png"
 	connected_mask="$temporary_root/connected-mask.png"
+	edge_mask="$temporary_root/edge-mask.png"
 	fringe_mask="$temporary_root/fringe-mask.png"
 	clean_alpha="$temporary_root/clean-alpha.png"
+	next_image="$temporary_root/next-image.png"
 
 	magick "$source_path" -alpha on \
 		-fx '((a > 0) * (r > 1.5 * g) * (b > 1.5 * g) * (r + b > 0.25)) ? 1 : 0' \
@@ -118,6 +121,29 @@ remove_chroma_fringe() {
 	magick "$source_path" -alpha extract "$clean_alpha"
 	magick "$clean_alpha" \( "$fringe_mask" -negate \) -compose multiply -composite "$clean_alpha"
 	magick "$source_path" "$clean_alpha" -compose CopyOpacity -composite -strip "$destination"
+	if [[ $preserve_edge_chroma == "1" ]]; then
+		return
+	fi
+
+	for ((fringe_iteration = 0; fringe_iteration < 32; fringe_iteration++)); do
+		magick "$destination" -alpha extract -threshold 0 -morphology EdgeIn Diamond:1 "$edge_mask"
+		magick "$destination" -alpha on \
+			-fx '((a > 0) * (r > 1.5 * g) * (b > 1.5 * g) * (r + b > 0.25)) ? 1 : 0' \
+			-alpha off "$chroma_mask"
+		magick "$edge_mask" "$chroma_mask" -compose multiply -composite "$fringe_mask"
+		fringe_max="$(magick "$fringe_mask" -format '%[fx:maxima]' info:)"
+		if [[ $fringe_max == "0" ]]; then
+			return
+		fi
+
+		magick "$destination" -alpha extract "$clean_alpha"
+		magick "$clean_alpha" \( "$fringe_mask" -negate \) -compose multiply -composite "$clean_alpha"
+		magick "$destination" "$clean_alpha" -compose CopyOpacity -composite -strip "$next_image"
+		mv "$next_image" "$destination"
+	done
+
+	echo "unable to remove chroma fringe from: $source_path" >&2
+	exit 1
 }
 
 crop_cell() {
@@ -131,6 +157,7 @@ crop_cell() {
 	inset_right="$8"
 	inset_bottom="$9"
 	destination="${10}"
+	preserve_edge_chroma="${11:-0}"
 	source_width="$(magick identify -quiet -format '%w' "$source_path")"
 	source_height="$(magick identify -quiet -format '%h' "$source_path")"
 	left=$(((column * source_width + columns / 2) / columns))
@@ -150,7 +177,7 @@ crop_cell() {
 		-fuzz 38% -transparent '#FF00FF' \
 		-background none -gravity center -extent 512x512 \
 		-strip "$unclean_destination"
-	remove_chroma_fringe "$unclean_destination" "$destination"
+	remove_chroma_fringe "$unclean_destination" "$destination" "$preserve_edge_chroma"
 }
 
 monster_names="slime bat mushroom skeleton orc mimic dragon golem lich"
@@ -166,8 +193,13 @@ for monster_name in $monster_names; do
 	if [[ $monster_name == "golem" ]]; then
 		monster_right_inset=40
 	fi
+	preserve_edge_chroma=0
+	case "$monster_name" in
+	bat | lich) preserve_edge_chroma=1 ;;
+	*) ;;
+	esac
 	monster_png="$temporary_root/sprite-$monster_name.png"
-	crop_cell "$monster_source" 3 3 "$monster_column" "$monster_row" 12 12 "$monster_right_inset" "$monster_bottom_inset" "$monster_png"
+	crop_cell "$monster_source" 3 3 "$monster_column" "$monster_row" 12 12 "$monster_right_inset" "$monster_bottom_inset" "$monster_png" "$preserve_edge_chroma"
 	write_imageset "$app_catalog" "sprite-$monster_name" "$monster_png"
 	write_imageset "$widget_catalog" "sprite-$monster_name" "$monster_png"
 	monster_index=$((monster_index + 1))
