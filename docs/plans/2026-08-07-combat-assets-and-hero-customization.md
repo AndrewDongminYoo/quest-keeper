@@ -21,6 +21,7 @@
 - Do not extract, recolor, or integrate either source sheet before explicit user approval.
 - Keep app and widget runtime asset catalogs target-local.
 - Use original QuestKeeper artwork and do not imitate another game's protected expression.
+- Keep the hero right-facing and author every monster in a left-facing or left-biased pose toward the hero.
 
 ## Execution Workspace
 
@@ -97,6 +98,7 @@ dragon, golem, lich
 ```
 
 Require a strict three-by-three equal grid, one centered subject per cell, a perfectly flat `#FF00FF` background, uniform safe margins, the existing QuestKeeper outline weight and palette, and no grid lines, text, scenery, particles, shadows, gradients, signatures, or cell crossings.
+Every monster uses a left-facing or left-biased three-quarter pose while preserving its identity, silhouette, equipment, and cell center.
 
 - [ ] **Step 2: Generate the hero source sheet**
 
@@ -750,6 +752,7 @@ Keep the first action's `Date.now` captured before any sleep.
 
 Implement `QuestBattleScene` with a fixed `100x48` frame.
 Render the selected hero on the left and quest-aware monster on the right.
+Render the approved right-facing hero and left-facing monster without a runtime horizontal mirror, so asymmetric equipment and lighting remain consistent with the approved source art.
 Use `.windUp` to select the wind-up frame, `.striking` to select the strike frame and show `battleImpact`, and `.defeated` to keep the strike pose while fading the monster.
 When Reduce Motion is false, apply only phase-signaling lunge, recoil, rotation, and scale transforms.
 When Reduce Motion is true, force all offsets, rotations, and scales to neutral while preserving frame and opacity changes.

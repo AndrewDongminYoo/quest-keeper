@@ -67,6 +67,7 @@ Swift's randomized `hashValue` must not be used.
 
 The mapping is visual only.
 Do not add monster type, family, seed, artwork name, or animation state to `Quest`, `QuestSnapshot`, SwiftData, daily focus state, notification payloads, or retention events.
+Every monster sprite faces left toward the right-facing hero so the row battle stage reads as an encounter rather than two unrelated icons.
 
 The widget must use the same pure selection policy so a quest displays the same monster in both surfaces.
 The selected artwork must remain stable across launches and device restarts.
@@ -149,6 +150,7 @@ Generate two unsplit source sheets:
 
 Both sheets must use a flat chroma background outside the subject palette, fixed equal cells, uniform safe margins, crisp nearest-neighbor pixel edges, and no text, logos, shadows, gradients, scenery, signatures, watermarks, detached particles, or subjects crossing cell boundaries.
 The monster sheet must preserve the existing slime, skeleton, and dragon identities while adding six original QuestKeeper monsters.
+All nine monsters must use a left-facing or left-biased three-quarter pose while preserving their silhouettes and equipment.
 The hero sheet must preserve the current male-presenting hero identity in its default idle frame and keep both hero presentations coherent across all five poses.
 
 The workflow is binding:
@@ -222,6 +224,7 @@ Do not derive `completedAt` from the delayed commit time.
 
 During battle, replace only the row's trailing monster presentation with a fixed `100x48` point battle stage.
 The stage shows the hero on the left and the monster on the right.
+The hero faces right and every monster faces left toward the hero.
 It must not change the row's minimum height, title width allocation, neighboring row position, or scroll offset.
 
 The visual sequence is:
