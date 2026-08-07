@@ -20,6 +20,15 @@ for source_path in "$monster_source" "$hero_source"; do
 	fi
 done
 
+temporary_root="$(mktemp -d)"
+trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
+approved_monster_source="$temporary_root/approved-monster-source.png"
+approved_hero_source="$temporary_root/approved-hero-source.png"
+cp "$monster_source" "$approved_monster_source"
+cp "$hero_source" "$approved_hero_source"
+monster_source="$approved_monster_source"
+hero_source="$approved_hero_source"
+
 monster_hash_line="$(/usr/bin/shasum -a 256 "$monster_source")"
 hero_hash_line="$(/usr/bin/shasum -a 256 "$hero_source")"
 monster_hash="${monster_hash_line%% *}"
@@ -46,8 +55,6 @@ for source_path in "$monster_source" "$hero_source"; do
 	fi
 done
 
-temporary_root="$(mktemp -d)"
-trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
 generated_root="$temporary_root/generated"
 app_catalog="$generated_root/QuestKeeper/Assets.xcassets"
 widget_catalog="$generated_root/QuestKeeperWidget/Assets.xcassets"
@@ -142,12 +149,15 @@ done
 hero_frames="idle breathe-in breathe-out wind-up strike"
 hero_genders="male female"
 hair_colors="black brown blue red"
+hair_region_mask="$temporary_root/hero-hair-region-mask.png"
+magick -size 512x512 xc:black -fill white -draw 'rectangle 0,0 511,259' "$hair_region_mask"
 hero_row=0
 for hero_gender in $hero_genders; do
 	hero_column=0
 	for hero_frame in $hero_frames; do
 		base_png="$temporary_root/$hero_gender-$hero_frame.png"
 		cropped_png="$temporary_root/$hero_gender-$hero_frame-cropped.png"
+		color_mask="$temporary_root/$hero_gender-$hero_frame-color-mask.png"
 		hair_mask="$temporary_root/$hero_gender-$hero_frame-hair-mask.png"
 		crop_cell "$hero_source" 5 2 "$hero_column" "$hero_row" 12 12 12 12 "$cropped_png"
 		magick "$cropped_png" -trim +repage \
@@ -155,7 +165,8 @@ for hero_gender in $hero_genders; do
 			-gravity north -extent 512x512 \
 			-strip "$base_png"
 
-		magick "$base_png" -alpha off -fuzz 12% -fill black +opaque '#0346AA' -fill white -opaque '#0346AA' "$hair_mask"
+		magick "$base_png" -alpha off -fuzz 12% -fill black +opaque '#0346AA' -fill white -opaque '#0346AA' "$color_mask"
+		magick "$color_mask" "$hair_region_mask" -compose multiply -composite "$hair_mask"
 
 		for hair_color in $hair_colors; do
 			hero_png="$temporary_root/sprite-hero-$hero_gender-$hair_color-$hero_frame.png"

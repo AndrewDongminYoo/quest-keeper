@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2250
+# shellcheck disable=SC2016,SC2250
 
 set -euo pipefail
 
@@ -15,6 +15,8 @@ fi
 
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
+hair_region_mask="$temporary_root/hero-hair-region-mask.png"
+magick -size 512x512 xc:black -fill white -draw 'rectangle 0,0 511,259' "$hair_region_mask"
 
 validate_imageset() {
 	catalog_root="$1"
@@ -111,10 +113,12 @@ for hero_gender in $hero_genders; do
 	for hero_frame in $hero_frames; do
 		blue_name="sprite-hero-$hero_gender-blue-$hero_frame"
 		blue_png="$app_catalog/$blue_name.imageset/$blue_name.png"
+		color_mask="$temporary_root/$hero_gender-$hero_frame-color-mask.png"
 		hair_mask="$temporary_root/$hero_gender-$hero_frame-hair-mask.png"
 		visible_mask="$temporary_root/$hero_gender-$hero_frame-visible-mask.png"
 		outside_mask="$temporary_root/$hero_gender-$hero_frame-outside-mask.png"
-		magick "$blue_png" -alpha off -fuzz 12% -fill black +opaque '#0346AA' -fill white -opaque '#0346AA' "$hair_mask"
+		magick "$blue_png" -alpha off -fuzz 12% -fill black +opaque '#0346AA' -fill white -opaque '#0346AA' "$color_mask"
+		magick "$color_mask" "$hair_region_mask" -compose multiply -composite "$hair_mask"
 		magick "$blue_png" -alpha extract -threshold 0 "$visible_mask"
 		magick "$hair_mask" -negate "$visible_mask" -compose multiply -composite "$outside_mask"
 
@@ -123,6 +127,11 @@ for hero_gender in $hero_genders; do
 			variant_png="$app_catalog/$variant_name.imageset/$variant_name.png"
 			difference="$temporary_root/$hero_gender-$hair_color-$hero_frame-difference.png"
 			magick "$blue_png" -alpha off "$variant_png" -alpha off -compose difference -composite -threshold 0 "$difference"
+			difference_geometry="$(magick "$difference" -format '%@' info:)"
+			difference_size="${difference_geometry%%+*}"
+			difference_offset="${difference_geometry#*+}"
+			difference_height="${difference_size#*x}"
+			difference_y="${difference_offset##*+}"
 			outside_max="$(magick "$difference" "$outside_mask" -compose multiply -composite -format '%[fx:maxima]' info:)"
 			inside_max="$(magick "$difference" "$hair_mask" -compose multiply -composite -format '%[fx:maxima]' info:)"
 			if [[ $outside_max != "0" ]]; then
@@ -131,6 +140,10 @@ for hero_gender in $hero_genders; do
 			fi
 			if [[ $inside_max == "0" ]]; then
 				echo "hero recoloring did not change any hair pixels: $variant_name" >&2
+				exit 1
+			fi
+			if ((difference_y + difference_height > 260)); then
+				echo "hero recoloring changed pixels below the approved hair region: $variant_name ($difference_geometry)" >&2
 				exit 1
 			fi
 		done
@@ -142,7 +155,6 @@ if [[ ${QUESTKEEPER_SKIP_GENERATION_CHECK:-0} != 1 ]]; then
 	fake_magick="$fake_bin/magick"
 	magick_marker="$temporary_root/magick-invoked"
 	mkdir -p "$fake_bin"
-	# shellcheck disable=SC2016
 	printf '%s\n' '#!/bin/bash' ': >"${QUESTKEEPER_MAGICK_MARKER:?}"' 'exit 99' >"$fake_magick"
 	chmod +x "$fake_magick"
 	if QUESTKEEPER_MAGICK_MARKER="$magick_marker" PATH="$fake_bin:$PATH" /bin/bash "$script_root/process-combat-assets.sh" \
@@ -160,12 +172,40 @@ if [[ ${QUESTKEEPER_SKIP_GENERATION_CHECK:-0} != 1 ]]; then
 		echo "generator parsed an unapproved source with ImageMagick" >&2
 		exit 1
 	fi
-	for output_name in first second; do
+
+	approved_monster_source="$asset_root/docs/assets/pixel-combat-customization/questkeeper-monsters-left-source.png"
+	approved_hero_source="$asset_root/docs/assets/pixel-combat-customization/questkeeper-heroes-source.png"
+	real_magick="$(command -v magick)"
+	monitor_bin="$temporary_root/monitor-bin"
+	monitor_magick="$monitor_bin/magick"
+	source_marker="$temporary_root/original-source-reopened"
+	mkdir -p "$monitor_bin"
+	printf '%s\n' \
+		'#!/bin/bash' \
+		'for argument in "$@"; do' \
+		'  if [[ $argument == "$QUESTKEEPER_ORIGINAL_MONSTER" || $argument == "$QUESTKEEPER_ORIGINAL_HERO" ]]; then' \
+		'    : >"${QUESTKEEPER_SOURCE_MARKER:?}"' \
+		'  fi' \
+		'done' \
+		'exec "${QUESTKEEPER_REAL_MAGICK:?}" "$@"' >"$monitor_magick"
+	chmod +x "$monitor_magick"
+	QUESTKEEPER_ORIGINAL_MONSTER="$approved_monster_source" \
+		QUESTKEEPER_ORIGINAL_HERO="$approved_hero_source" \
+		QUESTKEEPER_REAL_MAGICK="$real_magick" \
+		QUESTKEEPER_SOURCE_MARKER="$source_marker" \
+		PATH="$monitor_bin:$PATH" \
 		/bin/bash "$script_root/process-combat-assets.sh" \
-			"$asset_root/docs/assets/pixel-combat-customization/questkeeper-monsters-left-source.png" \
-			"$asset_root/docs/assets/pixel-combat-customization/questkeeper-heroes-source.png" \
-			"$temporary_root/$output_name" >/dev/null
-	done
+		"$approved_monster_source" \
+		"$approved_hero_source" \
+		"$temporary_root/first" >/dev/null
+	if [[ -e $source_marker ]]; then
+		echo "generator reopened an approved source path after copying it" >&2
+		exit 1
+	fi
+	/bin/bash "$script_root/process-combat-assets.sh" \
+		"$approved_monster_source" \
+		"$approved_hero_source" \
+		"$temporary_root/second" >/dev/null
 	if ! diff -qr "$temporary_root/first" "$temporary_root/second" >/dev/null; then
 		echo "combat asset generation is not byte-identical across runs" >&2
 		exit 1
