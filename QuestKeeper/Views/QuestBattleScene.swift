@@ -28,26 +28,26 @@ struct QuestBattleScene: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            HeroArtworkView(appearance: appearance, frame: heroFrame, size: 46)
+            HeroArtworkView(appearance: appearance, frame: heroFrame, size: 60)
                 .offset(x: heroOffset, y: 1)
 
-            DungeonArtworkView(artwork: monster, size: 38)
+            DungeonArtworkView(artwork: monster, size: 50)
                 .scaleEffect(monsterScale)
                 .rotationEffect(.degrees(monsterRotation))
                 .offset(x: monsterOffset, y: -1)
                 .opacity(phase == .defeated ? 0.2 : 1)
 
             if phase == .striking {
-                DungeonArtworkView(artwork: .battleImpact, size: 30)
-                    .offset(x: 56, y: -8)
+                DungeonArtworkView(artwork: .battleImpact, size: 38)
+                    .offset(x: 50, y: -8)
             }
 
             if phase == .defeated {
-                DungeonArtworkView(artwork: .victoryReward, size: 18)
-                    .offset(x: 78, y: -27)
+                DungeonArtworkView(artwork: .victoryReward, size: 24)
+                    .offset(x: 76, y: -30)
             }
         }
-        .frame(width: 100, height: 48, alignment: .bottomLeading)
+        .frame(width: 100, height: 58, alignment: .bottomLeading)
         .clipped()
         .transaction { transaction in
             if reduceMotion {
@@ -70,11 +70,11 @@ struct QuestBattleScene: View {
     }
 
     private var monsterOffset: CGFloat {
-        guard !reduceMotion else { return 62 }
+        guard !reduceMotion else { return 54 }
         return switch phase {
-        case .idle, .windUp: 62
-        case .striking: 67
-        case .defeated: 71
+        case .idle, .windUp: 54
+        case .striking: 59
+        case .defeated: 63
         }
     }
 
