@@ -13,20 +13,10 @@ hero_source="$2"
 output_root="$3"
 script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if ! command -v magick >/dev/null 2>&1; then
-	echo "magick is required" >&2
-	exit 69
-fi
-
 for source_path in "$monster_source" "$hero_source"; do
 	if [[ ! -f $source_path ]]; then
 		echo "missing PNG source: $source_path" >&2
 		exit 66
-	fi
-	source_format="$(magick identify -quiet -format '%m' "$source_path")"
-	if [[ $source_format != "PNG" ]]; then
-		echo "source is not a PNG: $source_path" >&2
-		exit 65
 	fi
 done
 
@@ -42,6 +32,19 @@ if [[ $hero_hash != "3a191d94842662fd729dfc75ab74e6cb85d89f6d77f250225627fc37a20
 	echo "hero source does not match the approved sheet" >&2
 	exit 65
 fi
+
+if ! command -v magick >/dev/null 2>&1; then
+	echo "magick is required" >&2
+	exit 69
+fi
+
+for source_path in "$monster_source" "$hero_source"; do
+	source_format="$(magick identify -quiet -format '%m' "$source_path")"
+	if [[ $source_format != "PNG" ]]; then
+		echo "source is not a PNG: $source_path" >&2
+		exit 65
+	fi
+done
 
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
@@ -152,7 +155,7 @@ for hero_gender in $hero_genders; do
 			-gravity north -extent 512x512 \
 			-strip "$base_png"
 
-		magick "$base_png" -alpha off -fuzz 12% -fill white -opaque '#0346AA' -fill black +opaque white "$hair_mask"
+		magick "$base_png" -alpha off -fuzz 12% -fill black +opaque '#0346AA' -fill white -opaque '#0346AA' "$hair_mask"
 
 		for hair_color in $hair_colors; do
 			hero_png="$temporary_root/sprite-hero-$hero_gender-$hair_color-$hero_frame.png"

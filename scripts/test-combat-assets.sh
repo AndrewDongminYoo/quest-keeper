@@ -13,6 +13,9 @@ if ! command -v magick >/dev/null 2>&1; then
 	exit 69
 fi
 
+temporary_root="$(mktemp -d)"
+trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
+
 validate_imageset() {
 	catalog_root="$1"
 	asset_name="$2"
@@ -104,10 +107,45 @@ for hero_gender in $hero_genders; do
 	done
 done
 
+for hero_gender in $hero_genders; do
+	for hero_frame in $hero_frames; do
+		blue_name="sprite-hero-$hero_gender-blue-$hero_frame"
+		blue_png="$app_catalog/$blue_name.imageset/$blue_name.png"
+		hair_mask="$temporary_root/$hero_gender-$hero_frame-hair-mask.png"
+		visible_mask="$temporary_root/$hero_gender-$hero_frame-visible-mask.png"
+		outside_mask="$temporary_root/$hero_gender-$hero_frame-outside-mask.png"
+		magick "$blue_png" -alpha off -fuzz 12% -fill black +opaque '#0346AA' -fill white -opaque '#0346AA' "$hair_mask"
+		magick "$blue_png" -alpha extract -threshold 0 "$visible_mask"
+		magick "$hair_mask" -negate "$visible_mask" -compose multiply -composite "$outside_mask"
+
+		for hair_color in black brown red; do
+			variant_name="sprite-hero-$hero_gender-$hair_color-$hero_frame"
+			variant_png="$app_catalog/$variant_name.imageset/$variant_name.png"
+			difference="$temporary_root/$hero_gender-$hair_color-$hero_frame-difference.png"
+			magick "$blue_png" -alpha off "$variant_png" -alpha off -compose difference -composite -threshold 0 "$difference"
+			outside_max="$(magick "$difference" "$outside_mask" -compose multiply -composite -format '%[fx:maxima]' info:)"
+			inside_max="$(magick "$difference" "$hair_mask" -compose multiply -composite -format '%[fx:maxima]' info:)"
+			if [[ $outside_max != "0" ]]; then
+				echo "hero recoloring changed a non-hair pixel: $variant_name" >&2
+				exit 1
+			fi
+			if [[ $inside_max == "0" ]]; then
+				echo "hero recoloring did not change any hair pixels: $variant_name" >&2
+				exit 1
+			fi
+		done
+	done
+done
+
 if [[ ${QUESTKEEPER_SKIP_GENERATION_CHECK:-0} != 1 ]]; then
-	temporary_root="$(mktemp -d)"
-	trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
-	if /bin/bash "$script_root/process-combat-assets.sh" \
+	fake_bin="$temporary_root/fake-bin"
+	fake_magick="$fake_bin/magick"
+	magick_marker="$temporary_root/magick-invoked"
+	mkdir -p "$fake_bin"
+	# shellcheck disable=SC2016
+	printf '%s\n' '#!/bin/bash' ': >"${QUESTKEEPER_MAGICK_MARKER:?}"' 'exit 99' >"$fake_magick"
+	chmod +x "$fake_magick"
+	if QUESTKEEPER_MAGICK_MARKER="$magick_marker" PATH="$fake_bin:$PATH" /bin/bash "$script_root/process-combat-assets.sh" \
 		"$asset_root/docs/assets/pixel-combat-customization/questkeeper-heroes-source.png" \
 		"$asset_root/docs/assets/pixel-combat-customization/questkeeper-heroes-source.png" \
 		"$temporary_root/rejected" >/dev/null 2>&1; then
@@ -116,6 +154,10 @@ if [[ ${QUESTKEEPER_SKIP_GENERATION_CHECK:-0} != 1 ]]; then
 	fi
 	if [[ -e $temporary_root/rejected ]]; then
 		echo "generator wrote output before rejecting an unapproved source" >&2
+		exit 1
+	fi
+	if [[ -e $magick_marker ]]; then
+		echo "generator parsed an unapproved source with ImageMagick" >&2
 		exit 1
 	fi
 	for output_name in first second; do
