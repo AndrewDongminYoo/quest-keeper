@@ -1,8 +1,9 @@
 #!/bin/bash
+# shellcheck disable=SC2250
 
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
+if [[ $# -ne 3 ]]; then
 	echo "usage: $0 monster-source.png hero-source.png output-root" >&2
 	exit 64
 fi
@@ -17,11 +18,12 @@ if ! command -v magick >/dev/null 2>&1; then
 fi
 
 for source_path in "$monster_source" "$hero_source"; do
-	if [ ! -f "$source_path" ]; then
+	if [[ ! -f $source_path ]]; then
 		echo "missing PNG source: $source_path" >&2
 		exit 66
 	fi
-	if [ "$(magick identify -quiet -format '%m' "$source_path")" != "PNG" ]; then
+	source_format="$(magick identify -quiet -format '%m' "$source_path")"
+	if [[ $source_format != "PNG" ]]; then
 		echo "source is not a PNG: $source_path" >&2
 		exit 65
 	fi
@@ -94,6 +96,7 @@ crop_cell() {
 		-crop "${cell_width}x${cell_height}+${left}+${top}" +repage \
 		-fuzz 38% -transparent '#FF00FF' \
 		-background none -gravity center -extent 512x512 \
+		-strip \
 		"$destination"
 }
 
@@ -104,10 +107,10 @@ for monster_name in $monster_names; do
 	monster_row=$((monster_index / 3))
 	monster_bottom_inset=12
 	monster_right_inset=12
-	if [ "$monster_row" -eq 1 ]; then
+	if [[ $monster_row -eq 1 ]]; then
 		monster_bottom_inset=40
 	fi
-	if [ "$monster_name" = "golem" ]; then
+	if [[ $monster_name == "golem" ]]; then
 		monster_right_inset=40
 	fi
 	monster_png="$temporary_root/sprite-$monster_name.png"
@@ -125,8 +128,13 @@ for hero_gender in $hero_genders; do
 	hero_column=0
 	for hero_frame in $hero_frames; do
 		base_png="$temporary_root/$hero_gender-$hero_frame.png"
+		cropped_png="$temporary_root/$hero_gender-$hero_frame-cropped.png"
 		hair_mask="$temporary_root/$hero_gender-$hero_frame-hair-mask.png"
-		crop_cell "$hero_source" 5 2 "$hero_column" "$hero_row" 12 12 12 12 "$base_png"
+		crop_cell "$hero_source" 5 2 "$hero_column" "$hero_row" 12 12 12 12 "$cropped_png"
+		magick "$cropped_png" -trim +repage \
+			-background none -gravity south -extent 512x384 \
+			-gravity north -extent 512x512 \
+			-strip "$base_png"
 
 		magick "$base_png" -alpha off -fuzz 12% -fill white -opaque '#0346AA' -fill black +opaque white "$hair_mask"
 
@@ -134,22 +142,26 @@ for hero_gender in $hero_genders; do
 			hero_png="$temporary_root/sprite-hero-$hero_gender-$hair_color-$hero_frame.png"
 			case "$hair_color" in
 			blue)
-				cp "$base_png" "$hero_png"
+				magick "$base_png" -strip "$hero_png"
 				;;
 			black)
 				matrix='0 0 0.12 0 0  0 0 0.14 0 0  0 0 0.18 0 0  0 0 0 1 0  0 0 0 0 1'
 				magick "$base_png" -color-matrix "$matrix" "$temporary_root/recolored.png"
-				magick "$base_png" "$temporary_root/recolored.png" "$hair_mask" -composite "$hero_png"
+				magick "$base_png" "$temporary_root/recolored.png" "$hair_mask" -composite -strip "$hero_png"
 				;;
 			brown)
 				matrix='0 0 0.62 0 0  0 0 0.34 0 0  0 0 0.14 0 0  0 0 0 1 0  0 0 0 0 1'
 				magick "$base_png" -color-matrix "$matrix" "$temporary_root/recolored.png"
-				magick "$base_png" "$temporary_root/recolored.png" "$hair_mask" -composite "$hero_png"
+				magick "$base_png" "$temporary_root/recolored.png" "$hair_mask" -composite -strip "$hero_png"
 				;;
 			red)
 				matrix='0 0 0.86 0 0  0 0 0.10 0 0  0 0 0.09 0 0  0 0 0 1 0  0 0 0 0 1'
 				magick "$base_png" -color-matrix "$matrix" "$temporary_root/recolored.png"
-				magick "$base_png" "$temporary_root/recolored.png" "$hair_mask" -composite "$hero_png"
+				magick "$base_png" "$temporary_root/recolored.png" "$hair_mask" -composite -strip "$hero_png"
+				;;
+			*)
+				echo "unsupported hair color: $hair_color" >&2
+				exit 65
 				;;
 			esac
 			write_imageset "$app_catalog" "sprite-hero-$hero_gender-$hair_color-$hero_frame" "$hero_png"
