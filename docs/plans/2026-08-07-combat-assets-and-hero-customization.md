@@ -503,7 +503,7 @@ scripts/process-combat-assets.sh monster-source.png hero-source.png output-root
 The script must:
 
 - resolve and validate each input as a regular PNG;
-- sample the border chroma color and remove it with the installed imagegen helper;
+- validate the approved flat chroma key recorded in the provenance note and remove it with ImageMagick;
 - derive rounded cumulative crop boundaries for three-by-three and five-by-two grids;
 - crop cells without resizing opaque pixels;
 - normalize every extracted cell onto a shared transparent square canvas;
@@ -514,22 +514,23 @@ The script must:
 Use `mktemp -d` and a cleanup trap for intermediate files.
 Do not use bare formatters, wildcard repository roots, or broad find-and-replace.
 
-- [ ] **Step 3: Copy the approved sources into deterministic temporary paths**
+- [ ] **Step 3: Copy the approved sources into deterministic repository paths**
 
-After approval only, create `tmp/combat-assets/` and copy the two approved built-in outputs without modification to:
+After approval only, copy the two approved built-in outputs to stable repository-relative paths:
 
 ```plaintext
-tmp/combat-assets/approved-monster-source.png
-tmp/combat-assets/approved-hero-source.png
+docs/assets/pixel-combat-customization/questkeeper-monsters-left-source.png
+docs/assets/pixel-combat-customization/questkeeper-heroes-source.png
 ```
 
-Record the original built-in paths and copied-file SHA-256 values in `docs/notes/017-combat-asset-generation.md` and verify each pair is byte-identical with `cmp -s`.
+Record the stable generated filenames, original and repository SHA-256 values, and PNG-hook normalization in `docs/notes/017-combat-asset-generation.md`.
+Verify pixel identity with ImageMagick `compare -metric AE`; omit machine-specific cache prefixes and session identifiers from the public record.
 
 - [ ] **Step 4: Process into a temporary directory and validate**
 
 ```bash
 combat_asset_tmp="$(mktemp -d)"
-/bin/bash scripts/process-combat-assets.sh tmp/combat-assets/approved-monster-source.png tmp/combat-assets/approved-hero-source.png "$combat_asset_tmp"
+/bin/bash scripts/process-combat-assets.sh docs/assets/pixel-combat-customization/questkeeper-monsters-left-source.png docs/assets/pixel-combat-customization/questkeeper-heroes-source.png "$combat_asset_tmp"
 /bin/bash scripts/test-combat-assets.sh "$combat_asset_tmp"
 ```
 
