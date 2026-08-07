@@ -53,6 +53,24 @@ validate_imageset() {
 		echo "sprite has no visible pixels: $png" >&2
 		exit 1
 	fi
+
+	fringe_edge_mask="$temporary_root/fringe-edge-mask.png"
+	fringe_chroma_mask="$temporary_root/fringe-chroma-mask.png"
+	magick "$png" -alpha extract -threshold 0 -morphology EdgeIn Diamond:1 "$fringe_edge_mask"
+	magick "$png" -alpha on \
+		-fx '((a > 0) * (r > 1.5 * g) * (b > 1.5 * g) * (r + b > 0.25)) ? 1 : 0' \
+		-alpha off "$fringe_chroma_mask"
+	fringe_count="$(magick "$fringe_edge_mask" "$fringe_chroma_mask" \
+		-compose multiply -composite -format '%[fx:round(mean*w*h)]' info:)"
+	fringe_limit=100
+	case "$asset_name" in
+	*hero*) fringe_limit=0 ;;
+	*) ;;
+	esac
+	if ((fringe_count > fringe_limit)); then
+		echo "sprite retains excessive chroma fringe: $png ($fringe_count > $fringe_limit)" >&2
+		exit 1
+	fi
 }
 
 monster_names="slime bat mushroom skeleton orc mimic dragon golem lich"

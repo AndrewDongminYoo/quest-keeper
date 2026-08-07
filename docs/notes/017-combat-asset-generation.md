@@ -51,7 +51,7 @@ Hero boundaries use rounded cumulative fifths horizontally and halves vertically
 Every hero subject is centered horizontally without resizing opaque pixels and anchored to the same 384-pixel baseline on a transparent 512 × 512 canvas.
 
 The source backgrounds are the approved flat `#FF00FF` chroma key.
-The processing script removes that key with ImageMagick, crops rounded cumulative grid boundaries with safe cell insets, and places every frame on a transparent 512 × 512 canvas without resizing its opaque pixels.
+The processing script removes that key with ImageMagick, clears only magenta-like pixels connected to the transparent background to eliminate chroma fringe, crops rounded cumulative grid boundaries with safe cell insets, and places every frame on a transparent 512 × 512 canvas without resizing its retained opaque pixels.
 The source cobalt hair palette is selected around `#0346AA` at 12% fuzz and intersected with rows 0 through 259 of the aligned 512-pixel canvas so similarly colored cape and outfit pixels stay unchanged.
 Black, brown, and red variants preserve the source shading through color matrices while the blue variant remains byte-equivalent to the cropped source pixels.
 No horizontal mirroring is performed: heroes retain their approved right-facing pose and monsters retain their approved left-facing pose.

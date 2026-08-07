@@ -94,6 +94,32 @@ write_imageset() {
 JSON
 }
 
+remove_chroma_fringe() {
+	source_path="$1"
+	destination="$2"
+	chroma_mask="$temporary_root/chroma-mask.png"
+	opaque_mask="$temporary_root/opaque-mask.png"
+	transparent_mask="$temporary_root/transparent-mask.png"
+	traversable_mask="$temporary_root/traversable-mask.png"
+	connected_mask="$temporary_root/connected-mask.png"
+	fringe_mask="$temporary_root/fringe-mask.png"
+	clean_alpha="$temporary_root/clean-alpha.png"
+
+	magick "$source_path" -alpha on \
+		-fx '((a > 0) * (r > 1.5 * g) * (b > 1.5 * g) * (r + b > 0.25)) ? 1 : 0' \
+		-alpha off "$chroma_mask"
+	magick "$source_path" -alpha extract -threshold 0 "$opaque_mask"
+	magick "$opaque_mask" -negate "$transparent_mask"
+	magick "$transparent_mask" "$chroma_mask" -compose Lighten -composite "$traversable_mask"
+	magick "$traversable_mask" -fill '#808080' -draw 'color 0,0 floodfill' "$connected_mask"
+	magick "$connected_mask" -alpha off -fuzz 1% \
+		-fill black +opaque '#808080' -fill white -opaque '#808080' "$connected_mask"
+	magick "$connected_mask" "$chroma_mask" -compose multiply -composite "$fringe_mask"
+	magick "$source_path" -alpha extract "$clean_alpha"
+	magick "$clean_alpha" \( "$fringe_mask" -negate \) -compose multiply -composite "$clean_alpha"
+	magick "$source_path" "$clean_alpha" -compose CopyOpacity -composite -strip "$destination"
+}
+
 crop_cell() {
 	source_path="$1"
 	columns="$2"
@@ -118,12 +144,13 @@ crop_cell() {
 	cell_width=$((cell_width - inset_left - inset_right))
 	cell_height=$((cell_height - inset_top - inset_bottom))
 
+	unclean_destination="$temporary_root/cropped-with-fringe.png"
 	magick "$source_path" \
 		-crop "${cell_width}x${cell_height}+${left}+${top}" +repage \
 		-fuzz 38% -transparent '#FF00FF' \
 		-background none -gravity center -extent 512x512 \
-		-strip \
-		"$destination"
+		-strip "$unclean_destination"
+	remove_chroma_fringe "$unclean_destination" "$destination"
 }
 
 monster_names="slime bat mushroom skeleton orc mimic dragon golem lich"
