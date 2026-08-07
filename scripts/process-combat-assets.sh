@@ -30,6 +30,19 @@ for source_path in "$monster_source" "$hero_source"; do
 	fi
 done
 
+monster_hash_line="$(/usr/bin/shasum -a 256 "$monster_source")"
+hero_hash_line="$(/usr/bin/shasum -a 256 "$hero_source")"
+monster_hash="${monster_hash_line%% *}"
+hero_hash="${hero_hash_line%% *}"
+if [[ $monster_hash != "4d25b875f0c6801d13483e3c06432404aa13d67567cb261202212731e2f702d5" ]]; then
+	echo "monster source does not match the approved sheet" >&2
+	exit 65
+fi
+if [[ $hero_hash != "3a191d94842662fd729dfc75ab74e6cb85d89f6d77f250225627fc37a20ccce5" ]]; then
+	echo "hero source does not match the approved sheet" >&2
+	exit 65
+fi
+
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
 generated_root="$temporary_root/generated"

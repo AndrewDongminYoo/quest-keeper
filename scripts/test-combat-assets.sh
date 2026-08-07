@@ -107,6 +107,17 @@ done
 if [[ ${QUESTKEEPER_SKIP_GENERATION_CHECK:-0} != 1 ]]; then
 	temporary_root="$(mktemp -d)"
 	trap 'rm -rf "$temporary_root"' EXIT HUP INT TERM
+	if /bin/bash "$script_root/process-combat-assets.sh" \
+		"$asset_root/docs/assets/pixel-combat-customization/questkeeper-heroes-source.png" \
+		"$asset_root/docs/assets/pixel-combat-customization/questkeeper-heroes-source.png" \
+		"$temporary_root/rejected" >/dev/null 2>&1; then
+		echo "generator accepted an unapproved monster source" >&2
+		exit 1
+	fi
+	if [[ -e $temporary_root/rejected ]]; then
+		echo "generator wrote output before rejecting an unapproved source" >&2
+		exit 1
+	fi
 	for output_name in first second; do
 		/bin/bash "$script_root/process-combat-assets.sh" \
 			"$asset_root/docs/assets/pixel-combat-customization/questkeeper-monsters-left-source.png" \
