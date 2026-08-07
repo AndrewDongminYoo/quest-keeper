@@ -197,6 +197,8 @@ private struct MobBadge: View {
     var dense = false
 
     var body: some View {
+        let monster = MonsterArtworkSelection.monster(forMobLevel: mob.mobLevel, questID: mob.id)
+
         HStack(spacing: 8) {
             WidgetArtworkView(
                 artwork: .monster(level: mob.mobLevel, questID: mob.id),
@@ -206,7 +208,7 @@ private struct MobBadge: View {
                 width: compact ? 28 : dense ? 20 : 24,
                 height: compact ? 28 : dense ? 20 : 24
             )
-            .accessibilityLabel("몹 레벨 \(mob.mobLevel)")
+            .accessibilityLabel("\(monster.localizedName) 레벨 \(mob.mobLevel)")
 
             VStack(alignment: .leading, spacing: compact ? 2 : dense ? 0 : 1) {
                 Text(mob.title)

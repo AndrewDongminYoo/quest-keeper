@@ -22,4 +22,33 @@ nonisolated enum QuestBattleResolution {
     static func shouldAcceptCompletion(isResolving: Bool) -> Bool {
         !isResolving
     }
+
+    static func acceptedTimestamp(isResolving: Bool, now: Date) -> Date? {
+        shouldAcceptCompletion(isResolving: isResolving) ? now : nil
+    }
+
+    static func heroFrame(for phase: QuestBattlePhase) -> HeroFrame {
+        switch phase {
+        case .idle: .idle
+        case .windUp: .windUp
+        case .striking, .defeated: .strike
+        }
+    }
+
+    static func showsImpact(for phase: QuestBattlePhase) -> Bool {
+        phase == .striking
+    }
+
+    static func showsVictory(for phase: QuestBattlePhase) -> Bool {
+        phase == .defeated
+    }
+
+    static func accessibilityValue(for phase: QuestBattlePhase) -> String {
+        switch phase {
+        case .idle: ""
+        case .windUp: "공격 준비 중"
+        case .striking: "공격 중"
+        case .defeated: "승리 처리 중"
+        }
+    }
 }

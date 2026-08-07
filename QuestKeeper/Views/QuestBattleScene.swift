@@ -9,26 +9,9 @@ struct QuestBattleScene: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var heroFrame: HeroFrame {
-        return switch phase {
-        case .idle: .idle
-        case .windUp: .windUp
-        case .striking, .defeated: .strike
-        }
-    }
-
-    private var phaseValue: String {
-        return switch phase {
-        case .idle: ""
-        case .windUp: "공격 준비 중"
-        case .striking: "공격 중"
-        case .defeated: "승리 처리 중"
-        }
-    }
-
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            HeroArtworkView(appearance: appearance, frame: heroFrame, size: 60)
+            HeroArtworkView(appearance: appearance, frame: QuestBattleResolution.heroFrame(for: phase), size: 60)
                 .offset(x: heroOffset, y: 1)
 
             DungeonArtworkView(artwork: monster, size: 50)
@@ -37,12 +20,12 @@ struct QuestBattleScene: View {
                 .offset(x: monsterOffset, y: -1)
                 .opacity(phase == .defeated ? 0.2 : 1)
 
-            if phase == .striking {
+            if QuestBattleResolution.showsImpact(for: phase) {
                 DungeonArtworkView(artwork: .battleImpact, size: 38)
                     .offset(x: 50, y: -8)
             }
 
-            if phase == .defeated {
+            if QuestBattleResolution.showsVictory(for: phase) {
                 HStack(spacing: 2) {
                     DungeonArtworkView(artwork: .victoryReward, size: 16)
                     Text("승리")
@@ -50,7 +33,7 @@ struct QuestBattleScene: View {
                         .foregroundStyle(DungeonPalette.ink)
                 }
                 .fixedSize()
-                .offset(x: 63, y: -27)
+                .offset(x: 54, y: -27)
             }
         }
         .frame(width: 100, height: 48, alignment: .bottomLeading)
@@ -62,7 +45,7 @@ struct QuestBattleScene: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(monsterKind.localizedName) 레벨 \(monsterLevel)")
-        .accessibilityValue(phaseValue)
+        .accessibilityValue(QuestBattleResolution.accessibilityValue(for: phase))
     }
 
     private var heroOffset: CGFloat {

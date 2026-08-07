@@ -29,6 +29,29 @@ struct QuestBattleResolutionTests {
         #expect(!QuestBattleResolution.shouldAcceptCompletion(isResolving: true))
     }
 
+    @Test("accepted completion preserves the action timestamp")
+    func acceptedCompletionPreservesActionTimestamp() {
+        let actionTimestamp = Date(timeIntervalSince1970: 1_234)
+
+        #expect(QuestBattleResolution.acceptedTimestamp(isResolving: false, now: actionTimestamp) == actionTimestamp)
+        #expect(QuestBattleResolution.acceptedTimestamp(isResolving: true, now: actionTimestamp) == nil)
+    }
+
+    @Test("battle phases map to deterministic visual and accessibility states")
+    func deterministicPresentation() {
+        #expect(QuestBattleResolution.heroFrame(for: .idle) == .idle)
+        #expect(QuestBattleResolution.heroFrame(for: .windUp) == .windUp)
+        #expect(QuestBattleResolution.heroFrame(for: .striking) == .strike)
+        #expect(QuestBattleResolution.heroFrame(for: .defeated) == .strike)
+        #expect(!QuestBattleResolution.showsImpact(for: .windUp))
+        #expect(QuestBattleResolution.showsImpact(for: .striking))
+        #expect(!QuestBattleResolution.showsVictory(for: .striking))
+        #expect(QuestBattleResolution.showsVictory(for: .defeated))
+        #expect(QuestBattleResolution.accessibilityValue(for: .windUp) == "공격 준비 중")
+        #expect(QuestBattleResolution.accessibilityValue(for: .striking) == "공격 중")
+        #expect(QuestBattleResolution.accessibilityValue(for: .defeated) == "승리 처리 중")
+    }
+
     @Test("commit waits after defeated phase becomes visible")
     func commitWaitsAfterDefeatedPhaseBecomesVisible() {
         let visibleDefeatedDuration = QuestBattleResolution.commitDelay - QuestBattleResolution.defeatedPhaseDelay

@@ -219,11 +219,12 @@ private struct SwipeableQuestRow: View {
                     }
                 }
         )
-        .accessibilityAction(named: "완료") { completeWithBattle() }
-        .accessibilityValue(isResolvingBattle ? "완료 처리 중" : "")
-        .accessibilityAction(named: "삭제") {
-            guard !isResolvingBattle else { return }
-            onDelete(quest)
+        .accessibilityValue(QuestBattleResolution.accessibilityValue(for: battlePhase))
+        .accessibilityActions {
+            if !isResolvingBattle {
+                Button("완료") { completeWithBattle() }
+                Button("삭제") { onDelete(quest) }
+            }
         }
         .onChange(of: quest.id) { _, _ in
             battleTask?.cancel()
@@ -256,9 +257,7 @@ private struct SwipeableQuestRow: View {
     }
 
     private func completeWithBattle() {
-        guard QuestBattleResolution.shouldAcceptCompletion(isResolving: isResolvingBattle) else { return }
-
-        let completedAt = Date.now
+        guard let completedAt = QuestBattleResolution.acceptedTimestamp(isResolving: isResolvingBattle, now: .now) else { return }
         isResolvingBattle = true
         battleTask?.cancel()
         withAnimation(.snappy(duration: 0.18)) {

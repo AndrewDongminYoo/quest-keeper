@@ -66,34 +66,37 @@ struct QuestRow: View {
                 }
             }
             Spacer(minLength: 10)
-            if battlePhase == .idle || isCompleted {
-                VStack(alignment: .trailing, spacing: 8) {
-                    if isCompleted {
-                        HStack(spacing: 4) {
-                            DungeonArtworkView(artwork: .victoryReward, size: 14)
-                            Text("완료")
-                                .accessibilityLabel("\(quest.title) 완료")
+            Group {
+                if battlePhase == .idle || isCompleted {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        if isCompleted {
+                            HStack(spacing: 4) {
+                                DungeonArtworkView(artwork: .victoryReward, size: 14)
+                                Text("완료")
+                                    .accessibilityLabel("\(quest.title) 완료")
+                            }
+                            .font(.caption2.weight(.black))
+                            .foregroundStyle(DungeonPalette.victory)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 2))
+                        } else {
+                            MobLevelBadge(level: level)
                         }
-                        .font(.caption2.weight(.black))
-                        .foregroundStyle(DungeonPalette.victory)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 2))
-                    } else {
-                        MobLevelBadge(level: level)
+                        MonsterGlyph(level: level, questID: quest.id)
                     }
-                    MonsterGlyph(level: level, questID: quest.id)
+                } else {
+                    QuestBattleScene(
+                        appearance: heroAppearance,
+                        monster: .monster(level: level, questID: quest.id),
+                        monsterKind: monsterKind,
+                        monsterLevel: level,
+                        phase: battlePhase
+                    )
+                    .transition(reduceMotion ? .identity : .opacity)
                 }
-            } else {
-                QuestBattleScene(
-                    appearance: heroAppearance,
-                    monster: .monster(level: level, questID: quest.id),
-                    monsterKind: monsterKind,
-                    monsterLevel: level,
-                    phase: battlePhase
-                )
-                .transition(reduceMotion ? .identity : .opacity)
             }
+            .frame(width: 100, alignment: .trailing)
         }
         .padding(14)
         .frame(minHeight: 92)
