@@ -1,10 +1,6 @@
 import SwiftUI
 
 nonisolated enum DungeonArtwork: String, CaseIterable, Sendable {
-    case heroIdle = "sprite-hero-idle"
-    case heroBreatheIn = "sprite-hero-breathe-in"
-    case heroBreatheOut = "sprite-hero-breathe-out"
-    case heroMourning = "sprite-hero-mourning"
     case slime = "sprite-slime"
     case bat = "sprite-bat"
     case mushroom = "sprite-mushroom"

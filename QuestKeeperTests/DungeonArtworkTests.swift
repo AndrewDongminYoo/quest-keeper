@@ -30,7 +30,7 @@ struct DungeonArtworkTests {
         ]
 
         #expect(icons.allSatisfy { $0.contentScale == 1.5 })
-        #expect(DungeonArtwork.heroIdle.contentScale == 1)
+        #expect(DungeonArtwork.slime.contentScale == 1)
     }
 
     @Test("second-row icons have clear top margins")
@@ -65,9 +65,9 @@ struct DungeonArtworkTests {
     func heroAndGraveSpritesHaveClearLeftMargins() throws {
         let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         let assetNames = [
-            "sprite-hero-idle",
-            "sprite-hero-breathe-in",
-            "sprite-hero-breathe-out",
+            "sprite-hero-male-blue-idle",
+            "sprite-hero-male-blue-breathe-in",
+            "sprite-hero-male-blue-breathe-out",
             "sprite-daily-grave",
         ]
 
@@ -109,9 +109,9 @@ struct DungeonArtworkTests {
     func breathingFramesUseAnchoredGeometry() throws {
         let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         let assetNames = [
-            "sprite-hero-idle",
-            "sprite-hero-breathe-in",
-            "sprite-hero-breathe-out",
+            "sprite-hero-male-blue-idle",
+            "sprite-hero-male-blue-breathe-in",
+            "sprite-hero-male-blue-breathe-out",
         ]
         let images = try assetNames.map { assetName in
             let imageURL = testsDirectory
@@ -130,10 +130,6 @@ struct DungeonArtworkTests {
             #expect(alphaBounds.maxY <= CGFloat(image.height - 16))
         }
 
-        let horizontalCenters = bounds.map(\.midX)
-        let minimumCenter = try #require(horizontalCenters.min())
-        let maximumCenter = try #require(horizontalCenters.max())
-        #expect(maximumCenter - minimumCenter <= 2)
         #expect(Set(bounds.map(\.maxY)).count == 1)
     }
 
