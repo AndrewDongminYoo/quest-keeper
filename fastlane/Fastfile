@@ -38,6 +38,11 @@ platform :ios do
   # what the release tag names, so this lane must submit it unchanged.
   desc "Push a new release build to the App Store"
   lane :release do
+    # Reads APP_STORE_CONNECT_API_KEY_{KEY_ID,ISSUER_ID,KEY_FILEPATH} from the
+    # environment so no account identifier or private key lives in this repo.
+    # upload_to_app_store picks the key up from the lane context, which is what
+    # authenticates altool for the binary upload.
+    app_store_connect_api_key
     build_app(scheme: "QuestKeeper")
     upload_to_app_store
   end

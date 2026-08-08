@@ -17,3 +17,7 @@ fastlane/Preview.html
 # Fastlane release lane output
 *.ipa
 *.app.dSYM.zip
+
+# App Store Connect API private key — never commit
+*.p8
+fastlane/.env*

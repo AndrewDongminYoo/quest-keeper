@@ -28,6 +28,15 @@ bundle exec fastlane ios store_assets
 `store_assets` prepares both local surfaces and performs no upload.
 The existing `release` lane remains the only lane that builds and uploads a release.
 
+It authenticates with an App Store Connect API key read from the environment, because the binary upload runs through `altool`, which rejects a plain Apple ID password and the Spaceship session that the metadata upload uses.
+Export these before running it; the private key must stay outside the repository.
+
+```bash
+export APP_STORE_CONNECT_API_KEY_KEY_ID=<key id>
+export APP_STORE_CONNECT_API_KEY_ISSUER_ID=<issuer id>
+export APP_STORE_CONNECT_API_KEY_KEY_FILEPATH=~/.private_keys/AuthKey_<key id>.p8
+```
+
 ## Export compliance
 
 The app target sets `ITSAppUsesNonExemptEncryption` to `NO` in Debug and Release generated Info.plists.
