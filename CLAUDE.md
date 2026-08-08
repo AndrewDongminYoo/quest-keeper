@@ -98,7 +98,7 @@ In Claude Code and any other agent they are not available, so raw `xcodebuild` (
 
 **Codex — prefer XcodeBuildMCP.** It reuses one dedicated workspace and pins the simulator by **UDID**, avoiding the raw-`xcodebuild` failure mode described below.
 Session defaults are persisted in `.xcodebuildmcp/config.yaml` (git-ignored): project `QuestKeeper.xcodeproj`, scheme `QuestKeeper`, configuration `Debug`, and a pinned simulator UDID.
-**Confirm the pinned UDID against your machine** with `xcrun simctl list devices available` — simulator UDIDs are recreated and drift (the previously documented `7ED9020C-A21E-425F-AF74-C71C40DA0A13` is already stale; `iPhone 17e` is currently `CDF2239B-B46C-4A44-A09E-ED656EF7F9EA`).
+**Confirm the pinned UDID against your machine** with `xcrun simctl list devices available` — simulator UDIDs are recreated and drift (the previously documented `CDF2239B-B46C-4A44-A09E-ED656EF7F9EA` is already stale; `iPhone 17e` is currently `31D132A7-FA6F-43BE-A7E3-A313FE4C407B`).
 
 ```text
 # Once per session, confirm defaults (required before the first build/run/test):
@@ -119,9 +119,11 @@ Confirm/replace the UDID with `xcrun simctl list devices available` first, and p
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests
 ```
+
+Run `bash scripts/test-localization.sh` alongside `-only-testing:QuestKeeperTests` whenever a change touches user-facing strings — it checks the `Localizable.xcstrings` catalogs for missing/empty `ko`/`en` values and fails on a stray Korean literal outside a `defaultValue:` or a comment.
 
 Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or raw `xcodebuild` (elsewhere) for headless verification.
 
@@ -140,7 +142,9 @@ Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or 
 - **Out of scope (Phase 1):** CloudKit/sync, accounts/login, backend, ARKit, SpriteKit particles, multi-device.
   Local-only, single-device, offline-first.
 - **Naming:** derivation and action namespaces are caseless `nonisolated enum`s used as static-function namespaces (`HeroDerivation`, `GameBalance`, `QuestActions`, `QuestNotificationPlanner`, `WidgetDungeonDerivation`); state values are `nonisolated struct`s (`HeroState`, `QuestSnapshot`, `WidgetDungeonPayload`).
-- **Language:** Korean comments and user-facing strings are intentional — do not translate them.
+- **Language:** user-facing strings live in the `Localizable.xcstrings` String Catalogs under semantic keys (`AppStrings` / `WidgetStrings` / `SharedStrings`), with Korean as each resource's `defaultValue` and English as a peer locale — do not hardcode a literal at a call site instead of adding a catalog key.
+  Korean comments stay untranslated.
   Code identifiers and commit messages are English.
+  `scripts/test-localization.sh` gates both the catalogs (no missing/empty `ko`/`en` value) and stray Korean literals outside a `defaultValue:` or a comment.
 - **Voice:** quest-flavored but shame-free — `전투 추가`, `내일 도전하기`, `완료`; never `실패했습니다`, `무덤이 누적되었습니다`, `HP가 감소했습니다`.
   `DESIGN.md` (Voice) owns this.

@@ -71,6 +71,20 @@ PY
 	fi
 done
 
+stray="$(
+	rg -n '"[^"]*[가-힣][^"]*"' \
+		"${repo_root}/QuestKeeper" "${repo_root}/QuestKeeperShared" "${repo_root}/QuestKeeperWidget" \
+		--glob '*.swift' |
+		grep -vE ':[0-9]+: *(///|//)' |
+		sed -E 's/defaultValue: *"[^"]*"//g' |
+		grep '[가-힣]' || true
+)"
+if [[ -n ${stray} ]]; then
+	echo "FAIL: hardcoded Korean literal outside a defaultValue:" >&2
+	printf '%s\n' "${stray}" >&2
+	status=1
+fi
+
 if [[ ${status} -eq 0 ]]; then
 	echo "localization catalog tests passed"
 fi

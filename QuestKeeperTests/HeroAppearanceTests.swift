@@ -37,5 +37,29 @@ struct HeroAppearanceTests {
         #expect(HeroGender.female.title(locale: Locale(identifier: "en")) == "Feminine")
         #expect(HeroHairColor.black.title(locale: Locale(identifier: "ko")) == "검정")
         #expect(HeroHairColor.black.title(locale: Locale(identifier: "en")) == "Black")
+
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        for gender in HeroGender.allCases {
+            let koTitle = gender.title(locale: ko)
+            let enTitle = gender.title(locale: en)
+            #expect(!koTitle.isEmpty)
+            #expect(!enTitle.isEmpty)
+            #expect(koTitle != enTitle)
+        }
+
+        for hairColor in HeroHairColor.allCases {
+            let koTitle = hairColor.title(locale: ko)
+            let enTitle = hairColor.title(locale: en)
+            #expect(!koTitle.isEmpty)
+            #expect(!enTitle.isEmpty)
+            #expect(koTitle != enTitle)
+        }
+
+        #expect(Set(HeroGender.allCases.map { $0.title(locale: ko) }).count == HeroGender.allCases.count)
+        #expect(Set(HeroGender.allCases.map { $0.title(locale: en) }).count == HeroGender.allCases.count)
+        #expect(Set(HeroHairColor.allCases.map { $0.title(locale: ko) }).count == HeroHairColor.allCases.count)
+        #expect(Set(HeroHairColor.allCases.map { $0.title(locale: en) }).count == HeroHairColor.allCases.count)
     }
 }

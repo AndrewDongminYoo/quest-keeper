@@ -197,23 +197,23 @@ If Reduce Motion is enabled, swap to opacity/state changes without travel or imp
 
 ## Voice
 
-Korean UI is the default.
+Korean is the source-of-record voice; English is a peer locale that keeps the same register.
 Quest-flavored but plain.
 
 Use:
 
-- `전투 추가`
-- `내일 도전하기`
-- `완료`
-- `3시간 남음`
-- `너무 큰 퀘스트예요. 작게 쪼개볼까요?`
+- `전투 추가` / `Add Battle`
+- `내일 도전하기` / `Try Again Tomorrow`
+- `완료` / `Complete`
+- `3시간 남음` / `3 hours left`
+- `너무 큰 퀘스트예요` / `That's a big quest. Want to break it into smaller ones?`
 
-Avoid:
+Avoid — this list binds English too, nothing here should read as blame in either locale:
 
-- `실패했습니다`
-- `무덤이 누적되었습니다`
-- `HP가 감소했습니다`
-- `오늘도 못 했네요`
+- `실패했습니다` / `You failed`
+- `무덤이 누적되었습니다` / `Graves are piling up`
+- `HP가 감소했습니다` / `HP decreased`
+- `오늘도 못 했네요` / `You missed it again`
 
 ## Deliberately Avoided
 
