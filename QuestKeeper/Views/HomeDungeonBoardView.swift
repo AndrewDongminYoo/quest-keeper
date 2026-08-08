@@ -225,7 +225,6 @@ private struct GuidedOnboardingCard: View {
                 .font(.subheadline)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.76))
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel(AppStrings.resolve(AppStrings.dungeonFirstWinBody, locale: .current))
             Button(AppStrings.dungeonFirstWinStart, action: onStartGuidedQuest)
                 .buttonStyle(.pixel)
                 .frame(maxWidth: .infinity, minHeight: 44)
