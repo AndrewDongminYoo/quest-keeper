@@ -174,11 +174,17 @@ struct OnboardingFlowStateTests {
 
     @Test("guided editor draft is deterministic and editable")
     func guidedDraft() {
-        let draft = QuestEditorDraft.guided(at: assignedAt)
+        let draft = QuestEditorDraft.guided(at: assignedAt, locale: Locale(identifier: "ko"))
 
         #expect(draft.title == "물 한 잔 마시기")
         #expect(draft.deadline == assignedAt.addingTimeInterval(10 * 60))
         #expect(draft.importance == .low)
+    }
+
+    @Test("guided quest title resolves per locale")
+    func guidedQuestTitleLocalizes() {
+        #expect(QuestEditorDraft.guided(at: assignedAt, locale: Locale(identifier: "ko")).title == "물 한 잔 마시기")
+        #expect(QuestEditorDraft.guided(at: assignedAt, locale: Locale(identifier: "en")).title == "Drink a glass of water")
     }
 
     private func makeState(

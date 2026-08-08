@@ -460,6 +460,22 @@
           }
         }
       }
+    },
+    "onboarding.guidedQuest.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drink a glass of water"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "물 한 잔 마시기"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
