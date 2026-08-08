@@ -1,8 +1,12 @@
+import Foundation
+
 nonisolated enum HeroGender: String, CaseIterable, Hashable, Sendable {
     case male
     case female
 
-    var title: String { self == .male ? "남성형" : "여성형" }
+    func title(locale: Locale = .current) -> String {
+        AppStrings.resolve(AppStrings.heroGender(self), locale: locale)
+    }
 }
 
 nonisolated enum HeroHairColor: String, CaseIterable, Hashable, Sendable {
@@ -11,13 +15,8 @@ nonisolated enum HeroHairColor: String, CaseIterable, Hashable, Sendable {
     case blue
     case red
 
-    var title: String {
-        switch self {
-        case .black: "검정"
-        case .brown: "갈색"
-        case .blue: "파랑"
-        case .red: "빨강"
-        }
+    func title(locale: Locale = .current) -> String {
+        AppStrings.resolve(AppStrings.heroHairColor(self), locale: locale)
     }
 }
 
