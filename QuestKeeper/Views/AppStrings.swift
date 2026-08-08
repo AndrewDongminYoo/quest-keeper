@@ -24,3 +24,19 @@ nonisolated enum AppStrings {
         return String(localized: localized)
     }
 }
+
+nonisolated extension AppStrings {
+    static let countdownDueNow = LocalizedStringResource("countdown.dueNow", defaultValue: "마감 임박")
+
+    static func countdownDays(_ days: Int) -> LocalizedStringResource {
+        LocalizedStringResource("countdown.days", defaultValue: "\(days)일 남음")
+    }
+
+    static func countdownHours(_ hours: Int) -> LocalizedStringResource {
+        LocalizedStringResource("countdown.hours", defaultValue: "\(hours)시간")
+    }
+
+    static func countdownMinutes(_ minutes: Int) -> LocalizedStringResource {
+        LocalizedStringResource("countdown.minutes", defaultValue: "\(minutes)분 남음")
+    }
+}
