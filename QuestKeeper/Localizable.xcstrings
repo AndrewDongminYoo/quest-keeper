@@ -396,6 +396,70 @@
           }
         }
       }
+    },
+    "notification.deadline.body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One of your quests is due now"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "퀘스트 마감 시간이 되었습니다"
+          }
+        }
+      }
+    },
+    "notification.deadline.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A quest is due now"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "퀘스트 마감"
+          }
+        }
+      }
+    },
+    "notification.dueSoon.body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One of your quests is due soon"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "퀘스트가 곧 마감됩니다"
+          }
+        }
+      }
+    },
+    "notification.dueSoon.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A quest is due soon"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "퀘스트 마감 임박"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

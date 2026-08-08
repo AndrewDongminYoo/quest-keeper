@@ -16,7 +16,7 @@ nonisolated enum QuestNotificationPlanner {
         identifier.hasPrefix(QuestNotificationKind.identifierPrefix)
     }
 
-    static func plans(for snapshot: QuestSnapshot, now: Date) -> [QuestNotificationPlan] {
+    static func plans(for snapshot: QuestSnapshot, now: Date, locale: Locale = .current) -> [QuestNotificationPlan] {
         guard snapshot.completedAt == nil, snapshot.deadline > now else { return [] }
 
         let dueSoonDate = snapshot.deadline.addingTimeInterval(-GameBalance.notificationLeadTime)
@@ -29,8 +29,8 @@ nonisolated enum QuestNotificationPlanner {
                     questID: snapshot.id,
                     kind: .dueSoon,
                     fireDate: dueSoonDate,
-                    title: String(localized: "퀘스트 마감 임박"),
-                    body: String(localized: "퀘스트가 곧 마감됩니다")
+                    title: AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: locale),
+                    body: AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: locale)
                 )
             )
         }
@@ -41,8 +41,8 @@ nonisolated enum QuestNotificationPlanner {
                 questID: snapshot.id,
                 kind: .deadline,
                 fireDate: snapshot.deadline,
-                title: String(localized: "퀘스트 마감"),
-                body: String(localized: "퀘스트 마감 시간이 되었습니다")
+                title: AppStrings.resolve(AppStrings.notificationDeadlineTitle, locale: locale),
+                body: AppStrings.resolve(AppStrings.notificationDeadlineBody, locale: locale)
             )
         )
 

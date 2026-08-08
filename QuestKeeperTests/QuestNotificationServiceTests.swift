@@ -34,7 +34,11 @@ struct QuestNotificationServiceTests {
         let service = makeService(center: center)
         let questID = UUID()
 
-        await service.sync(quest: quest(id: questID, title: "리포트", deadlineOffset: 3 * hour), now: now)
+        await service.sync(
+            quest: quest(id: questID, title: "리포트", deadlineOffset: 3 * hour),
+            now: now,
+            locale: Locale(identifier: "ko")
+        )
 
         #expect(center.addedRequests.count == 2)
         let request = center.addedRequests[0]
@@ -44,6 +48,17 @@ struct QuestNotificationServiceTests {
         #expect(request.content.body == "퀘스트가 곧 마감됩니다")
         #expect(request.content.userInfo["questID"] as? String == questID.uuidString)
         #expect(request.content.userInfo["kind"] as? String == QuestNotificationKind.dueSoon.rawValue)
+    }
+
+    @Test("due-soon notification copy resolves per locale and carries no quest title")
+    func notificationCopyLocalizes() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        #expect(AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: ko) == "퀘스트 마감 임박")
+        #expect(AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: ko) == "퀘스트가 곧 마감됩니다")
+        #expect(AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: en) == "A quest is due soon")
+        #expect(AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: en) == "One of your quests is due soon")
     }
 
     @Test("sync removes deterministic identifiers before adding replacements")
