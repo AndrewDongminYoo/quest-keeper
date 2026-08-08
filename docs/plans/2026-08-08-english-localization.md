@@ -750,16 +750,20 @@ Notification bodies are deliberately redacted — they never carry a quest title
 **Interfaces:**
 
 - Consumes: `AppStrings.resolve(_:locale:)` from Task 3.
-- Produces: no signature change. The planner resolves against `Locale.current` at request-build time. Read `QuestNotificationPlanner` first: if it is a pure function taking `now`, add `locale: Locale = .current` alongside and thread it through, matching the pattern in Tasks 4 and 5.
+- Produces: `QuestNotificationPlanner`'s plan-building entry point gains `locale: Locale = .current`, threaded through to every string it builds — the same injection pattern as Tasks 4, 5, and 7. Read the planner first for its real signature; whatever function the service calls to build requests must accept and forward the locale, so a test can pin it.
+
+Do **not** assert `request.content.title == AppStrings.resolve(AppStrings.notificationDueSoonTitle, …)`. That compares the production value against the same resource that produced it, so it passes even when the resource is wrong. Assert literals against a pinned locale instead.
 
 - [ ] **Step 1: Rewrite the existing test**
 
-`QuestKeeperTests/QuestNotificationServiceTests.swift:43-44` asserts the Korean title and body. Replace those two lines with assertions that resolve the same resources, so the test states intent rather than a locale-specific literal:
+`QuestKeeperTests/QuestNotificationServiceTests.swift:43-44` asserts the Korean title and body against the ambient locale. Keep the literals and pin the locale, so the assertion still checks real copy:
 
 ```swift
-        #expect(request.content.title == AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: .current))
-        #expect(request.content.body == AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: .current))
+        #expect(request.content.title == "퀘스트 마감 임박")
+        #expect(request.content.body == "퀘스트가 곧 마감됩니다")
 ```
+
+Whatever the service test does to build the request must now pass `locale: Locale(identifier: "ko")` so those literals hold regardless of the test host's language. If the service builds requests through the planner without exposing a locale, add the parameter to the service call path too.
 
 Then add a separate test asserting the copy itself in both locales:
 
