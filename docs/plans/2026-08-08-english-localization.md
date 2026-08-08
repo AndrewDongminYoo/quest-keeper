@@ -1192,6 +1192,7 @@ Locks the work in so a future edit cannot silently reintroduce a hardcoded Korea
 Two deferred minors from the Task 3 review are closed here:
 
 - `AppStrings.swift`'s header comment claims keys are `<area>.<element>.<role>`, but real keys such as `hero.appearance.gender.male` run to four segments. Since Tasks 4-9 pattern-match on this file, correct the comment to say segment count is not fixed.
+- `DESIGN.md`'s Voice section records the elder-guide chunking prompt as `너무 큰 퀘스트예요. 작게 쪼개볼까요?`, but the shipped code renders a two-string alert whose Korean title is only `너무 큰 퀘스트예요`, with the question carried by the alert's buttons. Task 9 keyed the shipped strings faithfully and left the doc alone. Correct `DESIGN.md` to match what ships.
 - `HeroAppearanceTests` asserts only `HeroHairColor.black` among four cases, so a copy-paste slip mapping `brown` to the `black` key would compile and pass. Extend the test to assert every `HeroGender` and `HeroHairColor` case in both locales — iterate `CaseIterable` and assert each resolves to a distinct, non-empty string per locale, plus explicit literals for at least one case per enum.
 
 **Interfaces:**
