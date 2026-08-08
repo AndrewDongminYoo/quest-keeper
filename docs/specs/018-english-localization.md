@@ -37,7 +37,7 @@ focus.section.title
 notification.dueSoon.body
 a11y.monster.label
 monster.slime
-hero.appearance.male
+hero.appearance.gender.male
 ```
 
 Semantic keys were chosen over source strings so Korean copy edits do not invalidate the translation linkage.
