@@ -7,7 +7,10 @@ import WidgetKit
 /// App Group store, writes only the raw `completedAt` fact, cancels the quest's notifications,
 /// rewrites the snapshot the timeline reads, and reloads. Idempotent — a stale double-tap is a no-op.
 struct CompleteQuestIntent: AppIntent {
-    static let title: LocalizedStringResource = "퀘스트 완료"
+    static let title: LocalizedStringResource = LocalizedStringResource(
+        "appIntent.completeQuest.title",
+        defaultValue: "퀘스트 완료"
+    )
 
     @Parameter(title: "questID") var questID: String
 
