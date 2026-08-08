@@ -57,12 +57,12 @@ struct QuestNotificationServiceTests {
 
         #expect(AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: ko) == "퀘스트 마감 임박")
         #expect(AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: ko) == "퀘스트가 곧 마감됩니다")
-        #expect(AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: en) == "A quest is due soon")
+        #expect(AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: en) == "Quest due soon")
         #expect(AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: en) == "One of your quests is due soon")
 
         #expect(AppStrings.resolve(AppStrings.notificationDeadlineTitle, locale: ko) == "퀘스트 마감")
         #expect(AppStrings.resolve(AppStrings.notificationDeadlineBody, locale: ko) == "퀘스트 마감 시간이 되었습니다")
-        #expect(AppStrings.resolve(AppStrings.notificationDeadlineTitle, locale: en) == "A quest is due now")
+        #expect(AppStrings.resolve(AppStrings.notificationDeadlineTitle, locale: en) == "Quest deadline")
         #expect(AppStrings.resolve(AppStrings.notificationDeadlineBody, locale: en) == "One of your quests is due now")
     }
 

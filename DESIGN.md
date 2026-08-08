@@ -202,11 +202,11 @@ Quest-flavored but plain.
 
 Use:
 
-- `전투 추가` / `Add Battle`
-- `내일 도전하기` / `Try Again Tomorrow`
+- `전투 추가` / `Add battle`
+- `내일 도전하기` / `Try again tomorrow`
 - `완료` / `Complete`
 - `3시간 남음` / `3 hours left`
-- `너무 큰 퀘스트예요` / `That's a big quest. Want to break it into smaller ones?`
+- `너무 큰 퀘스트예요` / `That's a big quest.`
 
 Avoid — this list binds English too, nothing here should read as blame in either locale:
 

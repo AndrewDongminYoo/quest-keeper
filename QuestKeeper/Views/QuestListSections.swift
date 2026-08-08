@@ -36,7 +36,7 @@ struct QuestListSections: View {
 
             if !dailyGraves.isEmpty {
                 BoardSectionTitle(
-                    title: AppStrings.resolve(AppStrings.dungeonGraveTitle, locale: .current),
+                    title: AppStrings.resolve(AppStrings.dungeonGraveSectionTitle, locale: .current),
                     count: dailyGraves.count
                 )
                 VStack(spacing: 10) {
