@@ -19,8 +19,8 @@ English keeps the Korean register rather than reaching for a different one: ques
 | 2분 안에 끝낼 수 있는 작은 전투부터 시작하세요. | Start with a small battle you can finish in two minutes. |
 | 2분 전투 시작                                   | Start a 2-Minute Battle                                  |
 | 오늘의 던전이 비었습니다                        | Today's dungeon is empty                                 |
-| 내일 도전하기                                   | Take it on tomorrow                                      |
-| 오늘의 무덤                                     | Today's Graves                                           |
+| 내일 도전하기                                   | Try Again Tomorrow                                       |
+| 오늘의 무덤                                     | Today's grave                                            |
 
 The prohibitions in `DESIGN.md` hold in English: nothing that reads as blame. No "You failed", no "You missed it again", no running tally of shortfalls.
 
@@ -41,7 +41,8 @@ hero.appearance.gender.male
 ```
 
 Semantic keys were chosen over source strings so Korean copy edits do not invalidate the translation linkage.
-The cost is a failure mode source-string keys do not have: a key with no value renders the raw key on screen instead of falling back to Korean. The verification gate below exists to catch that before it ships.
+
+Call sites never reference a raw key string. Each key is wrapped once in a `LocalizedStringResource` constant declared in `AppStrings` (`QuestKeeper/Views/`), `WidgetStrings` (`QuestKeeperWidget/`), or `SharedStrings` (`QuestKeeperShared/`), with the Korean copy supplied as that resource's `defaultValue`. This supersedes the original assumption above: a missing catalog entry does not render the raw key, it falls back to the `defaultValue` baked into the resource, i.e. Korean. The verification gate below still exists, now to catch an empty/missing catalog value and any stray Korean literal that bypasses `AppStrings` / `WidgetStrings` / `SharedStrings` entirely.
 
 ## Catalog placement
 

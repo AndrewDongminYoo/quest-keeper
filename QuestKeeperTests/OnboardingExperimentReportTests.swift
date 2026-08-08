@@ -457,6 +457,7 @@ struct OnboardingExperimentReportTests {
         #expect(markdown.contains("QuestKeeper Synthetic Onboarding Experiment Baseline"))
         #expect(markdown.localizedCaseInsensitiveContains("synthetic"))
         #expect(!markdown.contains("물 한 잔 마시기"))
+        #expect(!markdown.contains("Drink a glass of water"))
         #expect(!markdown.contains(OnboardingExperimentFixture.controlA.uuidString))
     }
 

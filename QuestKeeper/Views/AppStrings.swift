@@ -1,6 +1,6 @@
 import Foundation
 
-/// 앱 타깃 문자열 리소스. 키는 `<area>.<element>.<role>` 규칙을 따른다.
+/// 앱 타깃 문자열 리소스. 키는 점으로 구분된 의미 기반 계층 구조를 따르며, 세그먼트 개수는 고정이 아니다.
 nonisolated enum AppStrings {
     static func heroGender(_ gender: HeroGender) -> LocalizedStringResource {
         switch gender {
