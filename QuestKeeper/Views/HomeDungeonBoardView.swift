@@ -161,10 +161,10 @@ private struct DailyFocusRecommendationCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("오늘의 핵심 퀘스트")
+            Text(AppStrings.focusSectionTitle)
                 .font(.headline.weight(.black))
                 .foregroundStyle(DungeonPalette.ink)
-            Text("추천을 확인하고 오늘의 전투를 직접 선택하세요.")
+            Text(AppStrings.focusRecommendationBody)
                 .font(.subheadline)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.76))
             VStack(alignment: .leading, spacing: 8) {
@@ -176,9 +176,9 @@ private struct DailyFocusRecommendationCard: View {
                 }
             }
             HStack(spacing: 12) {
-                Button("핵심 퀘스트 수정", action: onEdit)
+                Button(AppStrings.focusActionEdit, action: onEdit)
                     .frame(maxWidth: .infinity, minHeight: 44)
-                Button("오늘 이대로 시작", action: onConfirm)
+                Button(AppStrings.focusActionConfirm, action: onConfirm)
                     .buttonStyle(.pixel)
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
@@ -218,21 +218,21 @@ private struct GuidedOnboardingCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("첫 승리를 시작해볼까요?")
+            Text(AppStrings.dungeonFirstWinTitle)
                 .font(.headline.weight(.black))
                 .foregroundStyle(DungeonPalette.ink)
-            Text("2분 안에 끝낼 수\u{00A0}있는 작은 전투부터 시작하세요.")
+            Text(AppStrings.dungeonFirstWinBody)
                 .font(.subheadline)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.76))
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel("2분 안에 끝낼 수 있는 작은 전투부터 시작하세요.")
-            Button("2분 전투 시작", action: onStartGuidedQuest)
+                .accessibilityLabel(AppStrings.resolve(AppStrings.dungeonFirstWinBody, locale: .current))
+            Button(AppStrings.dungeonFirstWinStart, action: onStartGuidedQuest)
                 .buttonStyle(.pixel)
                 .frame(maxWidth: .infinity, minHeight: 44)
             HStack(spacing: 12) {
-                Button("직접 만들기", action: onCreate)
+                Button(AppStrings.dungeonFirstWinCreateOwn, action: onCreate)
                     .frame(maxWidth: .infinity, minHeight: 44)
-                Button("나중에", action: onDefer)
+                Button(AppStrings.dungeonFirstWinLater, action: onDefer)
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .font(.subheadline.weight(.semibold))
@@ -290,7 +290,7 @@ private struct BoardHUD: View {
                         )
                         .foregroundStyle(.white)
                 }
-                .accessibilityLabel("전투 추가")
+                .accessibilityLabel(AppStrings.resolve(AppStrings.questActionAdd, locale: .current))
             }
             HeroHeader(
                 state: state,
@@ -315,14 +315,14 @@ private struct EmptyDungeonState: View {
     var body: some View {
         VStack(spacing: 12) {
             DungeonArtworkView(artwork: .battleFlag, size: 34)
-            Text("오늘의 던전이 비었습니다")
+            Text(AppStrings.dungeonEmptyTitle)
                 .font(.headline.weight(.bold))
                 .foregroundStyle(DungeonPalette.ink)
-            Text("작은 전투 하나를 추가해 시작하세요.")
+            Text(AppStrings.dungeonEmptyBody)
                 .font(.caption)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.7))
             Button(action: onCreate) {
-                Label("전투 추가", systemImage: "plus")
+                Label(AppStrings.questActionAdd, systemImage: "plus")
             }
             .buttonStyle(.pixel)
         }
@@ -339,7 +339,7 @@ private struct NotificationPermissionBanner: View {
     var body: some View {
         Button(action: onOpenSettings) {
             Label {
-                Text("마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요.")
+                Text(AppStrings.notificationPermissionBannerBody)
             } icon: {
                 DungeonArtworkView(artwork: .notificationsDisabled, size: 16)
             }
