@@ -1162,9 +1162,16 @@ Locks the work in so a future edit cannot silently reintroduce a hardcoded Korea
 **Files:**
 
 - Modify: `scripts/test-localization.sh`
+- Modify: `QuestKeeper/Views/AppStrings.swift` (doc comment only)
+- Modify: `QuestKeeperTests/HeroAppearanceTests.swift`
 - Modify: `DESIGN.md` (Voice section)
 - Modify: `CLAUDE.md` (Conventions & Constraints — Language)
 - Modify: `docs/specs/018-english-localization.md`
+
+Two deferred minors from the Task 3 review are closed here:
+
+- `AppStrings.swift`'s header comment claims keys are `<area>.<element>.<role>`, but real keys such as `hero.appearance.gender.male` run to four segments. Since Tasks 4-9 pattern-match on this file, correct the comment to say segment count is not fixed.
+- `HeroAppearanceTests` asserts only `HeroHairColor.black` among four cases, so a copy-paste slip mapping `brown` to the `black` key would compile and pass. Extend the test to assert every `HeroGender` and `HeroHairColor` case in both locales — iterate `CaseIterable` and assert each resolves to a distinct, non-empty string per locale, plus explicit literals for at least one case per enum.
 
 **Interfaces:**
 
