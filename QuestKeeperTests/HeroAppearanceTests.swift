@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import QuestKeeper
 
@@ -27,5 +28,14 @@ struct HeroAppearanceTests {
     func defaultNames() {
         #expect(HeroArtwork.assetName(appearance: .default, frame: .idle) == "sprite-hero-male-blue-idle")
         #expect(HeroArtwork.assetName(appearance: .default, frame: .strike) == "sprite-hero-male-blue-strike")
+    }
+
+    @Test("hero appearance labels resolve per locale")
+    func appearanceLabelsLocalize() {
+        #expect(HeroGender.male.title(locale: Locale(identifier: "ko")) == "남성형")
+        #expect(HeroGender.male.title(locale: Locale(identifier: "en")) == "Masculine")
+        #expect(HeroGender.female.title(locale: Locale(identifier: "en")) == "Feminine")
+        #expect(HeroHairColor.black.title(locale: Locale(identifier: "ko")) == "검정")
+        #expect(HeroHairColor.black.title(locale: Locale(identifier: "en")) == "Black")
     }
 }

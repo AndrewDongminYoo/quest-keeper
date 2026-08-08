@@ -23,7 +23,7 @@ struct HeroAppearanceSheet: View {
                 Section("성별") {
                     Picker("성별", selection: $gender) {
                         ForEach(HeroGender.allCases, id: \.self) { option in
-                            Text(option.title).tag(option)
+                            Text(option.title()).tag(option)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -33,7 +33,7 @@ struct HeroAppearanceSheet: View {
                 Section("머리색") {
                     Picker("머리색", selection: $hairColor) {
                         ForEach(HeroHairColor.allCases, id: \.self) { option in
-                            Text(option.title).tag(option)
+                            Text(option.title()).tag(option)
                         }
                     }
                     .pickerStyle(.inline)
