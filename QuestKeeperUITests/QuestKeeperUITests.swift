@@ -26,6 +26,7 @@ final class QuestKeeperUITests: XCTestCase {
     func testExample() throws {
         // UI tests must launch the application that they test.
         let app = XCUIApplication()
+        app.launchArguments = uiTestKoreanLocaleArguments
         app.launch()
 
         // Use XCTAssert and related functions to verify your tests produce the correct results.
@@ -36,7 +37,7 @@ final class QuestKeeperUITests: XCTestCase {
     @MainActor
     func testSwipeRightThenTapCompleteRemovesQuest() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
+        app.launchArguments = uiTestKoreanLocaleArguments + ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
         app.launch()
 
         let addButton = app.buttons["전투 추가"].firstMatch
@@ -70,7 +71,7 @@ final class QuestKeeperUITests: XCTestCase {
     func testDailyFocusExplicitConfirmationAndCompletion() throws {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
-        app.launchArguments = [
+        app.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingInMemoryStore",
             "-onboardingVariant", "control",
             "-dailyFocusLoopEnabled",
@@ -137,7 +138,7 @@ final class QuestKeeperUITests: XCTestCase {
     func testDailyFocusRemainsDormantWithoutLaunchArgument() throws {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
-        app.launchArguments = ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
+        app.launchArguments = uiTestKoreanLocaleArguments + ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
         app.launch()
 
         createQuest(title: "Ordinary flow", in: app)
@@ -155,7 +156,7 @@ final class QuestKeeperUITests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let app = XCUIApplication()
-        app.launchArguments = [
+        app.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingStoreURL", directory.appendingPathComponent("store.sqlite").path,
             "-onboardingVariant", "control",
             "-dailyFocusLoopEnabled",
@@ -182,7 +183,7 @@ final class QuestKeeperUITests: XCTestCase {
     @MainActor
     func testDailyFocusSelectionBoundsAreExplicit() throws {
         let app = XCUIApplication()
-        app.launchArguments = [
+        app.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingInMemoryStore",
             "-onboardingVariant", "control",
             "-dailyFocusLoopEnabled",
@@ -206,7 +207,7 @@ final class QuestKeeperUITests: XCTestCase {
     @MainActor
     func testDailyFocusKeepsDailyGravesSeparate() throws {
         let app = XCUIApplication()
-        app.launchArguments = [
+        app.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingInMemoryStore",
             "-uiTestingDailyFocusGrave",
             "-onboardingVariant", "control",
@@ -225,7 +226,7 @@ final class QuestKeeperUITests: XCTestCase {
     @MainActor
     func testDailyFocusRemainingQuestSupportsSwipeCompletion() throws {
         let app = XCUIApplication()
-        app.launchArguments = [
+        app.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingInMemoryStore",
             "-onboardingVariant", "control",
             "-dailyFocusLoopEnabled",
@@ -254,7 +255,9 @@ final class QuestKeeperUITests: XCTestCase {
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            let app = XCUIApplication()
+            app.launchArguments = uiTestKoreanLocaleArguments
+            app.launch()
         }
     }
 
