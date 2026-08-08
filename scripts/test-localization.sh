@@ -30,7 +30,11 @@ import sys
 with open(sys.argv[1], encoding="utf-8") as handle:
     catalog = json.load(handle)
 
-for key, entry in sorted(catalog.get("strings", {}).items()):
+strings = catalog.get("strings") or {}
+if not strings:
+    print("catalog has an empty or missing strings object")
+
+for key, entry in sorted(strings.items()):
     localizations = entry.get("localizations", {})
     for locale in ("ko", "en"):
         localization = localizations.get(locale)
