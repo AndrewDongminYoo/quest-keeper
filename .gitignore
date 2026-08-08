@@ -12,3 +12,8 @@ fastlane/README.md
 fastlane/report.xml
 fastlane/screenshots/generated/screenshots.html
 fastlane/metadata/review_information/
+fastlane/Preview.html
+
+# Fastlane release lane output
+*.ipa
+*.app.dSYM.zip
