@@ -1,6 +1,79 @@
 {
   "sourceLanguage": "ko",
   "strings": {
+    "countdown.days": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": { "stringUnit": { "state": "translated", "value": "%lld day left" } },
+              "other": { "stringUnit": { "state": "translated", "value": "%lld days left" } }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": { "stringUnit": { "state": "translated", "value": "%lld일 남음" } }
+            }
+          }
+        }
+      }
+    },
+    "countdown.dueNow": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due now"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마감 임박"
+          }
+        }
+      }
+    },
+    "countdown.hours": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": { "stringUnit": { "state": "translated", "value": "%lld hour" } },
+              "other": { "stringUnit": { "state": "translated", "value": "%lld hours" } }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": { "stringUnit": { "state": "translated", "value": "%lld시간" } }
+            }
+          }
+        }
+      }
+    },
+    "countdown.minutes": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": { "stringUnit": { "state": "translated", "value": "%lld minute left" } },
+              "other": { "stringUnit": { "state": "translated", "value": "%lld minutes left" } }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": { "stringUnit": { "state": "translated", "value": "%lld분 남음" } }
+            }
+          }
+        }
+      }
+    },
     "dungeon.empty.title": {
       "localizations": {
         "en": {
