@@ -1,2 +1,6 @@
 metadata_path("./fastlane/metadata")
 screenshots_path("./fastlane/screenshots/generated")
+
+# precheck cannot read in-app purchases over an App Store Connect API key, and
+# the app ships none, so skip that check rather than fall back to Apple ID login.
+precheck_include_in_app_purchases(false)
