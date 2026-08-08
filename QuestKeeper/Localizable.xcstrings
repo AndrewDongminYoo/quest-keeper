@@ -36,6 +36,25 @@
         }
       }
     },
+    "countdown.hoursOnly": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": { "stringUnit": { "state": "translated", "value": "%lld hour left" } },
+              "other": { "stringUnit": { "state": "translated", "value": "%lld hours left" } }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": { "stringUnit": { "state": "translated", "value": "%lld시간 남음" } }
+            }
+          }
+        }
+      }
+    },
     "countdown.hours": {
       "localizations": {
         "en": {

@@ -11,6 +11,8 @@ struct DungeonPresentationTests {
 
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(2 * 24 * 60 * 60), now: now, locale: ko) == "2일 남음")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(3 * 60 * 60 + 20 * 60), now: now, locale: ko) == "3시간 20분 남음")
+        #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(60 * 60), now: now, locale: ko) == "1시간 남음")
+        #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(3 * 60 * 60), now: now, locale: ko) == "3시간 남음")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(15 * 60), now: now, locale: ko) == "15분 남음")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(30), now: now, locale: ko) == "마감 임박")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(-60), now: now, locale: ko) == "마감 임박")
@@ -19,6 +21,8 @@ struct DungeonPresentationTests {
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(2 * 24 * 60 * 60), now: now, locale: en) == "2 days left")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(60 * 60 + 60), now: now, locale: en) == "1 hour 1 minute left")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(3 * 60 * 60 + 20 * 60), now: now, locale: en) == "3 hours 20 minutes left")
+        #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(60 * 60), now: now, locale: en) == "1 hour left")
+        #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(3 * 60 * 60), now: now, locale: en) == "3 hours left")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(15 * 60), now: now, locale: en) == "15 minutes left")
         #expect(DungeonPresentation.countdownText(deadline: now.addingTimeInterval(30), now: now, locale: en) == "Due now")
     }
