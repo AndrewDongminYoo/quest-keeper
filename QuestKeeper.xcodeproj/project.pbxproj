@@ -275,10 +275,11 @@
 				};
 			};
 			buildConfigurationList = B20C62952FFD556E00280BFB /* Build configuration list for PBXProject "QuestKeeper" */;
-			developmentRegion = en;
+			developmentRegion = ko;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				ko,
 				Base,
 			);
 			mainGroup = B20C62912FFD556D00280BFB;
