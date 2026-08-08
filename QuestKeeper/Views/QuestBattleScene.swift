@@ -45,7 +45,7 @@ struct QuestBattleScene: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(monsterKind.localizedName) 레벨 \(monsterLevel)")
+        .accessibilityLabel("\(monsterKind.localizedName()) 레벨 \(monsterLevel)")
         .accessibilityValue(QuestBattleResolution.accessibilityValue(for: phase))
     }
 

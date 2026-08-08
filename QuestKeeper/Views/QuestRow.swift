@@ -251,6 +251,6 @@ struct MonsterGlyph: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).localizedName) 레벨 \(level)")
+        .accessibilityLabel("\(MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).localizedName()) 레벨 \(level)")
     }
 }

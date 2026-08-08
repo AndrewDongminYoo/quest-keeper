@@ -49,4 +49,12 @@ struct MonsterArtworkSelectionTests {
             }
         }
     }
+
+    @Test("monster names resolve per locale")
+    func monsterNamesLocalize() {
+        #expect(MonsterKind.slime.localizedName(locale: Locale(identifier: "ko")) == "슬라임")
+        #expect(MonsterKind.slime.localizedName(locale: Locale(identifier: "en")) == "Slime")
+        #expect(MonsterKind.lich.localizedName(locale: Locale(identifier: "ko")) == "리치")
+        #expect(MonsterKind.lich.localizedName(locale: Locale(identifier: "en")) == "Lich")
+    }
 }
