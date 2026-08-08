@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct QuestListSections: View {
+    let heroAppearance: HeroAppearance
     let allQuests: [Quest]
     let pending: [Quest]
     let dailyGraves: [Quest]
@@ -81,7 +82,7 @@ struct QuestListSections: View {
                 VStack(spacing: 10) {
                     ForEach(focusQuests) { quest in
                         if completedDailyFocusQuestIDs.contains(quest.id) {
-                            QuestRow(quest: quest, now: now, isCompleted: true)
+                            QuestRow(quest: quest, now: now, heroAppearance: heroAppearance, isCompleted: true)
                         } else {
                             swipeableRow(quest)
                         }
@@ -114,6 +115,7 @@ struct QuestListSections: View {
         SwipeableQuestRow(
             quest: quest,
             now: now,
+            heroAppearance: heroAppearance,
             showsGuidedCompletion: quest.id == guidedCompletionQuestID,
             onComplete: onComplete,
             onDelete: onDelete,
@@ -148,6 +150,7 @@ private struct BoardSectionTitle: View {
 private struct SwipeableQuestRow: View {
     let quest: Quest
     let now: Date
+    let heroAppearance: HeroAppearance
     let showsGuidedCompletion: Bool
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
@@ -174,10 +177,13 @@ private struct SwipeableQuestRow: View {
             }
             .frame(maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 2))
+            .disabled(isResolvingBattle)
+            .accessibilityHidden(isResolvingBattle)
 
             QuestRow(
                 quest: quest,
                 now: now,
+                heroAppearance: heroAppearance,
                 battlePhase: battlePhase,
                 guidanceText: showsGuidedCompletion ? "완료하면 첫 승리를 얻어요" : nil
             )
@@ -215,17 +221,28 @@ private struct SwipeableQuestRow: View {
                     }
                 }
         )
-        .accessibilityAction(named: "완료") { completeWithBattle() }
-        .accessibilityValue(isResolvingBattle ? "완료 처리 중" : "")
-        .accessibilityAction(named: "삭제") {
-            guard !isResolvingBattle else { return }
-            onDelete(quest)
+        .accessibilityValue(QuestBattleResolution.accessibilityValue(for: battlePhase))
+        .accessibilityActions {
+            if !isResolvingBattle {
+                Button("완료") { completeWithBattle() }
+                Button("삭제") { onDelete(quest) }
+            }
         }
         .onChange(of: quest.id) { _, _ in
             battleTask?.cancel()
             battleTask = nil
             battlePhase = .idle
             isResolvingBattle = false
+            isTrackingSwipe = false
+            offset = 0
+        }
+        .onDisappear {
+            // 지연 스택에서 행이 화면 밖으로 스크롤될 때도 호출되므로,
+            // 이미 접수된 완료 처리는 취소하지 않고 그대로 커밋되게 둔다.
+            guard !isResolvingBattle else { return }
+            battleTask?.cancel()
+            battleTask = nil
+            battlePhase = .idle
             isTrackingSwipe = false
             offset = 0
         }
@@ -248,18 +265,23 @@ private struct SwipeableQuestRow: View {
     }
 
     private func completeWithBattle() {
-        guard QuestBattleResolution.shouldAcceptCompletion(isResolving: isResolvingBattle) else { return }
-
-        let completedAt = Date.now
+        guard let completedAt = QuestBattleResolution.acceptedTimestamp(isResolving: isResolvingBattle, now: .now) else { return }
         isResolvingBattle = true
         battleTask?.cancel()
         withAnimation(.snappy(duration: 0.18)) {
             offset = 0
-            battlePhase = .striking
+            battlePhase = .windUp
         }
 
         battleTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(QuestBattleResolution.defeatedPhaseDelay))
+            try? await Task.sleep(for: .seconds(QuestBattleResolution.strikingPhaseDelay))
+            guard !Task.isCancelled else { return }
+            withAnimation(.snappy(duration: 0.16)) {
+                battlePhase = .striking
+            }
+
+            let defeatedDelay = QuestBattleResolution.defeatedPhaseDelay - QuestBattleResolution.strikingPhaseDelay
+            try? await Task.sleep(for: .seconds(defeatedDelay))
             guard !Task.isCancelled else { return }
             withAnimation(.snappy(duration: 0.2)) {
                 battlePhase = .defeated

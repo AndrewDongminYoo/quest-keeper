@@ -197,16 +197,18 @@ private struct MobBadge: View {
     var dense = false
 
     var body: some View {
+        let monster = MonsterArtworkSelection.monster(forMobLevel: mob.mobLevel, questID: mob.id)
+
         HStack(spacing: 8) {
             WidgetArtworkView(
-                artwork: .monster(level: mob.mobLevel),
+                artwork: .monster(level: mob.mobLevel, questID: mob.id),
                 size: compact ? 28 : dense ? 18 : 22
             )
             .frame(
                 width: compact ? 28 : dense ? 20 : 24,
                 height: compact ? 28 : dense ? 20 : 24
             )
-            .accessibilityLabel("몹 레벨 \(mob.mobLevel)")
+            .accessibilityLabel("\(monster.localizedName) 레벨 \(mob.mobLevel)")
 
             VStack(alignment: .leading, spacing: compact ? 2 : dense ? 0 : 1) {
                 Text(mob.title)
@@ -275,8 +277,14 @@ private struct MobBadge: View {
 
 private enum WidgetArtwork: String {
     case slime = "sprite-slime"
+    case bat = "sprite-bat"
+    case mushroom = "sprite-mushroom"
     case skeleton = "sprite-skeleton"
+    case orc = "sprite-orc"
+    case mimic = "sprite-mimic"
     case dragon = "sprite-dragon"
+    case golem = "sprite-golem"
+    case lich = "sprite-lich"
     case staleWarning = "icon-stale-warning"
     case protectionShield = "icon-protection-shield"
 
@@ -284,17 +292,17 @@ private enum WidgetArtwork: String {
         switch self {
         case .staleWarning, .protectionShield:
             1.5
-        case .slime, .skeleton, .dragon:
+        case .slime, .bat, .mushroom, .skeleton, .orc, .mimic, .dragon, .golem, .lich:
             1
         }
     }
 
-    static func monster(level: Int) -> WidgetArtwork {
-        switch level {
-        case ..<2: .slime
-        case 2..<4: .skeleton
-        default: .dragon
+    static func monster(level: Int, questID: UUID) -> WidgetArtwork {
+        let assetName = MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).assetName
+        guard let artwork = WidgetArtwork(rawValue: assetName) else {
+            preconditionFailure("Missing widget monster artwork for \(assetName)")
         }
+        return artwork
     }
 }
 

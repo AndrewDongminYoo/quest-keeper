@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct HomeDungeonBoardView: View {
+    @AppStorage(HeroAppearance.StorageKey.gender) private var heroGenderRawValue = HeroAppearance.default.gender.rawValue
+    @AppStorage(HeroAppearance.StorageKey.hairColor) private var heroHairColorRawValue = HeroAppearance.default.hairColor.rawValue
+    @State private var presentedSheet: HomeDungeonSheet?
+
     let state: HeroState
     let isMourning: Bool
     let allQuests: [Quest]
@@ -32,7 +36,14 @@ struct HomeDungeonBoardView: View {
             DungeonBackground()
             ScrollView {
                 LazyVStack(spacing: 14) {
-                    BoardHUD(state: state, isMourning: isMourning, activeQuestCount: pending.count, onCreate: onCreate)
+                    BoardHUD(
+                        state: state,
+                        isMourning: isMourning,
+                        activeQuestCount: pending.count,
+                        heroAppearance: heroAppearance,
+                        onCreate: onCreate,
+                        onEditAppearance: { presentedSheet = .appearance }
+                    )
                     if showsNotificationPermissionBanner {
                         NotificationPermissionBanner(onOpenSettings: onOpenNotificationSettings)
                     }
@@ -69,6 +80,7 @@ struct HomeDungeonBoardView: View {
                             )
                         }
                         QuestListSections(
+                            heroAppearance: heroAppearance,
                             allQuests: allQuests,
                             pending: pending,
                             dailyGraves: dailyGraves,
@@ -97,6 +109,30 @@ struct HomeDungeonBoardView: View {
                 .padding(.bottom, 28)
             }
         }
+        .sheet(item: $presentedSheet) { sheet in
+            switch sheet {
+            case .appearance:
+                HeroAppearanceSheet(gender: heroGenderBinding, hairColor: heroHairColorBinding)
+            }
+        }
+    }
+
+    private var heroAppearance: HeroAppearance {
+        HeroAppearance(genderRawValue: heroGenderRawValue, hairColorRawValue: heroHairColorRawValue)
+    }
+
+    private var heroGenderBinding: Binding<HeroGender> {
+        Binding(
+            get: { heroAppearance.gender },
+            set: { heroGenderRawValue = $0.rawValue }
+        )
+    }
+
+    private var heroHairColorBinding: Binding<HeroHairColor> {
+        Binding(
+            get: { heroAppearance.hairColor },
+            set: { heroHairColorRawValue = $0.rawValue }
+        )
     }
 
     private func quests(for questIDs: [UUID]) -> [Quest] {
@@ -110,6 +146,12 @@ struct HomeDungeonBoardView: View {
         guard case let .singleQuest(questID) = presentation else { return nil }
         return allQuests.first { $0.id == questID }
     }
+}
+
+private enum HomeDungeonSheet: String, Identifiable {
+    case appearance
+
+    var id: String { rawValue }
 }
 
 private struct DailyFocusRecommendationCard: View {
@@ -225,7 +267,9 @@ private struct BoardHUD: View {
     let state: HeroState
     let isMourning: Bool
     let activeQuestCount: Int
+    let heroAppearance: HeroAppearance
     let onCreate: () -> Void
+    let onEditAppearance: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -248,7 +292,13 @@ private struct BoardHUD: View {
                 }
                 .accessibilityLabel("전투 추가")
             }
-            HeroHeader(state: state, isMourning: isMourning, activeQuestCount: activeQuestCount)
+            HeroHeader(
+                state: state,
+                isMourning: isMourning,
+                activeQuestCount: activeQuestCount,
+                appearance: heroAppearance,
+                onEditAppearance: onEditAppearance
+            )
         }
         .padding(14)
         .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))

@@ -13,8 +13,10 @@ struct HeroHeader: View {
     let state: HeroState
     let isMourning: Bool
     let activeQuestCount: Int
+    var appearance: HeroAppearance = .default
+    var onEditAppearance: () -> Void = {}
 
-    @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 36
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -34,9 +36,18 @@ struct HeroHeader: View {
 
     private var hero: some View {
         HStack(spacing: 5) {
-            HeroSprite(isMourning: isMourning, size: heroSize)
-            Text("용사")
+            HeroSprite(isMourning: isMourning, appearance: appearance, size: heroSize)
+                .accessibilityHidden(true)
+            // 스프라이트는 장식이라 숨겨져 있고, 애니메이션도 Reduce Motion에서 꺼진다.
+            // 그래서 애도 상태는 이 텍스트가 직접 드러낸다.
+            Text(isMourning ? "쓰러진 용사" : "용사")
                 .foregroundStyle(DungeonPalette.ink)
+            Button("외형", action: onEditAppearance)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .foregroundStyle(DungeonPalette.ink.opacity(0.72))
+                .accessibilityLabel("용사 외형 설정")
         }
         .fixedSize(horizontal: true, vertical: false)
     }

@@ -1,13 +1,15 @@
 import SwiftUI
 
 nonisolated enum DungeonArtwork: String, CaseIterable, Sendable {
-    case heroIdle = "sprite-hero-idle"
-    case heroBreatheIn = "sprite-hero-breathe-in"
-    case heroBreatheOut = "sprite-hero-breathe-out"
-    case heroMourning = "sprite-hero-mourning"
     case slime = "sprite-slime"
+    case bat = "sprite-bat"
+    case mushroom = "sprite-mushroom"
     case skeleton = "sprite-skeleton"
+    case orc = "sprite-orc"
+    case mimic = "sprite-mimic"
     case dragon = "sprite-dragon"
+    case golem = "sprite-golem"
+    case lich = "sprite-lich"
     case dailyGrave = "sprite-daily-grave"
     case victoryReward = "sprite-victory-reward"
     case battleImpact = "sprite-battle-impact"
@@ -27,31 +29,12 @@ nonisolated enum DungeonArtwork: String, CaseIterable, Sendable {
         }
     }
 
-    static func monster(level: Int) -> DungeonArtwork {
-        switch level {
-        case ..<2: .slime
-        case 2..<4: .skeleton
-        default: .dragon
+    static func monster(level: Int, questID: UUID) -> DungeonArtwork {
+        let assetName = MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).assetName
+        guard let artwork = DungeonArtwork(rawValue: assetName) else {
+            preconditionFailure("Missing app monster artwork for \(assetName)")
         }
-    }
-}
-
-nonisolated enum HeroAnimation {
-    static let breathingFrames: [DungeonArtwork] = [
-        .heroIdle,
-        .heroBreatheIn,
-        .heroBreatheOut,
-        .heroBreatheIn,
-    ]
-
-    static func artwork(isMourning: Bool, reduceMotion: Bool, frameIndex: Int) -> DungeonArtwork {
-        if isMourning {
-            return .heroMourning
-        }
-        guard !reduceMotion else {
-            return .heroIdle
-        }
-        return breathingFrames[frameIndex % breathingFrames.count]
+        return artwork
     }
 }
 

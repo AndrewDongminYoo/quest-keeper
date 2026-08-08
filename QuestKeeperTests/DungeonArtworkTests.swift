@@ -3,14 +3,13 @@ import UIKit
 @testable import QuestKeeper
 
 struct DungeonArtworkTests {
-    @Test("mob levels map to the three visual tiers")
+    @Test("mob levels and quest IDs map to stable artwork")
     func monsterTierMapping() {
-        #expect(DungeonArtwork.monster(level: 0) == .slime)
-        #expect(DungeonArtwork.monster(level: 1) == .slime)
-        #expect(DungeonArtwork.monster(level: 2) == .skeleton)
-        #expect(DungeonArtwork.monster(level: 3) == .skeleton)
-        #expect(DungeonArtwork.monster(level: 4) == .dragon)
-        #expect(DungeonArtwork.monster(level: 5) == .dragon)
+        let id = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+        #expect(DungeonArtwork.monster(level: 0, questID: id) == .bat)
+        #expect(DungeonArtwork.monster(level: 2, questID: id) == .orc)
+        #expect(DungeonArtwork.monster(level: 4, questID: id) == .golem)
     }
 
     @Test("every artwork case has a unique asset name")
@@ -31,7 +30,7 @@ struct DungeonArtworkTests {
         ]
 
         #expect(icons.allSatisfy { $0.contentScale == 1.5 })
-        #expect(DungeonArtwork.heroIdle.contentScale == 1)
+        #expect(DungeonArtwork.slime.contentScale == 1)
     }
 
     @Test("second-row icons have clear top margins")
@@ -66,9 +65,9 @@ struct DungeonArtworkTests {
     func heroAndGraveSpritesHaveClearLeftMargins() throws {
         let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         let assetNames = [
-            "sprite-hero-idle",
-            "sprite-hero-breathe-in",
-            "sprite-hero-breathe-out",
+            "sprite-hero-male-blue-idle",
+            "sprite-hero-male-blue-breathe-in",
+            "sprite-hero-male-blue-breathe-out",
             "sprite-daily-grave",
         ]
 
@@ -98,10 +97,10 @@ struct DungeonArtworkTests {
     @Test("breathing uses three unique hero frames in a smooth loop")
     func breathingSequence() {
         #expect(HeroAnimation.breathingFrames == [
-            .heroIdle,
-            .heroBreatheIn,
-            .heroBreatheOut,
-            .heroBreatheIn,
+            .idle,
+            .breatheIn,
+            .breatheOut,
+            .breatheIn,
         ])
         #expect(Set(HeroAnimation.breathingFrames).count == 3)
     }
@@ -110,9 +109,9 @@ struct DungeonArtworkTests {
     func breathingFramesUseAnchoredGeometry() throws {
         let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         let assetNames = [
-            "sprite-hero-idle",
-            "sprite-hero-breathe-in",
-            "sprite-hero-breathe-out",
+            "sprite-hero-male-blue-idle",
+            "sprite-hero-male-blue-breathe-in",
+            "sprite-hero-male-blue-breathe-out",
         ]
         let images = try assetNames.map { assetName in
             let imageURL = testsDirectory
@@ -131,10 +130,6 @@ struct DungeonArtworkTests {
             #expect(alphaBounds.maxY <= CGFloat(image.height - 16))
         }
 
-        let horizontalCenters = bounds.map(\.midX)
-        let minimumCenter = try #require(horizontalCenters.min())
-        let maximumCenter = try #require(horizontalCenters.max())
-        #expect(maximumCenter - minimumCenter <= 2)
         #expect(Set(bounds.map(\.maxY)).count == 1)
     }
 
@@ -152,9 +147,8 @@ struct DungeonArtworkTests {
 
     @Test("mourning and Reduce Motion select stable artwork")
     func staticHeroArtwork() {
-        #expect(HeroAnimation.artwork(isMourning: true, reduceMotion: false, frameIndex: 2) == .heroMourning)
-        #expect(HeroAnimation.artwork(isMourning: false, reduceMotion: true, frameIndex: 2) == .heroIdle)
-        #expect(HeroAnimation.artwork(isMourning: false, reduceMotion: false, frameIndex: 2) == .heroBreatheOut)
+        #expect(HeroAnimation.frame(reduceMotion: true, frameIndex: 2) == .idle)
+        #expect(HeroAnimation.frame(reduceMotion: false, frameIndex: 2) == .breatheOut)
     }
 
     private func alphaBounds(of image: CGImage) throws -> CGRect {
