@@ -274,7 +274,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Start a 2-Minute Battle"
+            "value": "Start a 2-minute battle"
           }
         },
         "ko": {
@@ -297,6 +297,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "첫 승리를 시작해볼까요?"
+          }
+        }
+      }
+    },
+    "dungeon.grave.sectionTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today's Graves"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘의 무덤"
           }
         }
       }
@@ -690,7 +706,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A quest is due now"
+            "value": "Quest deadline"
           }
         },
         "ko": {
@@ -722,7 +738,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A quest is due soon"
+            "value": "Quest due soon"
           }
         },
         "ko": {
@@ -770,7 +786,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add Battle"
+            "value": "Add battle"
           }
         },
         "ko": {
@@ -818,7 +834,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Try Again Tomorrow"
+            "value": "Try again tomorrow"
           }
         },
         "ko": {
@@ -933,7 +949,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Selection complete"
+            "value": "Done"
           }
         },
         "ko": {
@@ -1496,7 +1512,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "That's a big quest. Want to break it into smaller ones?"
+            "value": "That's a big quest."
           }
         },
         "ko": {

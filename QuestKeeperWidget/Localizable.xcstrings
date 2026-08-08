@@ -4,33 +4,15 @@
     "a11y.monster.level": {
       "localizations": {
         "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%@ Level %lld"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%@ Level %lld"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Level %lld"
           }
         },
         "ko": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%@ 레벨 %lld"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 레벨 %lld"
           }
         }
       }
@@ -47,22 +29,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "퀘스트 완료"
-          }
-        }
-      }
-    },
-    "dungeon.empty.title": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Today's dungeon is empty"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "오늘의 던전이 비었습니다"
           }
         }
       }

@@ -94,6 +94,10 @@ nonisolated extension AppStrings {
         defaultValue: "완료하면 첫 승리를 얻어요"
     )
     static let dungeonGraveTitle = LocalizedStringResource("dungeon.grave.title", defaultValue: "오늘의 무덤")
+    static let dungeonGraveSectionTitle = LocalizedStringResource(
+        "dungeon.grave.sectionTitle",
+        defaultValue: "오늘의 무덤"
+    )
     static let dungeonSectionTitle = LocalizedStringResource("dungeon.section.title", defaultValue: "던전")
 }
 
