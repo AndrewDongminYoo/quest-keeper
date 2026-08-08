@@ -25,7 +25,7 @@
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests
 ```
 
@@ -190,7 +190,7 @@ Run:
 
 ```bash
 xcodebuild build -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' 2>&1 | tail -5
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' 2>&1 | tail -5
 ```
 
 Expected: `BUILD SUCCEEDED`.
@@ -245,7 +245,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/MonsterArtworkSelectionTests
 ```
 
@@ -320,7 +320,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/MonsterArtworkSelectionTests
 bash scripts/test-localization.sh
 ```
@@ -379,7 +379,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/HeroAppearanceTests
 ```
 
@@ -453,7 +453,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/HeroAppearanceTests
 bash scripts/test-localization.sh
 ```
@@ -519,7 +519,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/DungeonPresentationTests
 ```
 
@@ -615,7 +615,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/DungeonPresentationTests
 bash scripts/test-localization.sh
 ```
@@ -674,7 +674,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/QuestBattleResolutionTests
 ```
 
@@ -723,7 +723,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/QuestBattleResolutionTests
 bash scripts/test-localization.sh
 ```
@@ -790,7 +790,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/QuestNotificationServiceTests
 ```
 
@@ -817,7 +817,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/QuestNotificationServiceTests \
   -only-testing:QuestKeeperTests/QuestNotificationPlannerTests
 bash scripts/test-localization.sh
@@ -873,7 +873,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/OnboardingFlowStateTests
 ```
 
@@ -904,7 +904,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests/OnboardingFlowStateTests \
   -only-testing:QuestKeeperTests/OnboardingExperimentReportTests
 bash scripts/test-localization.sh
@@ -994,7 +994,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests
 bash scripts/test-localization.sh
 ```
@@ -1066,7 +1066,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests
 bash scripts/test-localization.sh
 ```
@@ -1143,7 +1143,7 @@ Run:
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests
 bash scripts/test-localization.sh
 ```
@@ -1231,7 +1231,7 @@ Run:
 ```bash
 bash scripts/test-localization.sh
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' \
+  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
   -only-testing:QuestKeeperTests
 trunk fmt DESIGN.md CLAUDE.md docs/specs/018-english-localization.md scripts/test-localization.sh
 trunk check DESIGN.md CLAUDE.md docs/specs/018-english-localization.md scripts/test-localization.sh
