@@ -123,12 +123,12 @@ final class QuestNotificationService {
     }
 
     @discardableResult
-    func sync(quest: Quest, now: Date) async -> QuestNotificationAuthorization {
+    func sync(quest: Quest, now: Date, locale: Locale = .current) async -> QuestNotificationAuthorization {
         let questID = quest.id
         let snapshot = quest.snapshot
 
         return await enqueue {
-            await self.performSync(questID: questID, snapshot: snapshot, now: now)
+            await self.performSync(questID: questID, snapshot: snapshot, now: now, locale: locale)
         }
     }
 
@@ -139,9 +139,9 @@ final class QuestNotificationService {
     }
 
     @discardableResult
-    func reconcile(quests: [Quest], now: Date) async -> QuestNotificationAuthorization {
+    func reconcile(quests: [Quest], now: Date, locale: Locale = .current) async -> QuestNotificationAuthorization {
         let plans = quests.flatMap { quest in
-            QuestNotificationPlanner.plans(for: quest.snapshot, now: now)
+            QuestNotificationPlanner.plans(for: quest.snapshot, now: now, locale: locale)
         }
         let deliveredIdentifiersToRemove = quests.flatMap { quest in
             QuestNotificationPlanner.identifiers(for: quest.id)
@@ -158,13 +158,14 @@ final class QuestNotificationService {
     private func performSync(
         questID: UUID,
         snapshot: QuestSnapshot,
-        now: Date
+        now: Date,
+        locale: Locale
     ) async -> QuestNotificationAuthorization {
         let identifiers = QuestNotificationPlanner.identifiers(for: questID)
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
 
-        let plans = QuestNotificationPlanner.plans(for: snapshot, now: now)
+        let plans = QuestNotificationPlanner.plans(for: snapshot, now: now, locale: locale)
         guard !plans.isEmpty else { return await authorizationStatus() }
 
         let authorization = await requestAuthorizationIfNeeded()

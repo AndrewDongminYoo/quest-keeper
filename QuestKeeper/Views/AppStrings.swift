@@ -50,3 +50,22 @@ nonisolated extension AppStrings {
     static let a11yBattleStriking = LocalizedStringResource("a11y.battle.striking", defaultValue: "공격 중")
     static let a11yBattleDefeated = LocalizedStringResource("a11y.battle.defeated", defaultValue: "승리 처리 중")
 }
+
+nonisolated extension AppStrings {
+    static let notificationDueSoonTitle = LocalizedStringResource(
+        "notification.dueSoon.title",
+        defaultValue: "퀘스트 마감 임박"
+    )
+    static let notificationDueSoonBody = LocalizedStringResource(
+        "notification.dueSoon.body",
+        defaultValue: "퀘스트가 곧 마감됩니다"
+    )
+    static let notificationDeadlineTitle = LocalizedStringResource(
+        "notification.deadline.title",
+        defaultValue: "퀘스트 마감"
+    )
+    static let notificationDeadlineBody = LocalizedStringResource(
+        "notification.deadline.body",
+        defaultValue: "퀘스트 마감 시간이 되었습니다"
+    )
+}

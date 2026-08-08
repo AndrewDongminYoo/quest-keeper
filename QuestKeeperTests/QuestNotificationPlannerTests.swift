@@ -86,12 +86,13 @@ struct QuestNotificationPlannerTests {
         // no path into a notification body — the bodies are fixed localized constants.
         let plans = QuestNotificationPlanner.plans(
             for: snapshot(deadlineOffset: 3 * hour),
-            now: now
+            now: now,
+            locale: Locale(identifier: "ko")
         )
 
         #expect(plans.map(\.body) == [
-            String(localized: "퀘스트가 곧 마감됩니다"),
-            String(localized: "퀘스트 마감 시간이 되었습니다"),
+            "퀘스트가 곧 마감됩니다",
+            "퀘스트 마감 시간이 되었습니다",
         ])
     }
 }
