@@ -23,10 +23,13 @@ struct QuestResolutionView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("퀘스트") {
+                Section(AppStrings.questResolutionSection) {
                     Text(quest.title)
-                    LabeledContent("상태", value: statusText)
-                    LabeledContent("마감", value: quest.deadline.formatted(date: .abbreviated, time: .shortened))
+                    LabeledContent(AppStrings.questResolutionStatusLabel, value: statusText)
+                    LabeledContent(
+                        AppStrings.questFieldDeadline,
+                        value: quest.deadline.formatted(date: .abbreviated, time: .shortened)
+                    )
                 }
                 if quest.snapshot.isVisibleDailyGrave(at: now), let onRetryTomorrow {
                     Section {
@@ -34,29 +37,30 @@ struct QuestResolutionView: View {
                             onRetryTomorrow()
                             dismiss()
                         } label: {
-                            Label("내일 도전하기", systemImage: "arrow.uturn.forward")
+                            Label(AppStrings.questActionRetryTomorrow, systemImage: "arrow.uturn.forward")
                         }
                     }
                 }
             }
-            .navigationTitle("퀘스트 기록")
+            .navigationTitle(AppStrings.questResolutionNavigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("닫기") { dismiss() }
+                    Button(AppStrings.commonActionClose) { dismiss() }
                 }
             }
         }
     }
 
     private var statusText: String {
-        switch quest.snapshot.outcome(at: now) {
+        let resource: LocalizedStringResource = switch quest.snapshot.outcome(at: now) {
         case .pending:
-            "진행 중"
+            AppStrings.questResolutionStatusPending
         case .victory:
-            "완료"
+            AppStrings.questStatusCompleted
         case .grave:
-            "무덤"
+            AppStrings.questResolutionStatusGrave
         }
+        return AppStrings.resolve(resource, locale: .current)
     }
 }

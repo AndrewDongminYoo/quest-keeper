@@ -35,7 +35,7 @@ struct DailyFocusSelectionSheet: View {
                                             deadline: quest.deadline,
                                             now: context.date
                                         )
-                                        : "완료")
+                                        : AppStrings.resolve(AppStrings.questStatusCompleted, locale: .current))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 }
@@ -43,20 +43,25 @@ struct DailyFocusSelectionSheet: View {
                         }
                         .disabled(!selectedQuestIDs.contains(quest.id) && selectedQuestIDs.count == 3)
                         .accessibilityValue(
-                            selectedQuestIDs.contains(quest.id) ? "선택됨" : "선택 안 됨"
+                            AppStrings.resolve(
+                                selectedQuestIDs.contains(quest.id)
+                                    ? AppStrings.dailyFocusSelectionSelectedValue
+                                    : AppStrings.dailyFocusSelectionNotSelectedValue,
+                                locale: .current
+                            )
                         )
                     }
                 } header: {
-                    Text("오늘 집중할 퀘스트를 1–3개 선택하세요")
+                    Text(AppStrings.dailyFocusSelectionHeader)
                 } footer: {
-                    Text("\(selectedQuestIDs.count)개 선택")
+                    Text(AppStrings.dailyFocusSelectionFooterCount(selectedQuestIDs.count))
                 }
             }
-            .navigationTitle("핵심 퀘스트 수정")
+            .navigationTitle(AppStrings.focusActionEdit)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { dismiss() }
+                    Button(AppStrings.commonActionCancel) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("\(actionTitle) (\(selectedQuestIDs.count)/3)") {
@@ -70,16 +75,19 @@ struct DailyFocusSelectionSheet: View {
                     .disabled(!DailyFocusState.isValidSelection(Array(selectedQuestIDs)))
                 }
             }
-            .alert("선택을 다시 확인해주세요", isPresented: $showingSaveIssue) {
-                Button("확인", role: .cancel) { }
+            .alert(AppStrings.selectionReissueAlertTitle, isPresented: $showingSaveIssue) {
+                Button(AppStrings.selectionReissueAlertConfirmAction, role: .cancel) { }
             } message: {
-                Text("퀘스트 상태가 바뀌어 지금 선택을 저장하지 않았습니다.")
+                Text(AppStrings.selectionReissueAlertMessage)
             }
         }
     }
 
     private var actionTitle: String {
-        kind == .confirmation ? "오늘 이대로 시작" : "선택 완료"
+        AppStrings.resolve(
+            kind == .confirmation ? AppStrings.focusActionConfirm : AppStrings.dailyFocusSelectionCompleteAction,
+            locale: .current
+        )
     }
 
     private func binding(for questID: UUID) -> Binding<Bool> {

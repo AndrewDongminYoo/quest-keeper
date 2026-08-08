@@ -14,14 +14,14 @@ struct RecoveryCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("다시 와서 반가워요")
+            Text(AppStrings.recoveryCardTitle)
                 .font(.headline.weight(.black))
                 .foregroundStyle(DungeonPalette.ink)
-            Text("쉬었다 와도 괜찮아요. 오늘\u{00A0}할\u{00A0}일부터 가볍게 시작해볼까요?")
+            Text(AppStrings.recoveryCardBody)
                 .font(.subheadline)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.76))
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel("쉬었다 와도 괜찮아요. 오늘 할 일부터 가볍게 시작해볼까요?")
+                .accessibilityLabel(AppStrings.resolve(AppStrings.recoveryCardBodyAccessibility, locale: .current))
 
             if case .singleQuest = presentation, let quest {
                 VStack(alignment: .leading, spacing: 4) {
@@ -43,7 +43,7 @@ struct RecoveryCardView: View {
                     foreground: colorScheme == .dark ? DungeonPalette.dungeon : .white
                 ))
                 .frame(maxWidth: .infinity, minHeight: 44)
-            Button("지금은 괜찮아요", action: onDismiss)
+            Button(AppStrings.recoveryCardDismiss, action: onDismiss)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(DungeonPalette.ink)
@@ -55,21 +55,21 @@ struct RecoveryCardView: View {
                 .stroke(DungeonPalette.hero.opacity(0.55), lineWidth: 2)
         )
         .accessibilityElement(children: .contain)
-        .alert("선택을 다시 확인해주세요", isPresented: $showingSelectionIssue) {
-            Button("확인", role: .cancel) { }
+        .alert(AppStrings.selectionReissueAlertTitle, isPresented: $showingSelectionIssue) {
+            Button(AppStrings.selectionReissueAlertConfirmAction, role: .cancel) { }
         } message: {
-            Text("퀘스트 상태가 바뀌어 지금 선택을 저장하지 않았습니다.")
+            Text(AppStrings.selectionReissueAlertMessage)
         }
     }
 
-    private var primaryTitle: String {
+    private var primaryTitle: LocalizedStringResource {
         switch presentation {
         case .singleQuest:
-            "이 퀘스트로 다시 시작"
+            AppStrings.recoveryCardPrimarySingleQuest
         case .chooseToday:
-            "오늘 다시 고르기"
+            AppStrings.recoveryCardPrimaryChooseToday
         case .createQuest:
-            "작은 퀘스트 만들기"
+            AppStrings.recoveryCardPrimaryCreateQuest
         }
     }
 
@@ -91,7 +91,7 @@ struct RecoveryCardView: View {
     RecoveryCardView(
         presentation: .singleQuest(UUID()),
         quest: Quest(
-            title: "천천히 다시 시작하는 아주 긴 회복 퀘스트 제목",
+            title: AppStrings.resolve(AppStrings.recoveryCardPreviewLongTitle, locale: .current),
             deadline: Date.now.addingTimeInterval(600),
             importance: .medium
         ),

@@ -40,22 +40,30 @@ struct HeroHeader: View {
                 .accessibilityHidden(true)
             // 스프라이트는 장식이라 숨겨져 있고, 애니메이션도 Reduce Motion에서 꺼진다.
             // 그래서 애도 상태는 이 텍스트가 직접 드러낸다.
-            Text(isMourning ? "쓰러진 용사" : "용사")
+            Text(isMourning ? AppStrings.heroLabelFallen : AppStrings.heroLabelDefault)
                 .foregroundStyle(DungeonPalette.ink)
-            Button("외형", action: onEditAppearance)
+            Button(AppStrings.heroHeaderAppearanceButton, action: onEditAppearance)
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
                 .buttonStyle(.plain)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.72))
-                .accessibilityLabel("용사 외형 설정")
+                .accessibilityLabel(AppStrings.resolve(AppStrings.heroHeaderAppearanceButtonAccessibility, locale: .current))
         }
         .fixedSize(horizontal: true, vertical: false)
     }
 
     private var stats: some View {
         HStack(spacing: 14) {
-            HeroStat(icon: .battleFlag, label: "전투", value: activeQuestCount)
-            HeroStat(icon: .victoryTrophy, label: "승리", value: state.totalVictories)
+            HeroStat(
+                icon: .battleFlag,
+                label: AppStrings.resolve(AppStrings.heroStatBattleLabel, locale: .current),
+                value: activeQuestCount
+            )
+            HeroStat(
+                icon: .victoryTrophy,
+                label: AppStrings.resolve(AppStrings.heroStatVictoryLabel, locale: .current),
+                value: state.totalVictories
+            )
         }
     }
 }
