@@ -72,8 +72,8 @@ struct QuestRow: View {
                         if isCompleted {
                             HStack(spacing: 4) {
                                 DungeonArtworkView(artwork: .victoryReward, size: 14)
-                                Text("완료")
-                                    .accessibilityLabel("\(quest.title) 완료")
+                                Text(AppStrings.questActionComplete)
+                                    .accessibilityLabel(AppStrings.resolve(AppStrings.a11yQuestComplete(quest.title), locale: .current))
                             }
                             .font(.caption2.weight(.black))
                             .foregroundStyle(DungeonPalette.victory)
@@ -106,7 +106,7 @@ struct QuestRow: View {
                 .stroke(tint.opacity(0.45), lineWidth: 2)  // chunky pixel border
         )
         .accessibilityHint(guidanceText ?? "")
-        .accessibilityValue(isCompleted ? "완료됨" : "")
+        .accessibilityValue(isCompleted ? AppStrings.resolve(AppStrings.questStateCompleted, locale: .current) : "")
     }
 }
 
@@ -133,7 +133,7 @@ struct DailyGraveRow: View {
             }
             Spacer(minLength: 10)
             Button(action: onRetryTomorrow) {
-                Label("내일 도전하기", systemImage: "arrow.uturn.forward")
+                Label(AppStrings.questActionRetryTomorrow, systemImage: "arrow.uturn.forward")
                     .labelStyle(.titleAndIcon)
                     .lineLimit(1)
                     .fixedSize()
@@ -164,15 +164,15 @@ private extension DailyGraveRow {
 
         // A just-missed grave wears the warm `torch` alarm; an older grave settles into muted `grave`.
         static let mourning = Style(
-            caption: "방금 놓친 전투",
+            caption: AppStrings.resolve(AppStrings.questGraveJustMissed, locale: .current),
             captionTint: DungeonPalette.torch,
             background: DungeonPalette.stone,
             borderTint: DungeonPalette.torch.opacity(0.58),
-            accessibilityValue: "방금 놓친 전투"
+            accessibilityValue: AppStrings.resolve(AppStrings.questGraveJustMissed, locale: .current)
         )
 
         static let rest = Style(
-            caption: "오늘의 무덤",
+            caption: AppStrings.resolve(AppStrings.dungeonGraveTitle, locale: .current),
             captionTint: DungeonPalette.grave,
             background: DungeonPalette.stone,
             borderTint: DungeonPalette.grave.opacity(0.35),
@@ -251,6 +251,14 @@ struct MonsterGlyph: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).localizedName()) 레벨 \(level)")
+        .accessibilityLabel(
+            AppStrings.resolve(
+                AppStrings.a11yMonsterLevel(
+                    MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).localizedName(),
+                    level
+                ),
+                locale: .current
+            )
+        )
     }
 }

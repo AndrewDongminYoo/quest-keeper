@@ -35,7 +35,10 @@ struct QuestListSections: View {
             }
 
             if !dailyGraves.isEmpty {
-                BoardSectionTitle(title: "오늘의 무덤", count: dailyGraves.count)
+                BoardSectionTitle(
+                    title: AppStrings.resolve(AppStrings.dungeonGraveTitle, locale: .current),
+                    count: dailyGraves.count
+                )
                 VStack(spacing: 10) {
                     ForEach(dailyGraves) { quest in
                         DailyGraveRow(quest: quest, isNewlyMissed: newlyMissedQuestIDs.contains(quest.id)) {
@@ -50,7 +53,7 @@ struct QuestListSections: View {
     @ViewBuilder
     private var standardPendingSection: some View {
         if !pending.isEmpty {
-            BoardSectionTitle(title: "던전", count: pending.count)
+            BoardSectionTitle(title: AppStrings.resolve(AppStrings.dungeonSectionTitle, locale: .current), count: pending.count)
             questRows(pending)
         }
     }
@@ -61,20 +64,20 @@ struct QuestListSections: View {
         let remainingQuests = pending.filter { !Set(questIDs).contains($0.id) }
 
         return VStack(alignment: .leading, spacing: 12) {
-            BoardSectionTitle(title: "오늘의 핵심 퀘스트", count: focusQuests.count)
+            BoardSectionTitle(title: AppStrings.resolve(AppStrings.focusSectionTitle, locale: .current), count: focusQuests.count)
             HStack {
-                Text("\(completedDailyFocusQuestIDs.count)/\(focusQuests.count) 완료")
+                Text(AppStrings.focusProgress(completedDailyFocusQuestIDs.count, focusQuests.count))
                     .font(.caption.monospacedDigit().weight(.bold))
                     .foregroundStyle(DungeonPalette.ink.opacity(0.72))
                 Spacer()
-                Button("핵심 퀘스트 수정", action: onEditDailyFocus)
+                Button(AppStrings.focusActionEdit, action: onEditDailyFocus)
                     .font(.caption.weight(.bold))
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
             }
 
             if focusQuests.isEmpty {
-                Text("선택한 퀘스트가 없습니다. 오늘의 핵심 퀘스트를 다시 골라주세요.")
+                Text(AppStrings.focusEmptyBody)
                     .font(.subheadline)
                     .foregroundStyle(DungeonPalette.ink.opacity(0.72))
                     .fixedSize(horizontal: false, vertical: true)
@@ -95,7 +98,7 @@ struct QuestListSections: View {
                     questRows(remainingQuests)
                         .padding(.top, 10)
                 } label: {
-                    Text("나머지 퀘스트 \(remainingQuests.count)개")
+                    Text(AppStrings.questRemainingCount(remainingQuests.count))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(DungeonPalette.ink.opacity(0.82))
                 }
@@ -165,11 +168,19 @@ private struct SwipeableQuestRow: View {
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                actionButton(title: "완료", artwork: .complete, color: DungeonPalette.hero) {
+                actionButton(
+                    title: AppStrings.resolve(AppStrings.questActionComplete, locale: .current),
+                    artwork: .complete,
+                    color: DungeonPalette.hero
+                ) {
                     completeWithBattle()
                 }
                 Spacer(minLength: 0)
-                actionButton(title: "삭제", artwork: .delete, color: DungeonPalette.danger) {
+                actionButton(
+                    title: AppStrings.resolve(AppStrings.questActionDelete, locale: .current),
+                    artwork: .delete,
+                    color: DungeonPalette.danger
+                ) {
                     guard !isResolvingBattle else { return }
                     reset()
                     onDelete(quest)
@@ -185,7 +196,9 @@ private struct SwipeableQuestRow: View {
                 now: now,
                 heroAppearance: heroAppearance,
                 battlePhase: battlePhase,
-                guidanceText: showsGuidedCompletion ? "완료하면 첫 승리를 얻어요" : nil
+                guidanceText: showsGuidedCompletion
+                    ? AppStrings.resolve(AppStrings.dungeonFirstWinGuidance, locale: .current)
+                    : nil
             )
                 .contentShape(Rectangle())
                 .offset(x: offset)
@@ -224,8 +237,8 @@ private struct SwipeableQuestRow: View {
         .accessibilityValue(QuestBattleResolution.accessibilityValue(for: battlePhase))
         .accessibilityActions {
             if !isResolvingBattle {
-                Button("완료") { completeWithBattle() }
-                Button("삭제") { onDelete(quest) }
+                Button(AppStrings.questActionComplete) { completeWithBattle() }
+                Button(AppStrings.questActionDelete) { onDelete(quest) }
             }
         }
         .onChange(of: quest.id) { _, _ in
