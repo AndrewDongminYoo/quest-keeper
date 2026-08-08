@@ -1,0 +1,22 @@
+{
+  "sourceLanguage": "ko",
+  "strings": {
+    "dungeon.empty.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today's dungeon is empty"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘의 던전이 비었습니다"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
