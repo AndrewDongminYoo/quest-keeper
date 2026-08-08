@@ -63,6 +63,19 @@
 			);
 			target = F7B47EB62FFD02AA00D8D4A1 /* QuestKeeperWidget */;
 		};
+		8EDE3ED703E7F0368D8CD16A /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+				CompleteQuestIntent.swift,
+				Info.plist,
+				QuestKeeperWidget.entitlements,
+				QuestKeeperWidget.swift,
+				QuestKeeperWidgetBundle.swift,
+				WidgetDungeonView.swift,
+			);
+			target = B20C62A82FFD556F00280BFB /* QuestKeeperTests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -90,6 +103,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B25B88A72FFE318E00E4B8BE /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperWidget" target */,
+				8EDE3ED703E7F0368D8CD16A /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperTests" target */,
 			);
 			path = QuestKeeperWidget;
 			sourceTree = "<group>";
@@ -194,6 +208,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				B20C62AC2FFD556F00280BFB /* QuestKeeperTests */,
+				F7B47EB42FFD02AA00D8D4A1 /* QuestKeeperWidget */,
 			);
 			name = QuestKeeperTests;
 			packageProductDependencies = (
