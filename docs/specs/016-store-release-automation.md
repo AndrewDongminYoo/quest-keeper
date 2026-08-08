@@ -14,9 +14,7 @@ Six product states are captured into `fastlane/screenshots/generated/ko` while t
 
 ## Release-note pipeline
 
-`scripts/prepare-release-notes.sh` reads the version from the Xcode project.
-When `docs/releases/<version>/ko.txt` is missing, it creates a Korean draft from user-facing conventional commits since the latest version tag.
-An existing versioned file is treated as curated copy and is never regenerated.
+`scripts/prepare-release-notes.sh` reads the version from the Xcode project and requires `docs/releases/<version>/ko.txt` to already exist and be non-empty; release notes are curated copy, so the script never drafts or regenerates them.
 The validated file is copied to `fastlane/metadata/ko/release_notes.txt`, which is the App Store Connect “What’s New in This Version” field.
 
 ## Commands
