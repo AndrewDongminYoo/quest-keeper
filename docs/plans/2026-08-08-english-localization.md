@@ -12,11 +12,12 @@
 
 - Spec of record: `docs/specs/018-english-localization.md`. Linear issue: AND-110.
 - Voice: quest-flavored, plain, shame-free. `battle`, `victory`, `dungeon` carry over literally. Nothing that reads as blame — no "You failed", no "You missed it again", no running tally of shortfalls.
-- Key format: lowercase, dot-separated, most general segment first — `<area>.<element>.<role>`, dropping trailing segments that carry no meaning. `monster.slime` and `dungeon.empty.title` are both correct; segment count is not fixed.
+- Key format: dot-separated, most general segment first — `<area>.<element>.<role>`, dropping trailing segments that carry no meaning. Each segment is lowerCamelCase, so multi-word segments read `countdown.dueNow` and `dungeon.firstWin.title`. Segment count is not fixed: `monster.slime` and `hero.appearance.gender.male` are both correct.
 - Korean is the development language and stays visible in code as each resource's `defaultValue`.
 - Unit tests use Swift Testing (`import Testing`, `@Test`, `#expect`), never XCTest.
 - `SWIFT_VERSION = 6.0`, `SWIFT_STRICT_CONCURRENCY = complete`. No new warnings.
 - Derivation and action namespaces stay caseless `nonisolated enum`s; state values stay `nonisolated struct`s.
+- This project sets `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, so a bare `extension` does **not** inherit the primary type's `nonisolated`. Every extension of `AppStrings`, `SharedStrings`, or `WidgetStrings` must be written `nonisolated extension …`, or its members become `@MainActor` and cannot be referenced from the nonisolated pure functions that call them. Existing precedent: `QuestOutcome.swift:19`, `WidgetDungeonPayload.swift:25`.
 - Scope is the app UI and notifications. `fastlane/metadata/en-US/` and English screenshots are out of scope.
 - Every task ends with `trunk fmt` and `trunk check` clean on the files it touched.
 
@@ -528,12 +529,15 @@ Expected: compile failure — `countdownText` has no `locale` parameter.
 
 Add to `QuestKeeper/Localizable.xcstrings`. `countdown.dueNow` is a plain entry; the other four use plural variations on `en` and a single `other` category on `ko`. The compound hour-and-minute string is assembled from `countdown.hours` and `countdown.minutes` joined by a space, so `countdown.hours` carries no "left" suffix while `countdown.minutes` does.
 
-| Key                 | ko          | en (`one`)       | en (`other`)      |
-| ------------------- | ----------- | ---------------- | ----------------- |
-| `countdown.dueNow`  | 마감 임박   | Due now          | —                 |
-| `countdown.days`    | %lld일 남음 | %lld day left    | %lld days left    |
-| `countdown.hours`   | %lld시간    | %lld hour        | %lld hours        |
-| `countdown.minutes` | %lld분 남음 | %lld minute left | %lld minutes left |
+| Key                   | ko            | en (`one`)       | en (`other`)      |
+| --------------------- | ------------- | ---------------- | ----------------- |
+| `countdown.dueNow`    | 마감 임박     | Due now          | —                 |
+| `countdown.days`      | %lld일 남음   | %lld day left    | %lld days left    |
+| `countdown.hours`     | %lld시간      | %lld hour        | %lld hours        |
+| `countdown.hoursOnly` | %lld시간 남음 | %lld hour left   | %lld hours left   |
+| `countdown.minutes`   | %lld분 남음   | %lld minute left | %lld minutes left |
+
+`countdown.hours` is the compound's first fragment and deliberately carries no suffix. `countdown.hoursOnly` is the standalone form, used when the minute remainder is zero so an exact hour boundary reads "3 hours left" rather than "3 hours 0 minutes left".
 
 A plural entry has this shape:
 
@@ -564,7 +568,7 @@ A plural entry has this shape:
 Append to `QuestKeeper/Views/AppStrings.swift`:
 
 ```swift
-extension AppStrings {
+nonisolated extension AppStrings {
     static let countdownDueNow = LocalizedStringResource("countdown.dueNow", defaultValue: "마감 임박")
 
     static func countdownDays(_ days: Int) -> LocalizedStringResource {
@@ -693,7 +697,7 @@ Add to `QuestKeeper/Localizable.xcstrings`:
 Append to `QuestKeeper/Views/AppStrings.swift`:
 
 ```swift
-extension AppStrings {
+nonisolated extension AppStrings {
     static let a11yBattleWindUp = LocalizedStringResource("a11y.battle.windUp", defaultValue: "공격 준비 중")
     static let a11yBattleStriking = LocalizedStringResource("a11y.battle.striking", defaultValue: "공격 중")
     static let a11yBattleDefeated = LocalizedStringResource("a11y.battle.defeated", defaultValue: "승리 처리 중")
@@ -882,7 +886,7 @@ Expected: compile failure — `AppStrings.onboardingGuidedQuestTitle` does not e
 | `onboarding.guidedQuest.title` | 물 한 잔 마시기 | Drink a glass of water |
 
 ```swift
-extension AppStrings {
+nonisolated extension AppStrings {
     static let onboardingGuidedQuestTitle = LocalizedStringResource(
         "onboarding.guidedQuest.title",
         defaultValue: "물 한 잔 마시기"
