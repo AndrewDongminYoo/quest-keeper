@@ -80,19 +80,22 @@ struct QuestNotificationPlannerTests {
         #expect(plans[1].fireDate == now.addingTimeInterval(3 * hour))
     }
 
-    @Test("notification previews do not disclose quest titles")
-    func notificationPreviewsKeepQuestTitlesPrivate() {
+    @Test(
+        "notification previews do not disclose quest titles",
+        arguments: [
+            (Locale(identifier: "ko"), ["퀘스트가 곧 마감됩니다", "퀘스트 마감 시간이 되었습니다"]),
+            (Locale(identifier: "en"), ["One of your quests is due soon", "One of your quests is due now"]),
+        ]
+    )
+    func notificationPreviewsKeepQuestTitlesPrivate(locale: Locale, expectedBodies: [String]) {
         // The planner takes no title argument at all, so a private quest title has
         // no path into a notification body — the bodies are fixed localized constants.
         let plans = QuestNotificationPlanner.plans(
             for: snapshot(deadlineOffset: 3 * hour),
             now: now,
-            locale: Locale(identifier: "ko")
+            locale: locale
         )
 
-        #expect(plans.map(\.body) == [
-            "퀘스트가 곧 마감됩니다",
-            "퀘스트 마감 시간이 되었습니다",
-        ])
+        #expect(plans.map(\.body) == expectedBodies)
     }
 }

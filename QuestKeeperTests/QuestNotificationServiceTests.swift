@@ -50,7 +50,7 @@ struct QuestNotificationServiceTests {
         #expect(request.content.userInfo["kind"] as? String == QuestNotificationKind.dueSoon.rawValue)
     }
 
-    @Test("due-soon notification copy resolves per locale and carries no quest title")
+    @Test("notification copy resolves per locale and carries no quest title")
     func notificationCopyLocalizes() {
         let ko = Locale(identifier: "ko")
         let en = Locale(identifier: "en")
@@ -59,6 +59,11 @@ struct QuestNotificationServiceTests {
         #expect(AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: ko) == "퀘스트가 곧 마감됩니다")
         #expect(AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: en) == "A quest is due soon")
         #expect(AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: en) == "One of your quests is due soon")
+
+        #expect(AppStrings.resolve(AppStrings.notificationDeadlineTitle, locale: ko) == "퀘스트 마감")
+        #expect(AppStrings.resolve(AppStrings.notificationDeadlineBody, locale: ko) == "퀘스트 마감 시간이 되었습니다")
+        #expect(AppStrings.resolve(AppStrings.notificationDeadlineTitle, locale: en) == "A quest is due now")
+        #expect(AppStrings.resolve(AppStrings.notificationDeadlineBody, locale: en) == "One of your quests is due now")
     }
 
     @Test("sync removes deterministic identifiers before adding replacements")
