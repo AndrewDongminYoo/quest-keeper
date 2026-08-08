@@ -45,6 +45,7 @@ final class StoreScreenshotUITests: XCTestCase {
     private func launch(arguments: [String]) -> XCUIApplication {
         let app = XCUIApplication()
         setupSnapshot(app)
+        app.launchArguments += uiTestKoreanLocaleArguments
         app.launchArguments += ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
         app.launchArguments += arguments
         app.launch()

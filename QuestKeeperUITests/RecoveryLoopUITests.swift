@@ -137,7 +137,7 @@ final class RecoveryLoopUITests: XCTestCase {
     func testRemainsDormantWithoutBothDevelopmentGates() {
         XCUIDevice.shared.orientation = .portrait
         let missingVariant = XCUIApplication()
-        missingVariant.launchArguments = [
+        missingVariant.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingInMemoryStore",
             "-uiTestingRecoveryFixture",
             "-dailyFocusLoopEnabled",
@@ -147,7 +147,7 @@ final class RecoveryLoopUITests: XCTestCase {
         missingVariant.terminate()
 
         let missingDailyFocus = XCUIApplication()
-        missingDailyFocus.launchArguments = [
+        missingDailyFocus.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingInMemoryStore",
             "-uiTestingRecoveryFixture",
             "-recoveryLoopVariant", "singleQuest",
@@ -159,7 +159,7 @@ final class RecoveryLoopUITests: XCTestCase {
     private func recoveryApp(variant: String) -> XCUIApplication {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
-        app.launchArguments = [
+        app.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingInMemoryStore",
             "-uiTestingRecoveryFixture",
             "-dailyFocusLoopEnabled",
