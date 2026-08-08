@@ -69,3 +69,10 @@ nonisolated extension AppStrings {
         defaultValue: "퀘스트 마감 시간이 되었습니다"
     )
 }
+
+nonisolated extension AppStrings {
+    static let onboardingGuidedQuestTitle = LocalizedStringResource(
+        "onboarding.guidedQuest.title",
+        defaultValue: "물 한 잔 마시기"
+    )
+}

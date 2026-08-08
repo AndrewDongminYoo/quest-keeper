@@ -128,9 +128,9 @@ nonisolated struct QuestEditorDraft: Equatable, Sendable {
     let deadline: Date
     let importance: Importance
 
-    static func guided(at now: Date) -> QuestEditorDraft {
+    static func guided(at now: Date, locale: Locale = .current) -> QuestEditorDraft {
         QuestEditorDraft(
-            title: "물 한 잔 마시기",
+            title: AppStrings.resolve(AppStrings.onboardingGuidedQuestTitle, locale: locale),
             deadline: now.addingTimeInterval(10 * 60),
             importance: .low
         )
