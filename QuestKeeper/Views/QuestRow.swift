@@ -163,21 +163,28 @@ private extension DailyGraveRow {
         let accessibilityValue: String
 
         // A just-missed grave wears the warm `torch` alarm; an older grave settles into muted `grave`.
-        static let mourning = Style(
-            caption: AppStrings.resolve(AppStrings.questGraveJustMissed, locale: .current),
-            captionTint: DungeonPalette.torch,
-            background: DungeonPalette.stone,
-            borderTint: DungeonPalette.torch.opacity(0.58),
-            accessibilityValue: AppStrings.resolve(AppStrings.questGraveJustMissed, locale: .current)
-        )
+        // `static var`, not `static let` — resolving the locale at every access instead of caching it
+        // once for the process lifetime, matching the "derive at read time" convention everywhere else
+        // this diff touches (e.g. `BoardSectionTitle` re-resolving on every `body` pass).
+        static var mourning: Style {
+            Style(
+                caption: AppStrings.resolve(AppStrings.questGraveJustMissed, locale: .current),
+                captionTint: DungeonPalette.torch,
+                background: DungeonPalette.stone,
+                borderTint: DungeonPalette.torch.opacity(0.58),
+                accessibilityValue: AppStrings.resolve(AppStrings.questGraveJustMissed, locale: .current)
+            )
+        }
 
-        static let rest = Style(
-            caption: AppStrings.resolve(AppStrings.dungeonGraveTitle, locale: .current),
-            captionTint: DungeonPalette.grave,
-            background: DungeonPalette.stone,
-            borderTint: DungeonPalette.grave.opacity(0.35),
-            accessibilityValue: ""
-        )
+        static var rest: Style {
+            Style(
+                caption: AppStrings.resolve(AppStrings.dungeonGraveTitle, locale: .current),
+                captionTint: DungeonPalette.grave,
+                background: DungeonPalette.stone,
+                borderTint: DungeonPalette.grave.opacity(0.35),
+                accessibilityValue: ""
+            )
+        }
     }
 }
 
