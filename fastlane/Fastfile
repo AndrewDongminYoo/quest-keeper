@@ -34,9 +34,10 @@ platform :ios do
     screenshots
   end
 
+  # CURRENT_PROJECT_VERSION is set deliberately in the release commit and is
+  # what the release tag names, so this lane must submit it unchanged.
   desc "Push a new release build to the App Store"
   lane :release do
-    increment_build_number(xcodeproj: "QuestKeeper.xcodeproj")
     build_app(scheme: "QuestKeeper")
     upload_to_app_store
   end
