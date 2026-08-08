@@ -44,3 +44,9 @@ nonisolated extension AppStrings {
         LocalizedStringResource("countdown.minutes", defaultValue: "\(minutes)분 남음")
     }
 }
+
+nonisolated extension AppStrings {
+    static let a11yBattleWindUp = LocalizedStringResource("a11y.battle.windUp", defaultValue: "공격 준비 중")
+    static let a11yBattleStriking = LocalizedStringResource("a11y.battle.striking", defaultValue: "공격 중")
+    static let a11yBattleDefeated = LocalizedStringResource("a11y.battle.defeated", defaultValue: "승리 처리 중")
+}

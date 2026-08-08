@@ -1,6 +1,54 @@
 {
   "sourceLanguage": "ko",
   "strings": {
+    "a11y.battle.defeated": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claiming victory"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "승리 처리 중"
+          }
+        }
+      }
+    },
+    "a11y.battle.striking": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Striking"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공격 중"
+          }
+        }
+      }
+    },
+    "a11y.battle.windUp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Winding up"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공격 준비 중"
+          }
+        }
+      }
+    },
     "countdown.days": {
       "localizations": {
         "en": {

@@ -43,12 +43,12 @@ nonisolated enum QuestBattleResolution {
         phase == .defeated
     }
 
-    static func accessibilityValue(for phase: QuestBattlePhase) -> String {
+    static func accessibilityValue(for phase: QuestBattlePhase, locale: Locale = .current) -> String {
         switch phase {
         case .idle: ""
-        case .windUp: "공격 준비 중"
-        case .striking: "공격 중"
-        case .defeated: "승리 처리 중"
+        case .windUp: AppStrings.resolve(AppStrings.a11yBattleWindUp, locale: locale)
+        case .striking: AppStrings.resolve(AppStrings.a11yBattleStriking, locale: locale)
+        case .defeated: AppStrings.resolve(AppStrings.a11yBattleDefeated, locale: locale)
         }
     }
 }
