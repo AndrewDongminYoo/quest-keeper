@@ -46,35 +46,35 @@ struct QuestEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("제목", text: Binding(
+                TextField(AppStrings.questEditorTitleField, text: Binding(
                     get: { title },
                     set: { title = QuestTitlePolicy.constrainedInput($0) }
                 ))
-                DatePicker("마감", selection: $deadline, in: Date.now...)
-                Picker("중요도", selection: $importance) {
-                    Text("낮음").tag(Importance.low)
-                    Text("보통").tag(Importance.medium)
-                    Text("높음").tag(Importance.high)
+                DatePicker(AppStrings.questFieldDeadline, selection: $deadline, in: Date.now...)
+                Picker(AppStrings.questEditorImportanceField, selection: $importance) {
+                    Text(AppStrings.questEditorImportanceLow).tag(Importance.low)
+                    Text(AppStrings.questEditorImportanceMedium).tag(Importance.medium)
+                    Text(AppStrings.questEditorImportanceHigh).tag(Importance.high)
                 }
             }
-            .navigationTitle(quest == nil ? "새 퀘스트" : "퀘스트 편집")
+            .navigationTitle(quest == nil ? AppStrings.questEditorNewTitle : AppStrings.questEditorEditTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { dismiss() }
+                    Button(AppStrings.commonActionCancel) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") { attemptSave() }
+                    Button(AppStrings.questEditorSaveAction) { attemptSave() }
                         .disabled(QuestTitlePolicy.normalized(title).isEmpty)
                 }
             }
-            .alert("너무 큰 퀘스트예요", isPresented: $showingChunkingGuide) {
-                Button("작게 쪼개기", role: .cancel) { }
-                Button("그래도 진행") {
+            .alert(AppStrings.questEditorTooLarge, isPresented: $showingChunkingGuide) {
+                Button(AppStrings.questEditorChunkingGuideConfirm, role: .cancel) { }
+                Button(AppStrings.questEditorChunkingGuideProceedAnyway) {
                     save()
                 }
             } message: {
-                Text("작게 쪼개면 몹도 작아져요.")
+                Text(AppStrings.questEditorChunkingGuideMessage)
             }
         }
     }

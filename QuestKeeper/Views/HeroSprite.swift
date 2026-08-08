@@ -44,7 +44,10 @@ struct HeroSprite: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isMourning ? "쓰러진 용사" : "용사")
+        .accessibilityLabel(AppStrings.resolve(
+            isMourning ? AppStrings.heroLabelFallen : AppStrings.heroLabelDefault,
+            locale: .current
+        ))
     }
 }
 

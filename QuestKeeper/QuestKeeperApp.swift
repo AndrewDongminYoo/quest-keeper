@@ -93,7 +93,7 @@ struct QuestKeeperApp: App {
             ),
                try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
                 container.mainContext.insert(Quest(
-                    title: "어제의 퀘스트",
+                    title: AppStrings.resolve(AppStrings.debugFixtureDailyFocusGraveTitle, locale: .current),
                     deadline: Date.now.addingTimeInterval(-60),
                     importance: .medium
                 ))
@@ -103,10 +103,22 @@ struct QuestKeeperApp: App {
                arguments.contains("-storeScreenshotFixture") {
                 let now = Date.now
                 let fixtures: [(String, TimeInterval, Importance)] = [
-                    ("앱 스크린샷 준비하기", 3_600, .high),
-                    ("개인정보처리방침 확인", 86_400, .medium),
-                    ("랜딩 페이지 다듬기", 2 * 86_400, .high),
-                    ("앱 출시 체크리스트", 5 * 86_400, .low),
+                    (AppStrings.resolve(AppStrings.debugFixtureScreenshotPrepare, locale: .current), 3_600, .high),
+                    (
+                        AppStrings.resolve(AppStrings.debugFixtureScreenshotPrivacyPolicy, locale: .current),
+                        86_400,
+                        .medium
+                    ),
+                    (
+                        AppStrings.resolve(AppStrings.debugFixtureScreenshotLandingPage, locale: .current),
+                        2 * 86_400,
+                        .high
+                    ),
+                    (
+                        AppStrings.resolve(AppStrings.debugFixtureScreenshotLaunchChecklist, locale: .current),
+                        5 * 86_400,
+                        .low
+                    ),
                 ]
                 for (title, interval, importance) in fixtures {
                     container.mainContext.insert(Quest(
@@ -133,26 +145,26 @@ struct QuestKeeperApp: App {
                 }
                 if arguments.contains("-uiTestingRecoveryNoPending") {
                     container.mainContext.insert(Quest(
-                        title: "남겨둔 퀘스트",
+                        title: AppStrings.resolve(AppStrings.debugFixtureRecoveryLeftoverQuest, locale: .current),
                         deadline: now.addingTimeInterval(-60),
                         importance: .medium
                     ))
                 } else {
                     container.mainContext.insert(Quest(
                         id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
-                        title: "회복 퀘스트 1",
+                        title: AppStrings.resolve(AppStrings.debugFixtureRecoveryQuestOne, locale: .current),
                         deadline: now.addingTimeInterval(600),
                         importance: .high
                     ))
                     container.mainContext.insert(Quest(
                         id: UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
-                        title: "회복 퀘스트 2",
+                        title: AppStrings.resolve(AppStrings.debugFixtureRecoveryQuestTwo, locale: .current),
                         deadline: now.addingTimeInterval(1_200),
                         importance: .medium
                     ))
                 }
                 container.mainContext.insert(Quest(
-                    title: "지켜낸 승리",
+                    title: AppStrings.resolve(AppStrings.debugFixtureRecoveryVictorySecured, locale: .current),
                     deadline: now.addingTimeInterval(-86_400),
                     importance: .low,
                     completedAt: now.addingTimeInterval(-86_460)

@@ -28,7 +28,7 @@ struct QuestBattleScene: View {
             if QuestBattleResolution.showsVictory(for: phase) {
                 HStack(spacing: 2) {
                     DungeonArtworkView(artwork: .victoryReward, size: 16)
-                    Text("승리")
+                    Text(AppStrings.battleSceneVictoryBanner)
                         .font(.caption2.bold())
                         .foregroundStyle(DungeonPalette.ink)
                         .lineLimit(1)
@@ -45,7 +45,10 @@ struct QuestBattleScene: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(monsterKind.localizedName()) 레벨 \(monsterLevel)")
+        .accessibilityLabel(AppStrings.resolve(
+            AppStrings.a11yMonsterLevel(monsterKind.localizedName(), monsterLevel),
+            locale: .current
+        ))
         .accessibilityValue(QuestBattleResolution.accessibilityValue(for: phase))
     }
 

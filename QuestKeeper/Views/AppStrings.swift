@@ -143,3 +143,206 @@ nonisolated extension AppStrings {
         defaultValue: "마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요."
     )
 }
+
+nonisolated extension AppStrings {
+    static let commonActionCancel = LocalizedStringResource("common.action.cancel", defaultValue: "취소")
+
+    static let selectionReissueAlertTitle = LocalizedStringResource(
+        "selection.reissueAlert.title",
+        defaultValue: "선택을 다시 확인해주세요"
+    )
+    static let selectionReissueAlertConfirmAction = LocalizedStringResource(
+        "selection.reissueAlert.confirmAction",
+        defaultValue: "확인"
+    )
+    static let selectionReissueAlertMessage = LocalizedStringResource(
+        "selection.reissueAlert.message",
+        defaultValue: "퀘스트 상태가 바뀌어 지금 선택을 저장하지 않았습니다."
+    )
+
+    static let questStatusCompleted = LocalizedStringResource("quest.status.completed", defaultValue: "완료")
+    static let questFieldDeadline = LocalizedStringResource("quest.field.deadline", defaultValue: "마감")
+}
+
+nonisolated extension AppStrings {
+    static let heroLabelFallen = LocalizedStringResource("hero.label.fallen", defaultValue: "쓰러진 용사")
+    static let heroLabelDefault = LocalizedStringResource("hero.label.default", defaultValue: "용사")
+    static let heroHeaderAppearanceButton = LocalizedStringResource(
+        "hero.header.appearanceButton",
+        defaultValue: "외형"
+    )
+    static let heroHeaderAppearanceButtonAccessibility = LocalizedStringResource(
+        "hero.header.appearanceButtonAccessibility",
+        defaultValue: "용사 외형 설정"
+    )
+    static let heroStatBattleLabel = LocalizedStringResource("hero.stat.battleLabel", defaultValue: "전투")
+    static let heroStatVictoryLabel = LocalizedStringResource("hero.stat.victoryLabel", defaultValue: "승리")
+
+    static let heroAppearanceGenderSection = LocalizedStringResource(
+        "hero.appearance.genderSection",
+        defaultValue: "성별"
+    )
+    static let heroAppearanceHairColorSection = LocalizedStringResource(
+        "hero.appearance.hairColorSection",
+        defaultValue: "머리색"
+    )
+    static let heroAppearanceNavigationTitle = LocalizedStringResource(
+        "hero.appearance.navigationTitle",
+        defaultValue: "용사 외형"
+    )
+    static let heroAppearanceDoneAction = LocalizedStringResource("hero.appearance.doneAction", defaultValue: "완료")
+}
+
+nonisolated extension AppStrings {
+    static let battleSceneVictoryBanner = LocalizedStringResource("battle.scene.victoryBanner", defaultValue: "승리")
+}
+
+nonisolated extension AppStrings {
+    static let questEditorTitleField = LocalizedStringResource("quest.editor.titleField", defaultValue: "제목")
+    static let questEditorImportanceField = LocalizedStringResource(
+        "quest.editor.importanceField",
+        defaultValue: "중요도"
+    )
+    static let questEditorImportanceLow = LocalizedStringResource("quest.editor.importance.low", defaultValue: "낮음")
+    static let questEditorImportanceMedium = LocalizedStringResource(
+        "quest.editor.importance.medium",
+        defaultValue: "보통"
+    )
+    static let questEditorImportanceHigh = LocalizedStringResource(
+        "quest.editor.importance.high",
+        defaultValue: "높음"
+    )
+    static let questEditorNewTitle = LocalizedStringResource("quest.editor.newTitle", defaultValue: "새 퀘스트")
+    static let questEditorEditTitle = LocalizedStringResource("quest.editor.editTitle", defaultValue: "퀘스트 편집")
+    static let questEditorSaveAction = LocalizedStringResource("quest.editor.saveAction", defaultValue: "저장")
+    static let questEditorTooLarge = LocalizedStringResource(
+        "quest.editor.tooLarge",
+        defaultValue: "너무 큰 퀘스트예요"
+    )
+    static let questEditorChunkingGuideConfirm = LocalizedStringResource(
+        "quest.editor.chunkingGuide.confirm",
+        defaultValue: "작게 쪼개기"
+    )
+    static let questEditorChunkingGuideProceedAnyway = LocalizedStringResource(
+        "quest.editor.chunkingGuide.proceedAnyway",
+        defaultValue: "그래도 진행"
+    )
+    static let questEditorChunkingGuideMessage = LocalizedStringResource(
+        "quest.editor.chunkingGuide.message",
+        defaultValue: "작게 쪼개면 몹도 작아져요."
+    )
+}
+
+nonisolated extension AppStrings {
+    static let questResolutionSection = LocalizedStringResource("quest.resolution.section", defaultValue: "퀘스트")
+    static let questResolutionStatusLabel = LocalizedStringResource(
+        "quest.resolution.statusLabel",
+        defaultValue: "상태"
+    )
+    static let questResolutionNavigationTitle = LocalizedStringResource(
+        "quest.resolution.navigationTitle",
+        defaultValue: "퀘스트 기록"
+    )
+    static let commonActionClose = LocalizedStringResource("common.action.close", defaultValue: "닫기")
+    static let questResolutionStatusPending = LocalizedStringResource(
+        "quest.resolution.status.pending",
+        defaultValue: "진행 중"
+    )
+    static let questResolutionStatusGrave = LocalizedStringResource(
+        "quest.resolution.status.grave",
+        defaultValue: "무덤"
+    )
+}
+
+nonisolated extension AppStrings {
+    static let dailyFocusSelectionSelectedValue = LocalizedStringResource(
+        "dailyFocus.selection.selectedValue",
+        defaultValue: "선택됨"
+    )
+    static let dailyFocusSelectionNotSelectedValue = LocalizedStringResource(
+        "dailyFocus.selection.notSelectedValue",
+        defaultValue: "선택 안 됨"
+    )
+    static let dailyFocusSelectionHeader = LocalizedStringResource(
+        "dailyFocus.selection.header",
+        defaultValue: "오늘 집중할 퀘스트를 1–3개 선택하세요"
+    )
+    static let dailyFocusSelectionCompleteAction = LocalizedStringResource(
+        "dailyFocus.selection.completeAction",
+        defaultValue: "선택 완료"
+    )
+
+    static func dailyFocusSelectionFooterCount(_ count: Int) -> LocalizedStringResource {
+        LocalizedStringResource("dailyFocus.selection.footerCount", defaultValue: "\(count)개 선택")
+    }
+}
+
+nonisolated extension AppStrings {
+    static let recoveryCardTitle = LocalizedStringResource("recovery.card.title", defaultValue: "다시 와서 반가워요")
+    static let recoveryCardBody = LocalizedStringResource(
+        "recovery.card.body",
+        defaultValue: "쉬었다 와도 괜찮아요. 오늘\u{00A0}할\u{00A0}일부터 가볍게 시작해볼까요?"
+    )
+    static let recoveryCardBodyAccessibility = LocalizedStringResource(
+        "recovery.card.bodyAccessibility",
+        defaultValue: "쉬었다 와도 괜찮아요. 오늘 할 일부터 가볍게 시작해볼까요?"
+    )
+    static let recoveryCardDismiss = LocalizedStringResource("recovery.card.dismiss", defaultValue: "지금은 괜찮아요")
+    static let recoveryCardPrimarySingleQuest = LocalizedStringResource(
+        "recovery.card.primary.singleQuest",
+        defaultValue: "이 퀘스트로 다시 시작"
+    )
+    static let recoveryCardPrimaryChooseToday = LocalizedStringResource(
+        "recovery.card.primary.chooseToday",
+        defaultValue: "오늘 다시 고르기"
+    )
+    static let recoveryCardPrimaryCreateQuest = LocalizedStringResource(
+        "recovery.card.primary.createQuest",
+        defaultValue: "작은 퀘스트 만들기"
+    )
+    static let recoveryCardPreviewLongTitle = LocalizedStringResource(
+        "recovery.card.preview.longTitle",
+        defaultValue: "천천히 다시 시작하는 아주 긴 회복 퀘스트 제목"
+    )
+}
+
+#if DEBUG
+nonisolated extension AppStrings {
+    static let debugFixtureDailyFocusGraveTitle = LocalizedStringResource(
+        "debug.fixture.dailyFocusGraveTitle",
+        defaultValue: "어제의 퀘스트"
+    )
+    static let debugFixtureScreenshotPrepare = LocalizedStringResource(
+        "debug.fixture.screenshotPrepare",
+        defaultValue: "앱 스크린샷 준비하기"
+    )
+    static let debugFixtureScreenshotPrivacyPolicy = LocalizedStringResource(
+        "debug.fixture.screenshotPrivacyPolicy",
+        defaultValue: "개인정보처리방침 확인"
+    )
+    static let debugFixtureScreenshotLandingPage = LocalizedStringResource(
+        "debug.fixture.screenshotLandingPage",
+        defaultValue: "랜딩 페이지 다듬기"
+    )
+    static let debugFixtureScreenshotLaunchChecklist = LocalizedStringResource(
+        "debug.fixture.screenshotLaunchChecklist",
+        defaultValue: "앱 출시 체크리스트"
+    )
+    static let debugFixtureRecoveryLeftoverQuest = LocalizedStringResource(
+        "debug.fixture.recoveryLeftoverQuest",
+        defaultValue: "남겨둔 퀘스트"
+    )
+    static let debugFixtureRecoveryQuestOne = LocalizedStringResource(
+        "debug.fixture.recoveryQuestOne",
+        defaultValue: "회복 퀘스트 1"
+    )
+    static let debugFixtureRecoveryQuestTwo = LocalizedStringResource(
+        "debug.fixture.recoveryQuestTwo",
+        defaultValue: "회복 퀘스트 2"
+    )
+    static let debugFixtureRecoveryVictorySecured = LocalizedStringResource(
+        "debug.fixture.recoveryVictorySecured",
+        defaultValue: "지켜낸 승리"
+    )
+}
+#endif
