@@ -12,7 +12,7 @@
 
 - Spec of record: `docs/specs/018-english-localization.md`. Linear issue: AND-110.
 - Voice: quest-flavored, plain, shame-free. `battle`, `victory`, `dungeon` carry over literally. Nothing that reads as blame — no "You failed", no "You missed it again", no running tally of shortfalls.
-- Key format: `<area>.<element>.<role>`, lowercase, dot-separated.
+- Key format: lowercase, dot-separated, most general segment first — `<area>.<element>.<role>`, dropping trailing segments that carry no meaning. `monster.slime` and `dungeon.empty.title` are both correct; segment count is not fixed.
 - Korean is the development language and stays visible in code as each resource's `defaultValue`.
 - Unit tests use Swift Testing (`import Testing`, `@Test`, `#expect`), never XCTest.
 - `SWIFT_VERSION = 6.0`, `SWIFT_STRICT_CONCURRENCY = complete`. No new warnings.
