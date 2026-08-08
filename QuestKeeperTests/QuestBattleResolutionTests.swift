@@ -47,9 +47,19 @@ struct QuestBattleResolutionTests {
         #expect(QuestBattleResolution.showsImpact(for: .striking))
         #expect(!QuestBattleResolution.showsVictory(for: .striking))
         #expect(QuestBattleResolution.showsVictory(for: .defeated))
-        #expect(QuestBattleResolution.accessibilityValue(for: .windUp) == "공격 준비 중")
-        #expect(QuestBattleResolution.accessibilityValue(for: .striking) == "공격 중")
-        #expect(QuestBattleResolution.accessibilityValue(for: .defeated) == "승리 처리 중")
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        #expect(QuestBattleResolution.accessibilityValue(for: .windUp, locale: ko) == "공격 준비 중")
+        #expect(QuestBattleResolution.accessibilityValue(for: .striking, locale: ko) == "공격 중")
+        #expect(QuestBattleResolution.accessibilityValue(for: .defeated, locale: ko) == "승리 처리 중")
+
+        #expect(QuestBattleResolution.accessibilityValue(for: .windUp, locale: en) == "Winding up")
+        #expect(QuestBattleResolution.accessibilityValue(for: .striking, locale: en) == "Striking")
+        #expect(QuestBattleResolution.accessibilityValue(for: .defeated, locale: en) == "Claiming victory")
+
+        #expect(QuestBattleResolution.accessibilityValue(for: .idle, locale: ko).isEmpty)
+        #expect(QuestBattleResolution.accessibilityValue(for: .idle, locale: en).isEmpty)
     }
 
     @Test("commit waits after defeated phase becomes visible")
