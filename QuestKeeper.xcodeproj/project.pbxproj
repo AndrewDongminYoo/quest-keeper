@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		F7B47EB22FFD02AA00D8D4A1 /* QuestKeeperWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F7B47EB32FFD02AA00D8D4A1 /* QuestKeeperWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8128990E335C00E4D98999BD /* WidgetStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F08F5BAEA36596824B6E291 /* WidgetStrings.swift */; };
+		A82EEEEB6DDC3BADE2941C54 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 77AA69123F1E55FAA9705678 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,6 +55,8 @@
 		B20C62A92FFD556F00280BFB /* QuestKeeperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuestKeeperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20C62B32FFD556F00280BFB /* QuestKeeperUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuestKeeperUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7B47EB32FFD02AA00D8D4A1 /* QuestKeeperWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuestKeeperWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8F08F5BAEA36596824B6E291 /* WidgetStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestKeeperWidget/WidgetStrings.swift; sourceTree = "<group>"; };
+		77AA69123F1E55FAA9705678 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = QuestKeeperWidget/Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -62,19 +66,6 @@
 				Info.plist,
 			);
 			target = F7B47EB62FFD02AA00D8D4A1 /* QuestKeeperWidget */;
-		};
-		8EDE3ED703E7F0368D8CD16A /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Assets.xcassets,
-				CompleteQuestIntent.swift,
-				Info.plist,
-				QuestKeeperWidget.entitlements,
-				QuestKeeperWidget.swift,
-				QuestKeeperWidgetBundle.swift,
-				WidgetDungeonView.swift,
-			);
-			target = B20C62A82FFD556F00280BFB /* QuestKeeperTests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -103,7 +94,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B25B88A72FFE318E00E4B8BE /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperWidget" target */,
-				8EDE3ED703E7F0368D8CD16A /* Exceptions for "QuestKeeperWidget" folder in "QuestKeeperTests" target */,
 			);
 			path = QuestKeeperWidget;
 			sourceTree = "<group>";
@@ -148,6 +138,8 @@
 				B20C629C2FFD556E00280BFB /* QuestKeeper */,
 				F7B47EA72FFCBF8B00D8D4A1 /* QuestKeeperShared */,
 				F7B47EB42FFD02AA00D8D4A1 /* QuestKeeperWidget */,
+				8F08F5BAEA36596824B6E291 /* WidgetStrings.swift */,
+				77AA69123F1E55FAA9705678 /* Localizable.xcstrings */,
 				B20C62AC2FFD556F00280BFB /* QuestKeeperTests */,
 				B20C62B62FFD556F00280BFB /* QuestKeeperUITests */,
 				B20C629B2FFD556E00280BFB /* Products */,
@@ -208,7 +200,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				B20C62AC2FFD556F00280BFB /* QuestKeeperTests */,
-				F7B47EB42FFD02AA00D8D4A1 /* QuestKeeperWidget */,
 			);
 			name = QuestKeeperTests;
 			packageProductDependencies = (
@@ -324,6 +315,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A82EEEEB6DDC3BADE2941C54 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -355,6 +347,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8128990E335C00E4D98999BD /* WidgetStrings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
