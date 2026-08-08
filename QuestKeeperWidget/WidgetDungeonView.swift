@@ -208,7 +208,7 @@ private struct MobBadge: View {
                 width: compact ? 28 : dense ? 20 : 24,
                 height: compact ? 28 : dense ? 20 : 24
             )
-            .accessibilityLabel("\(monster.localizedName) 레벨 \(mob.mobLevel)")
+            .accessibilityLabel("\(monster.localizedName()) 레벨 \(mob.mobLevel)")
 
             VStack(alignment: .leading, spacing: compact ? 2 : dense ? 0 : 1) {
                 Text(mob.title)

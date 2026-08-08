@@ -19,18 +19,10 @@ nonisolated enum MonsterKind: String, CaseIterable, Sendable {
 
     var assetName: String { "sprite-\(rawValue)" }
 
-    var localizedName: String {
-        switch self {
-        case .slime: "슬라임"
-        case .bat: "박쥐"
-        case .mushroom: "버섯"
-        case .skeleton: "스켈레톤"
-        case .orc: "오크"
-        case .mimic: "미믹"
-        case .dragon: "드래곤"
-        case .golem: "골렘"
-        case .lich: "리치"
-        }
+    func localizedName(locale: Locale = .current) -> String {
+        var resource = SharedStrings.monsterName(self)
+        resource.locale = locale
+        return String(localized: resource)
     }
 }
 
