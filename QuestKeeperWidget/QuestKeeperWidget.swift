@@ -54,14 +54,14 @@ struct QuestKeeperWidgetProvider: TimelineProvider {
             quests: [
                 WidgetQuestPayload(
                     id: UUID(),
-                    title: "물 마시기",
+                    title: WidgetStrings.resolve(WidgetStrings.placeholderQuestOne, locale: .current),
                     deadline: date.addingTimeInterval(45 * 60),
                     completedAt: nil,
                     importanceRawValue: 2
                 ),
                 WidgetQuestPayload(
                     id: UUID(),
-                    title: "푸시업 하나",
+                    title: WidgetStrings.resolve(WidgetStrings.placeholderQuestTwo, locale: .current),
                     deadline: date.addingTimeInterval(3 * 60 * 60),
                     completedAt: date.addingTimeInterval(-60),
                     importanceRawValue: 1
@@ -79,7 +79,7 @@ struct QuestKeeperWidget: Widget {
             WidgetDungeonView(entry: entry)
         }
         .configurationDisplayName("Quest Keeper")
-        .description("오늘의 던전을 홈 화면에서 확인합니다.")
+        .description(Text(WidgetStrings.configurationDescription))
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

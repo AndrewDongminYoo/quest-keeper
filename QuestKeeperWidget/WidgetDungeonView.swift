@@ -79,11 +79,23 @@ struct WidgetDungeonView: View {
             Spacer(minLength: 0)
 
             HStack(spacing: 6) {
-                StatPill(label: "전투", value: "\(entry.state.activeMobs.count)", tint: DungeonPalette.guide)
-                StatPill(label: "승리", value: "\(entry.state.totalVictories)", tint: DungeonPalette.victory)
+                StatPill(
+                    label: WidgetStrings.resolve(WidgetStrings.statBattleLabel, locale: .current),
+                    value: "\(entry.state.activeMobs.count)",
+                    tint: DungeonPalette.guide
+                )
+                StatPill(
+                    label: WidgetStrings.resolve(WidgetStrings.statVictoryLabel, locale: .current),
+                    value: "\(entry.state.totalVictories)",
+                    tint: DungeonPalette.victory
+                )
 
                 if !entry.state.dailyGraves.isEmpty {
-                    StatPill(label: "묘비", value: "\(entry.state.dailyGraves.count)", tint: DungeonPalette.grave)
+                    StatPill(
+                        label: WidgetStrings.resolve(WidgetStrings.statGraveLabel, locale: .current),
+                        value: "\(entry.state.dailyGraves.count)",
+                        tint: DungeonPalette.grave
+                    )
                 }
             }
         }
@@ -91,15 +103,18 @@ struct WidgetDungeonView: View {
 
     private var mediumSummary: String {
         if entry.state.isStale {
-            return "앱을 열면 갱신됩니다"
+            return WidgetStrings.resolve(WidgetStrings.statusStaleReminder, locale: .current)
         }
         if entry.state.activeMobs.isEmpty {
-            return "던전이 조용합니다"
+            return WidgetStrings.resolve(WidgetStrings.statusDungeonQuiet, locale: .current)
         }
         if entry.state.activeMobs.count == 1 {
-            return "오늘의 최우선 퀘스트"
+            return WidgetStrings.resolve(WidgetStrings.statusTopPriorityQuest, locale: .current)
         }
-        return "오늘의 퀘스트 \(entry.state.activeMobs.count)"
+        return WidgetStrings.resolve(
+            WidgetStrings.statusTodayQuestCount(entry.state.activeMobs.count),
+            locale: .current
+        )
     }
 
     private var header: some View {
@@ -111,10 +126,18 @@ struct WidgetDungeonView: View {
                 .minimumScaleFactor(0.8)
 
             HStack(spacing: 6) {
-                StatPill(label: "승리", value: "\(entry.state.totalVictories)", tint: DungeonPalette.victory)
+                StatPill(
+                    label: WidgetStrings.resolve(WidgetStrings.statVictoryLabel, locale: .current),
+                    value: "\(entry.state.totalVictories)",
+                    tint: DungeonPalette.victory
+                )
 
                 if !entry.state.dailyGraves.isEmpty {
-                    StatPill(label: "묘비", value: "\(entry.state.dailyGraves.count)", tint: DungeonPalette.grave)
+                    StatPill(
+                        label: WidgetStrings.resolve(WidgetStrings.statGraveLabel, locale: .current),
+                        value: "\(entry.state.dailyGraves.count)",
+                        tint: DungeonPalette.grave
+                    )
                 }
             }
         }
@@ -123,9 +146,9 @@ struct WidgetDungeonView: View {
     @ViewBuilder
     private var statusLine: some View {
         if entry.state.isStale {
-            StatusText("앱을 열면 갱신됩니다", tone: .muted)
+            StatusText(WidgetStrings.resolve(WidgetStrings.statusStaleReminder, locale: .current), tone: .muted)
         } else if entry.state.activeMobs.isEmpty {
-            StatusText("던전이 조용합니다", tone: .muted)
+            StatusText(WidgetStrings.resolve(WidgetStrings.statusDungeonQuiet, locale: .current), tone: .muted)
         } else if let mob = entry.state.activeMobs.first {
             StatusText(deadlineText(for: mob), tone: .color(urgencyTint(for: mob)))
                 .privacySensitive()
@@ -134,13 +157,13 @@ struct WidgetDungeonView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(entry.state.isStale ? "던전 정보가 오래됐습니다" : "활성 퀘스트가 없습니다")
+            Text(entry.state.isStale ? WidgetStrings.emptyStaleTitle : WidgetStrings.emptyNoActiveTitle)
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(DungeonPalette.ink.opacity(0.84))
                 .lineLimit(2)
                 .minimumScaleFactor(0.78)
 
-            Text(entry.state.isStale ? "앱을 열어 다시 동기화하세요" : "새 퀘스트를 추가해 던전을 채우세요")
+            Text(entry.state.isStale ? WidgetStrings.emptyStaleBody : WidgetStrings.emptyNoActiveBody)
                 .font(.system(size: 9, weight: .medium, design: .monospaced))
                 .foregroundStyle(DungeonPalette.ink.opacity(0.62))
                 .lineLimit(2)
@@ -173,12 +196,13 @@ struct WidgetDungeonView: View {
 
     private func deadlineText(for mob: WidgetMobState) -> String {
         if mob.deadline <= entry.state.date {
-            return "기한 초과"
+            return WidgetStrings.resolve(WidgetStrings.deadlineOverdue, locale: .current)
         }
 
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
-        return "\(formatter.localizedString(for: mob.deadline, relativeTo: entry.state.date)) 남음"
+        let interval = formatter.localizedString(for: mob.deadline, relativeTo: entry.state.date)
+        return WidgetStrings.resolve(WidgetStrings.deadlineRemaining(interval), locale: .current)
     }
 
     /// Urgency tint from the widget's derived `urgencyLevel`, aligned with the app's accent ramp.
@@ -208,7 +232,10 @@ private struct MobBadge: View {
                 width: compact ? 28 : dense ? 20 : 24,
                 height: compact ? 28 : dense ? 20 : 24
             )
-            .accessibilityLabel("\(monster.localizedName()) 레벨 \(mob.mobLevel)")
+            .accessibilityLabel(WidgetStrings.resolve(
+                WidgetStrings.a11yMonsterLevel(monster.localizedName(), mob.mobLevel),
+                locale: .current
+            ))
 
             VStack(alignment: .leading, spacing: compact ? 2 : dense ? 0 : 1) {
                 Text(mob.title)
@@ -219,7 +246,7 @@ private struct MobBadge: View {
                     .minimumScaleFactor(0.74)
 
                 HStack(spacing: 6) {
-                    Text("기한")
+                    Text(WidgetStrings.mobDeadlineLabel)
                         .foregroundStyle(DungeonPalette.ink.opacity(0.56))
 
                     Text(mob.deadline, style: .timer)
@@ -246,7 +273,7 @@ private struct MobBadge: View {
                         )
                 } else {
                     Label {
-                        Text("완료")
+                        Text(WidgetStrings.questActionComplete)
                     } icon: {
                         Image(systemName: "checkmark")
                             .font(.system(size: dense ? 8 : 10, weight: .black))
@@ -262,7 +289,7 @@ private struct MobBadge: View {
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("완료")
+            .accessibilityLabel(WidgetStrings.resolve(WidgetStrings.questActionComplete, locale: .current))
         }
         .padding(.vertical, compact ? 7 : dense ? 0 : 2)
         .padding(.horizontal, compact ? 8 : 7)
