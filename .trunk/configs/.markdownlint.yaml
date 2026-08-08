@@ -35,7 +35,9 @@ MD022: false
 # heading-start-left - Headings must start at the beginning of the line
 MD023: false
 # no-duplicate-heading - Multiple headings with the same content
-#MD024: false
+# Keep a Changelog repeats Added/Changed/Fixed under every version heading.
+MD024:
+  siblings_only: true
 # single-title/single-h1 - Multiple top-level headings in the same document
 #MD025: false
 # no-trailing-punctuation - Trailing punctuation in heading
