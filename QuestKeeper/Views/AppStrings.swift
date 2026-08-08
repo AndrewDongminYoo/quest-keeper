@@ -36,6 +36,10 @@ nonisolated extension AppStrings {
         LocalizedStringResource("countdown.hours", defaultValue: "\(hours)시간")
     }
 
+    static func countdownHoursOnly(_ hours: Int) -> LocalizedStringResource {
+        LocalizedStringResource("countdown.hoursOnly", defaultValue: "\(hours)시간 남음")
+    }
+
     static func countdownMinutes(_ minutes: Int) -> LocalizedStringResource {
         LocalizedStringResource("countdown.minutes", defaultValue: "\(minutes)분 남음")
     }
