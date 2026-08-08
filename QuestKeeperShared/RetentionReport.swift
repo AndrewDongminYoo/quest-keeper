@@ -258,6 +258,9 @@ nonisolated struct RetentionReport: Codable, Equatable, Sendable {
             "## Data Quality",
             "",
             "Status: \(dataQuality.status.rawValue).",
+            // 문단과 리스트 사이의 빈 줄이 없으면 prettier가 노트에 넣어버려서
+            // 체크인된 베이스라인이 렌더러 출력과 어긋난다.
+            "",
             "- Duplicate rows: \(dataQuality.duplicateCountsByEvent.values.reduce(0, +)).",
         ] + duplicates + [
             "- Missing scenario keys: \(dataQuality.missingCount).",
