@@ -26,7 +26,7 @@ The prohibitions in `DESIGN.md` hold in English: nothing that reads as blame. No
 
 ## Key naming
 
-Keys are semantic, not source strings: `<area>.<element>.<role>`, lowercase, dot-separated.
+Keys are semantic, not source strings: a dot-separated, lowercase hierarchy whose segment count is not fixed — most keys are three segments (`<area>.<element>.<role>`), but some, like `hero.appearance.gender.male`, run to four.
 
 ```plaintext
 dungeon.empty.title
@@ -42,7 +42,10 @@ hero.appearance.gender.male
 
 Semantic keys were chosen over source strings so Korean copy edits do not invalidate the translation linkage.
 
-Call sites never reference a raw key string. Each key is wrapped once in a `LocalizedStringResource` constant declared in `AppStrings` (`QuestKeeper/Views/`), `WidgetStrings` (`QuestKeeperWidget/`), or `SharedStrings` (`QuestKeeperShared/`), with the Korean copy supplied as that resource's `defaultValue`. This supersedes the original assumption above: a missing catalog entry does not render the raw key, it falls back to the `defaultValue` baked into the resource, i.e. Korean. The verification gate below still exists, now to catch an empty/missing catalog value and any stray Korean literal that bypasses `AppStrings` / `WidgetStrings` / `SharedStrings` entirely.
+Call sites never reference a raw key string.
+Each key is wrapped once in a `LocalizedStringResource` constant declared in `AppStrings` (`QuestKeeper/Views/`), `WidgetStrings` (`QuestKeeperWidget/`), or `SharedStrings` (`QuestKeeperShared/`), with the Korean copy supplied as that resource's `defaultValue`.
+This supersedes the original assumption above: a missing catalog entry does not render the raw key, it falls back to the `defaultValue` baked into the resource, i.e. Korean.
+The verification gate below still exists, now to catch an empty/missing catalog value and any stray Korean literal that bypasses `AppStrings` / `WidgetStrings` / `SharedStrings` entirely.
 
 ## Catalog placement
 
