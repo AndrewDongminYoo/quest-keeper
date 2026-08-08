@@ -456,6 +456,21 @@ struct OnboardingExperimentReportTests {
         #expect(markdown == report.renderMarkdown())
         #expect(markdown.contains("QuestKeeper Synthetic Onboarding Experiment Baseline"))
         #expect(markdown.localizedCaseInsensitiveContains("synthetic"))
+        // The two title assertions below are a regression tripwire for a quest-title
+        // leak into the report, in both locales the app ships. As written today they
+        // are a static guarantee rather than a dynamic check: none of the fixture's
+        // input types (ExperimentAssignmentSnapshot, RetentionInstallationSnapshot,
+        // RetentionEventSnapshot) carry a title field, only an opaque `questID: UUID?`
+        // and a free-form `deduplicationKey` used purely for dedup grouping — and
+        // renderMarkdown() interpolates only aggregate counts/rates/cohort metadata, so
+        // neither field's content ever reaches the output. Verified empirically, not
+        // just by reading: embedding the guided-quest title inside a fixture event's
+        // `deduplicationKey` (the one free-form String reachable from `event(...)`)
+        // left `deterministicSafeMarkdown` and `checkedInBaselineMatchesRenderer`
+        // both passing unchanged. If a title-bearing field is ever added anywhere in
+        // that input graph, this fixture must be updated to carry the guided-quest
+        // title so this assertion starts exercising the real leak path instead of only
+        // documenting the invariant.
         #expect(!markdown.contains("물 한 잔 마시기"))
         #expect(!markdown.contains("Drink a glass of water"))
         #expect(!markdown.contains(OnboardingExperimentFixture.controlA.uuidString))

@@ -71,16 +71,44 @@ PY
 	fi
 done
 
-stray="$(
-	rg -n '"[^"]*[가-힣][^"]*"' \
-		"${repo_root}/QuestKeeper" "${repo_root}/QuestKeeperShared" "${repo_root}/QuestKeeperWidget" \
-		--glob '*.swift' |
-		grep -vE ':[0-9]+: *(///|//)' |
-		sed -E 's/defaultValue: *"[^"]*"//g' |
-		grep '[가-힣]' || true
-)"
-if [[ -n ${stray} ]]; then
-	echo "FAIL: hardcoded Korean literal outside a defaultValue:" >&2
+if ! stray="$(
+	/usr/bin/python3 - "${repo_root}/QuestKeeper" "${repo_root}/QuestKeeperShared" "${repo_root}/QuestKeeperWidget" <<'PY'
+import pathlib
+import re
+import sys
+
+hangul = re.compile(r"[가-힣]")
+block_comment = re.compile(r"/\*.*?\*/", re.DOTALL)
+line_comment = re.compile(r"//[^\n]*")
+default_value = re.compile(r'defaultValue:\s*"[^"]*"')
+
+
+def strip_allowed(text: str) -> str:
+    # Block comments first (may contain a quoted Korean example), keeping
+    # line numbers aligned by replacing the match with the newlines it held.
+    text = block_comment.sub(lambda match: "\n" * match.group(0).count("\n"), text)
+    # Korean copy is legitimate only as a defaultValue: argument.
+    text = default_value.sub("", text)
+    # Line comments last (covers both a leading /// doc comment and a
+    # trailing // comment on an otherwise-code line).
+    text = line_comment.sub("", text)
+    return text
+
+
+for root in sys.argv[1:]:
+    for path in sorted(pathlib.Path(root).rglob("*.swift")):
+        original = path.read_text(encoding="utf-8")
+        cleaned = strip_allowed(original)
+        original_lines = original.splitlines()
+        for lineno, cleaned_line in enumerate(cleaned.splitlines(), start=1):
+            if hangul.search(cleaned_line):
+                print(f"{path}:{lineno}:{original_lines[lineno - 1].strip()}")
+PY
+)"; then
+	echo "FAIL: stray-Korean-literal scan crashed" >&2
+	status=1
+elif [[ -n ${stray} ]]; then
+	echo "FAIL: hardcoded Korean literal outside a defaultValue: argument or a comment" >&2
 	printf '%s\n' "${stray}" >&2
 	status=1
 fi
