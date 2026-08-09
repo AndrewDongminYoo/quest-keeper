@@ -130,6 +130,8 @@ struct QuestListSections: View {
 
     /// 스토어 스크린샷 캡처 전용. 전투 연출은 0.42초 만에 지나가 UI 테스트가 잡을 수 없으므로
     /// 첫 행의 단계만 고정한다. 타이머를 돌리지 않으니 완료도 커밋되지 않고 픽스처가 그대로 남는다.
+    /// 기준은 `pending.first`라서 표준 던전 섹션에서만 첫 행과 일치한다. 데일리 포커스가 켜지면
+    /// 그 퀘스트가 포커스 섹션에 있거나 접힌 DisclosureGroup 안에 있을 수 있다.
     private func pinnedBattlePhase(for quest: Quest) -> QuestBattlePhase {
 #if DEBUG
         guard ProcessInfo.processInfo.arguments.contains("-storeScreenshotBattle"),
