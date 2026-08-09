@@ -72,8 +72,10 @@ struct QuestRow: View {
                         if isCompleted {
                             HStack(spacing: 4) {
                                 DungeonArtworkView(artwork: .victoryReward, size: 14)
-                                Text(AppStrings.questActionComplete)
-                                    .accessibilityLabel(AppStrings.resolve(AppStrings.a11yQuestComplete(quest.title), locale: .current))
+                                Text(AppStrings.questStateCompleted)
+                                    .accessibilityLabel(
+                                        AppStrings.resolve(AppStrings.a11yQuestCompleted(quest.title), locale: .current)
+                                    )
                             }
                             .font(.caption2.weight(.black))
                             .foregroundStyle(DungeonPalette.victory)

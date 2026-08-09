@@ -133,8 +133,9 @@ nonisolated extension AppStrings {
 }
 
 nonisolated extension AppStrings {
-    static func a11yQuestComplete(_ title: String) -> LocalizedStringResource {
-        LocalizedStringResource("a11y.quest.complete", defaultValue: "\(title) 완료")
+    /// 완료된 행에는 실행할 동작이 없다. 명령형이 아니라 상태를 읽어 준다.
+    static func a11yQuestCompleted(_ title: String) -> LocalizedStringResource {
+        LocalizedStringResource("a11y.quest.completed", defaultValue: "\(title) 완료됨")
     }
 
     static func a11yMonsterLevel(_ monsterName: String, _ level: Int) -> LocalizedStringResource {

@@ -31,15 +31,15 @@ struct AppStringsTests {
         #expect(AppStrings.resolve(AppStrings.questRemainingCount(2), locale: ko) == "나머지 퀘스트 2개")
     }
 
+    @Test("a11y.quest.completed reads as a state, not an imperative, in both locales")
+    func a11yQuestCompletedLocalizes() {
+        #expect(AppStrings.resolve(AppStrings.a11yQuestCompleted("빨래"), locale: ko) == "빨래 완료됨")
+        #expect(AppStrings.resolve(AppStrings.a11yQuestCompleted("Laundry"), locale: en) == "Laundry completed")
+    }
+
     @Test("a11y.monster.level interpolates the monster name and level in both locales")
     func a11yMonsterLevelLocalizes() {
         #expect(AppStrings.resolve(AppStrings.a11yMonsterLevel("Slime", 3), locale: en) == "Slime Level 3")
         #expect(AppStrings.resolve(AppStrings.a11yMonsterLevel("슬라임", 3), locale: ko) == "슬라임 레벨 3")
-    }
-
-    @Test("a11y.quest.complete interpolates the quest title in both locales")
-    func a11yQuestCompleteLocalizes() {
-        #expect(AppStrings.resolve(AppStrings.a11yQuestComplete("빨래"), locale: ko) == "빨래 완료")
-        #expect(AppStrings.resolve(AppStrings.a11yQuestComplete("Laundry"), locale: en) == "Complete Laundry")
     }
 }

@@ -107,19 +107,31 @@ def strip_comments(text: str) -> str:
         if text.startswith("/*", i):
             depth = 1; out.append("  "); i += 2
             continue
-        for quote in ('\"\"\"', '"'):
-            if text.startswith(quote, i):
-                out.append(quote); i += len(quote)
-                while i < n and not text.startswith(quote, i):
-                    if text[i] == "\\" and i + 1 < n:
-                        out.append(text[i : i + 2]); i += 2
-                    else:
-                        out.append(text[i]); i += 1
-                if i < n:
-                    out.append(quote); i += len(quote)
-                break
-        else:
-            out.append(text[i]); i += 1
+        # A raw literal opens with one or more `#` before the quote and closes
+        # only on quote-plus-the-same-run. Without tracking the delimiter, the
+        # bare quote inside #"a " // 한국어"# would end the string early and the
+        # rest would be stripped as a comment.
+        pounds = 0
+        while i + pounds < n and text[i + pounds] == "#":
+            pounds += 1
+        hashes = "#" * pounds
+        opener = next(
+            (q for q in ('"""', '"') if text.startswith(hashes + q, i)),
+            None,
+        )
+        if opener:
+            closer = opener + hashes
+            out.append(hashes + opener); i += pounds + len(opener)
+            while i < n and not text.startswith(closer, i):
+                # A backslash only escapes when it carries the same delimiter run.
+                if text[i] == "\\" and text.startswith("\\" + hashes, i) and i + 1 + pounds < n:
+                    out.append(text[i : i + 2 + pounds]); i += 2 + pounds
+                else:
+                    out.append(text[i]); i += 1
+            if i < n:
+                out.append(closer); i += len(closer)
+            continue
+        out.append(text[i]); i += 1
     return "".join(out)
 
 
@@ -143,6 +155,47 @@ PY
 elif [[ -n ${stray} ]]; then
 	echo "FAIL: hardcoded Korean literal outside a defaultValue: argument or a comment" >&2
 	printf '%s\n' "${stray}" >&2
+	status=1
+fi
+
+if ! missing="$(
+	/usr/bin/python3 - "${repo_root}" <<'KEYS'
+import json
+import pathlib
+import re
+import sys
+
+# Which catalog must carry the keys each namespace declares. QuestKeeperShared
+# compiles into both bundles, so its keys have to exist in both catalogs.
+OWNERS = {
+    "QuestKeeper/Views/AppStrings.swift": ["QuestKeeper"],
+    "QuestKeeperWidget/WidgetStrings.swift": ["QuestKeeperWidget"],
+    "QuestKeeperShared/SharedStrings.swift": ["QuestKeeper", "QuestKeeperWidget"],
+}
+key_pattern = re.compile(r'LocalizedStringResource\(\s*"([^"]+)"')
+root = pathlib.Path(sys.argv[1])
+
+catalogs = {}
+for target in ("QuestKeeper", "QuestKeeperWidget"):
+    path = root / target / "Localizable.xcstrings"
+    catalogs[target] = set(json.loads(path.read_text(encoding="utf-8"))["strings"])
+
+for source, targets in OWNERS.items():
+    path = root / source
+    if not path.exists():
+        print(f"{source} is missing; the key cross-check cannot run")
+        continue
+    for key in sorted(set(key_pattern.findall(path.read_text(encoding="utf-8")))):
+        for target in targets:
+            if key not in catalogs[target]:
+                print(f"{source} declares {key}, absent from {target}/Localizable.xcstrings")
+KEYS
+)"; then
+	echo "FAIL: declared-key cross-check crashed" >&2
+	status=1
+elif [[ -n ${missing} ]]; then
+	echo "FAIL: a string resource declares a key with no catalog entry" >&2
+	printf '%s\n' "${missing}" >&2
 	status=1
 fi
 
