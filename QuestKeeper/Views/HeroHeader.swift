@@ -52,6 +52,7 @@ struct HeroHeader: View {
             .padding(-appearanceTapInset)
             .buttonStyle(.plain)
             .accessibilityLabel(AppStrings.resolve(AppStrings.heroHeaderAppearanceButtonAccessibility, locale: .current))
+            .accessibilityIdentifier("heroAppearanceButton")
             // 스프라이트 애니메이션은 Reduce Motion에서 꺼진다.
             // 그래서 애도 상태는 이 텍스트가 직접 드러낸다.
             Text(isMourning ? AppStrings.heroLabelFallen : AppStrings.heroLabelDefault)

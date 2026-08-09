@@ -66,6 +66,7 @@ struct QuestEditor: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(AppStrings.questEditorSaveAction) { attemptSave() }
                         .disabled(QuestTitlePolicy.normalized(title).isEmpty)
+                        .accessibilityIdentifier("questEditorSaveButton")
                 }
             }
             .alert(AppStrings.questEditorTooLarge, isPresented: $showingChunkingGuide) {

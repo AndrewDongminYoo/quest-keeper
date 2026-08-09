@@ -50,6 +50,7 @@ struct QuestRow: View {
                     .foregroundStyle(isDefeated || isCompleted ? DungeonPalette.ink.opacity(0.58) : DungeonPalette.ink)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("questRowTitle")
                 if let guidanceText {
                     Text(guidanceText)
                         .font(.caption.weight(.semibold))
