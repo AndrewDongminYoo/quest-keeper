@@ -13,7 +13,7 @@ This file summarizes the parts that shape _how_ to write code here; BLUEPRINT ow
 
 **Current state:** the boilerplate template is gone — `Quest` (`@Model`) replaced `Item`, and `ContentView` is now the Phase 2 dungeon root, not template scaffolding.
 BLUEPRINT's Phases 1–5 are implemented: the fact-only SwiftData model (`QuestKeeperShared/Quest.swift`), the pure derivation layer (`QuestKeeper/Derivation/`), the dungeon UI with completion/retry/daily-grave/edit flows (`QuestKeeper/Views/`), the local-notification lifecycle (`QuestKeeper/Notifications/`), and the WidgetKit App Group snapshot (`QuestKeeperShared/`, `QuestKeeperWidget/`).
-Work past the BLUEPRINT roadmap has since added interactive widget completion, pixel art, retention measurement, an onboarding experiment, the daily-focus loop, and the recovery-loop prototype — `docs/specs/` runs to `015-recovery-loop-prototype.md`.
+Work past the BLUEPRINT roadmap has since added interactive widget completion, pixel art, retention measurement, an onboarding experiment, the daily-focus loop, the recovery-loop prototype, store release automation, combat assets with hero customization, and English localization — `docs/specs/` runs to `018-english-localization.md`.
 Extend the established per-role layer conventions; `docs/specs/` holds the per-phase contracts.
 
 ## Docs Layout
