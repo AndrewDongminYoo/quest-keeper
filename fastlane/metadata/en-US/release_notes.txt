@@ -1,0 +1,7 @@
+Quest Keeper 1.1.0
+
+• Added a setting to choose your hero's appearance.
+• Completing a quest now plays out as a battle, with your hero swinging a sword.
+• Widened the pixel art so monsters look different from quest to quest.
+• Smoothed out fast scrolling so a completion in flight still lands.
+• VoiceOver now reads the battle scene and the hero's state more accurately.

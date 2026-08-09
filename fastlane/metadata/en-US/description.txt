@@ -1,0 +1,24 @@
+Tired of your to-do list? Quest Keeper turns today's tasks into dungeon monsters.
+
+The closer the deadline, the stronger the monster — but finish in time and your pixel hero takes it down in a single swing. A missed task is not a punishment; it turns into "Try again tomorrow," and yesterday's misses quietly clear so every day opens on a fresh dungeon.
+
+Stack up small wins like a game.
+
+■ How it works
+· Add a task and the monster's strength is set by its importance and the time left until the deadline.
+· Finish before the deadline and it is a one-hit victory, with pixel art to make it land.
+· Missed tasks show up briefly under Today's Graves, then reset cleanly the next day.
+· Try again tomorrow moves a deadline without any fuss.
+
+■ Features
+· Deadline reminders: local notifications that fire only when they matter.
+· Home Screen widget: check today's dungeon and your hero without opening the app.
+· Fully offline and local: no account, no login, no ads.
+· No data collection: everything stays on your device.
+
+■ Made for
+· Anyone who has felt guilty about a growing backlog
+· Anyone who wants procrastination to be fun to fight
+· Anyone who loves retro pixel games
+
+Add your first quest and take down today's monster.
