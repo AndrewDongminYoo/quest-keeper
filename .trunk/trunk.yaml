@@ -28,6 +28,12 @@ lint:
     - prettier@3.9.6
     - trufflehog@3.95.9
     - yamllint@1.38.0
+  ignore:
+    # Xcode owns the String Catalog format and rewrites these on every open.
+    # Letting prettier reformat them too produces a churn loop on every build.
+    - linters: [prettier]
+      paths:
+        - "**/*.xcstrings"
 actions:
   enabled:
     - trunk-announce
