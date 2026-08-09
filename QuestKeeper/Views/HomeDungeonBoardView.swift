@@ -178,9 +178,11 @@ private struct DailyFocusRecommendationCard: View {
             HStack(spacing: 12) {
                 Button(AppStrings.focusActionEdit, action: onEdit)
                     .frame(maxWidth: .infinity, minHeight: 44)
+                    .accessibilityIdentifier("focusPlanEditButton")
                 Button(AppStrings.focusActionConfirm, action: onConfirm)
                     .buttonStyle(.pixel)
                     .frame(maxWidth: .infinity, minHeight: 44)
+                    .accessibilityIdentifier("focusPlanConfirmButton")
             }
             .font(.subheadline.weight(.semibold))
         }
@@ -290,6 +292,7 @@ private struct BoardHUD: View {
                         .foregroundStyle(.white)
                 }
                 .accessibilityLabel(AppStrings.resolve(AppStrings.questActionAdd, locale: .current))
+                .accessibilityIdentifier("questAddButton")
             }
             HeroHeader(
                 state: state,
@@ -317,6 +320,7 @@ private struct EmptyDungeonState: View {
             Text(AppStrings.dungeonEmptyTitle)
                 .font(.headline.weight(.bold))
                 .foregroundStyle(DungeonPalette.ink)
+                .accessibilityIdentifier("dungeonEmptyTitle")
             Text(AppStrings.dungeonEmptyBody)
                 .font(.caption)
                 .foregroundStyle(DungeonPalette.ink.opacity(0.7))

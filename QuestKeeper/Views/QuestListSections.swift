@@ -39,6 +39,7 @@ struct QuestListSections: View {
                     title: AppStrings.resolve(AppStrings.dungeonGraveSectionTitle, locale: .current),
                     count: dailyGraves.count
                 )
+                    .accessibilityIdentifier("graveSectionTitle")
                 VStack(spacing: 10) {
                     ForEach(dailyGraves) { quest in
                         DailyGraveRow(quest: quest, isNewlyMissed: newlyMissedQuestIDs.contains(quest.id)) {
@@ -120,10 +121,23 @@ struct QuestListSections: View {
             now: now,
             heroAppearance: heroAppearance,
             showsGuidedCompletion: quest.id == guidedCompletionQuestID,
+            pinnedBattlePhase: pinnedBattlePhase(for: quest),
             onComplete: onComplete,
             onDelete: onDelete,
             onEdit: onEdit
         )
+    }
+
+    /// 스토어 스크린샷 캡처 전용. 전투 연출은 0.42초 만에 지나가 UI 테스트가 잡을 수 없으므로
+    /// 첫 행의 단계만 고정한다. 타이머를 돌리지 않으니 완료도 커밋되지 않고 픽스처가 그대로 남는다.
+    private func pinnedBattlePhase(for quest: Quest) -> QuestBattlePhase {
+#if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("-storeScreenshotBattle"),
+              quest.id == pending.first?.id else { return .idle }
+        return .striking
+#else
+        return .idle
+#endif
     }
 }
 
@@ -155,6 +169,7 @@ private struct SwipeableQuestRow: View {
     let now: Date
     let heroAppearance: HeroAppearance
     let showsGuidedCompletion: Bool
+    let pinnedBattlePhase: QuestBattlePhase
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
     let onEdit: (Quest) -> Void
@@ -240,6 +255,9 @@ private struct SwipeableQuestRow: View {
                 Button(AppStrings.questActionComplete) { completeWithBattle() }
                 Button(AppStrings.questActionDelete) { onDelete(quest) }
             }
+        }
+        .onAppear {
+            if pinnedBattlePhase != .idle { battlePhase = pinnedBattlePhase }
         }
         .onChange(of: quest.id) { _, _ in
             battleTask?.cancel()

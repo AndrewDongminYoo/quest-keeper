@@ -73,6 +73,7 @@ struct DailyFocusSelectionSheet: View {
                         }
                     }
                     .disabled(!DailyFocusState.isValidSelection(Array(selectedQuestIDs)))
+                    .accessibilityIdentifier("dailyFocusSelectionConfirmButton")
                 }
             }
             .alert(AppStrings.selectionReissueAlertTitle, isPresented: $showingSaveIssue) {

@@ -49,6 +49,7 @@ struct HeroAppearanceSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(AppStrings.heroAppearanceDoneAction) { dismiss() }
+                        .accessibilityIdentifier("heroAppearanceDoneButton")
                 }
             }
         }
