@@ -78,21 +78,54 @@ import re
 import sys
 
 hangul = re.compile(r"[가-힣]")
-block_comment = re.compile(r"/\*.*?\*/", re.DOTALL)
-line_comment = re.compile(r"//[^\n]*")
 default_value = re.compile(r'defaultValue:\s*"[^"]*"')
 
 
+def strip_comments(text: str) -> str:
+    """Blank out Swift comments, leaving string literals untouched.
+
+    A regex cannot do this: `"// 한국어"` is a string, not a comment, and
+    stripping it by pattern would hide exactly the stray literal this gate
+    exists to reject. Comments become spaces so line numbers stay aligned.
+    """
+    out = []
+    i, n, depth = 0, len(text), 0
+    while i < n:
+        if depth:  # inside /* */, which Swift allows to nest
+            if text.startswith("/*", i):
+                depth += 1; out.append("  "); i += 2
+            elif text.startswith("*/", i):
+                depth -= 1; out.append("  "); i += 2
+            else:
+                out.append("\n" if text[i] == "\n" else " "); i += 1
+            continue
+        if text.startswith("//", i):
+            end = text.find("\n", i)
+            end = n if end < 0 else end
+            out.append(" " * (end - i)); i = end
+            continue
+        if text.startswith("/*", i):
+            depth = 1; out.append("  "); i += 2
+            continue
+        for quote in ('\"\"\"', '"'):
+            if text.startswith(quote, i):
+                out.append(quote); i += len(quote)
+                while i < n and not text.startswith(quote, i):
+                    if text[i] == "\\" and i + 1 < n:
+                        out.append(text[i : i + 2]); i += 2
+                    else:
+                        out.append(text[i]); i += 1
+                if i < n:
+                    out.append(quote); i += len(quote)
+                break
+        else:
+            out.append(text[i]); i += 1
+    return "".join(out)
+
+
 def strip_allowed(text: str) -> str:
-    # Block comments first (may contain a quoted Korean example), keeping
-    # line numbers aligned by replacing the match with the newlines it held.
-    text = block_comment.sub(lambda match: "\n" * match.group(0).count("\n"), text)
-    # Korean copy is legitimate only as a defaultValue: argument.
-    text = default_value.sub("", text)
-    # Line comments last (covers both a leading /// doc comment and a
-    # trailing // comment on an otherwise-code line).
-    text = line_comment.sub("", text)
-    return text
+    # Comments first, string-aware, then the one place Korean is legitimate.
+    return default_value.sub("", strip_comments(text))
 
 
 for root in sys.argv[1:]:
