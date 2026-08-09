@@ -117,7 +117,7 @@ final class QuestKeeperUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["1/3 완료"].waitForExistence(timeout: 4))
         XCTAssertTrue(firstFocusQuest.exists)
-        XCTAssertTrue(app.staticTexts["Focus 1 완료"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Focus 1 완료됨"].waitForExistence(timeout: 2))
 
         app.buttons["나머지 퀘스트 1개"].tap()
         XCTAssertTrue(app.staticTexts["Focus 3"].waitForExistence(timeout: 2))
