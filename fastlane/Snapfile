@@ -4,8 +4,6 @@ scheme("QuestKeeper")
 configuration("Debug")
 only_testing(["QuestKeeperUITests/StoreScreenshotUITests/testStoreScreenshots"])
 output_directory("./fastlane/screenshots/generated")
-# 루트 볼륨이 두 번 가득 찼다. 빌드 산출물은 외장 볼륨에 둔다.
-derived_data_path("/Volumes/dongminyu/Xcode/DerivedData")
 clear_previous_screenshots(true)
 override_status_bar(true)
 reinstall_app(true)
