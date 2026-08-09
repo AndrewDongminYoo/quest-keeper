@@ -78,7 +78,7 @@ struct QuestKeeperWidget: Widget {
         StaticConfiguration(kind: kind, provider: QuestKeeperWidgetProvider()) { entry in
             WidgetDungeonView(entry: entry)
         }
-        .configurationDisplayName("Quest Keeper")
+        .configurationDisplayName(Text(WidgetStrings.configurationDisplayName))
         .description(Text(WidgetStrings.configurationDescription))
         .supportedFamilies([.systemSmall, .systemMedium])
     }

@@ -202,7 +202,7 @@ private struct ImportancePip: View {
     let importance: Importance
 
     var body: some View {
-        Text("IMP \(importance.rawValue)")
+        Text(verbatim: "IMP \(importance.rawValue)")
             .font(.caption2.weight(.black))
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
@@ -216,7 +216,7 @@ struct MobLevelBadge: View {
     let level: Int
 
     var body: some View {
-        Text("Lv \(level)")
+        Text(verbatim: "Lv \(level)")
             .font(.caption2.bold().monospacedDigit())
             .padding(.horizontal, 8)
             .padding(.vertical, 4)

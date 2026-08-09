@@ -172,10 +172,6 @@ nonisolated extension AppStrings {
 nonisolated extension AppStrings {
     static let heroLabelFallen = LocalizedStringResource("hero.label.fallen", defaultValue: "쓰러진 용사")
     static let heroLabelDefault = LocalizedStringResource("hero.label.default", defaultValue: "용사")
-    static let heroHeaderAppearanceButton = LocalizedStringResource(
-        "hero.header.appearanceButton",
-        defaultValue: "외형"
-    )
     static let heroHeaderAppearanceButtonAccessibility = LocalizedStringResource(
         "hero.header.appearanceButtonAccessibility",
         defaultValue: "용사 외형 설정"

@@ -64,7 +64,7 @@ struct DailyFocusSelectionSheet: View {
                     Button(AppStrings.commonActionCancel) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("\(actionTitle) (\(selectedQuestIDs.count)/3)") {
+                    Button(confirmTitle) {
                         let orderedIDs = quests.map(\.id).filter(selectedQuestIDs.contains)
                         if onSave(orderedIDs) {
                             dismiss()
@@ -88,6 +88,12 @@ struct DailyFocusSelectionSheet: View {
             kind == .confirmation ? AppStrings.focusActionConfirm : AppStrings.dailyFocusSelectionCompleteAction,
             locale: .current
         )
+    }
+
+    /// 이미 해석된 문자열과 숫자를 합친 값이라 지역화 대상이 아니다.
+    /// 보간된 리터럴을 Button에 직접 넘기면 LocalizedStringKey로 잡혀 카탈로그가 오염된다.
+    private var confirmTitle: String {
+        "\(actionTitle) (\(selectedQuestIDs.count)/3)"
     }
 
     private func binding(for questID: UUID) -> Binding<Bool> {
