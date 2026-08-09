@@ -12,7 +12,11 @@ struct CompleteQuestIntent: AppIntent {
         defaultValue: "퀘스트 완료"
     )
 
-    @Parameter(title: "questID") var questID: String
+    // ExtractAppIntentsMetadata는 LocalizedStringResource를 이 자리에 직접 써야 인식한다.
+    @Parameter(title: LocalizedStringResource(
+        "appIntent.completeQuest.questParameter",
+        defaultValue: "퀘스트"
+    )) var questID: String
 
     init() {}
 

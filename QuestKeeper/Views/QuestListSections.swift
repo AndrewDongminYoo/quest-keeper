@@ -136,7 +136,7 @@ private struct BoardSectionTitle: View {
             Text(title)
                 .font(.system(.caption, design: .monospaced).weight(.black))
                 .foregroundStyle(DungeonPalette.ink.opacity(0.82))
-            Text("\(count)")
+            Text(verbatim: "\(count)")
                 .font(.caption2.monospacedDigit().weight(.bold))
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)

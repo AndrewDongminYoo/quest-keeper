@@ -117,4 +117,10 @@ nonisolated extension WidgetStrings {
         defaultValue: "오늘의 던전을 홈 화면에서 확인합니다.",
         bundle: bundle
     )
+    /// 위젯 갤러리에 표시되는 이름. 제품명이라 두 로캘의 값이 같다.
+    static let configurationDisplayName = LocalizedStringResource(
+        "widget.configuration.displayName",
+        defaultValue: "Quest Keeper",
+        bundle: bundle
+    )
 }

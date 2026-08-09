@@ -169,7 +169,7 @@ private struct DailyFocusRecommendationCard: View {
                 .foregroundStyle(DungeonPalette.ink.opacity(0.76))
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(quests) { quest in
-                    Text("• \(quest.title)")
+                    Text(verbatim: "• \(quest.title)")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(DungeonPalette.ink)
                         .lineLimit(2)
@@ -273,7 +273,7 @@ private struct BoardHUD: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("QUEST KEEPER")
+                Text(verbatim: "QUEST KEEPER")
                     .font(.title3.weight(.black).monospaced())
                     .foregroundStyle(DungeonPalette.ink)
                 Spacer(minLength: 8)
