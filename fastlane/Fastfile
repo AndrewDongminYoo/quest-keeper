@@ -16,7 +16,7 @@
 default_platform(:ios)
 
 platform :ios do
-  desc "Capture and validate deterministic Korean App Store screenshots"
+  desc "Capture and validate deterministic ko and en-US App Store screenshots"
   lane :screenshots do
     snapshot
     sh("bash", "../scripts/process-store-screenshots.sh")
