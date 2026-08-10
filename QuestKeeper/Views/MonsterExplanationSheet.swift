@@ -1,6 +1,6 @@
 import SwiftUI
 
-nonisolated struct MonsterExplanationTier: Equatable, Identifiable {
+nonisolated struct MonsterExplanationTier: Equatable, Identifiable, Sendable {
     let family: MonsterFamily
     let levels: ClosedRange<Int>
     let kinds: [MonsterKind]
@@ -25,20 +25,11 @@ nonisolated enum MonsterExplanation {
                 tiers.append(MonsterExplanationTier(
                     family: family,
                     levels: level...level,
-                    kinds: kinds(for: family)
+                    kinds: MonsterArtworkSelection.variants(for: family)
                 ))
             }
         }
         return tiers
-    }
-
-    /// Mirrors the variant lists in `MonsterArtworkSelection.monster(forMobLevel:questID:)`.
-    static func kinds(for family: MonsterFamily) -> [MonsterKind] {
-        switch family {
-        case .low: [.slime, .bat, .mushroom]
-        case .medium: [.skeleton, .orc, .mimic]
-        case .high: [.dragon, .golem, .lich]
-        }
     }
 }
 
