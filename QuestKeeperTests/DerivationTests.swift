@@ -146,4 +146,48 @@ struct DerivationTests {
         let state = HeroDerivation.state(quests: quests, now: now, lastOpened: lastOpened)
         #expect(state.deathsWhileAway == [diedAway])
     }
+
+    // MARK: - escalations while away
+
+    @Test("a pending quest whose mob level rose since lastOpened is collected")
+    func escalationCollected() {
+        let questID = UUID()
+        let quests = [snapshot(id: questID, deadlineOffset: 3_600, importance: .high)]
+        let lastOpened = now.addingTimeInterval(-6 * day)
+        let state = HeroDerivation.state(quests: quests, now: now, lastOpened: lastOpened)
+        #expect(state.escalationsWhileAway == [questID])
+    }
+
+    @Test("a level that did not move is not an escalation")
+    func steadyLevelIgnored() {
+        let quests = [snapshot(deadlineOffset: 3_600, importance: .high)]
+        let state = HeroDerivation.state(quests: quests, now: now, lastOpened: now.addingTimeInterval(-60))
+        #expect(state.escalationsWhileAway.isEmpty)
+    }
+
+    @Test("lastOpened equal to now yields no escalations")
+    func noWindowNoEscalations() {
+        let quests = [snapshot(deadlineOffset: 3_600, importance: .high)]
+        let state = HeroDerivation.state(quests: quests, now: now, lastOpened: now)
+        #expect(state.escalationsWhileAway.isEmpty)
+    }
+
+    @Test("completed quests and graves never escalate")
+    func resolvedQuestsExcluded() {
+        let quests = [
+            snapshot(deadlineOffset: -day, importance: .high),                          // grave
+            snapshot(deadlineOffset: day, completedOffset: -60, importance: .high),     // victory
+        ]
+        let state = HeroDerivation.state(quests: quests, now: now, lastOpened: now.addingTimeInterval(-6 * day))
+        #expect(state.escalationsWhileAway.isEmpty)
+    }
+
+    @Test("escalations are deterministic in the inputs")
+    func escalationDeterminism() {
+        let quests = [snapshot(deadlineOffset: 3_600, importance: .high)]
+        let lastOpened = now.addingTimeInterval(-6 * day)
+        let a = HeroDerivation.state(quests: quests, now: now, lastOpened: lastOpened)
+        let b = HeroDerivation.state(quests: quests, now: now, lastOpened: lastOpened)
+        #expect(a.escalationsWhileAway == b.escalationsWhileAway)
+    }
 }
