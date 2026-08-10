@@ -15,6 +15,7 @@ struct QuestRow: View {
     let heroAppearance: HeroAppearance
     let battlePhase: QuestBattlePhase
     let guidanceText: String?
+    let hasEscalated: Bool
     let isCompleted: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -25,6 +26,7 @@ struct QuestRow: View {
         heroAppearance: HeroAppearance = .default,
         battlePhase: QuestBattlePhase = .idle,
         guidanceText: String? = nil,
+        hasEscalated: Bool = false,
         isCompleted: Bool = false
     ) {
         self.quest = quest
@@ -32,6 +34,7 @@ struct QuestRow: View {
         self.heroAppearance = heroAppearance
         self.battlePhase = battlePhase
         self.guidanceText = guidanceText
+        self.hasEscalated = hasEscalated
         self.isCompleted = isCompleted
     }
 

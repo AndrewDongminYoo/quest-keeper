@@ -14,6 +14,7 @@ struct QuestListSections: View {
     let pending: [Quest]
     let dailyGraves: [Quest]
     let newlyMissedQuestIDs: Set<UUID>
+    let escalatedQuestIDs: Set<UUID>
     let guidedCompletionQuestID: UUID?
     let dailyFocusQuestIDs: [UUID]?
     let completedDailyFocusQuestIDs: Set<UUID>
@@ -121,6 +122,7 @@ struct QuestListSections: View {
             now: now,
             heroAppearance: heroAppearance,
             showsGuidedCompletion: quest.id == guidedCompletionQuestID,
+            hasEscalated: escalatedQuestIDs.contains(quest.id),
             pinnedBattlePhase: pinnedBattlePhase(for: quest),
             onComplete: onComplete,
             onDelete: onDelete,
@@ -171,6 +173,7 @@ private struct SwipeableQuestRow: View {
     let now: Date
     let heroAppearance: HeroAppearance
     let showsGuidedCompletion: Bool
+    let hasEscalated: Bool
     let pinnedBattlePhase: QuestBattlePhase
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
@@ -215,7 +218,8 @@ private struct SwipeableQuestRow: View {
                 battlePhase: battlePhase,
                 guidanceText: showsGuidedCompletion
                     ? AppStrings.resolve(AppStrings.dungeonFirstWinGuidance, locale: .current)
-                    : nil
+                    : nil,
+                hasEscalated: hasEscalated
             )
                 .contentShape(Rectangle())
                 .offset(x: offset)

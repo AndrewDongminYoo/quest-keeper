@@ -11,6 +11,7 @@ struct HomeDungeonBoardView: View {
     let pending: [Quest]
     let dailyGraves: [Quest]
     let newlyMissedQuestIDs: Set<UUID>
+    let escalatedQuestIDs: Set<UUID>
     let now: Date
     let showsNotificationPermissionBanner: Bool
     let onboardingPresentation: OnboardingFlowPresentation
@@ -85,6 +86,7 @@ struct HomeDungeonBoardView: View {
                             pending: pending,
                             dailyGraves: dailyGraves,
                             newlyMissedQuestIDs: newlyMissedQuestIDs,
+                            escalatedQuestIDs: escalatedQuestIDs,
                             guidedCompletionQuestID: onboardingPresentation.guidedCompletionQuestID,
                             dailyFocusQuestIDs: dailyFocusPresentation.selectedQuestIDs,
                             completedDailyFocusQuestIDs: dailyFocusPresentation.completedQuestIDs,
