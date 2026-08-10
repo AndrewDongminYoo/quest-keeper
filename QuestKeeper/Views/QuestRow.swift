@@ -17,6 +17,7 @@ struct QuestRow: View {
     let guidanceText: String?
     let hasEscalated: Bool
     let isCompleted: Bool
+    let onExplainMonster: (() -> Void)?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -27,7 +28,8 @@ struct QuestRow: View {
         battlePhase: QuestBattlePhase = .idle,
         guidanceText: String? = nil,
         hasEscalated: Bool = false,
-        isCompleted: Bool = false
+        isCompleted: Bool = false,
+        onExplainMonster: (() -> Void)? = nil
     ) {
         self.quest = quest
         self.now = now
@@ -36,6 +38,7 @@ struct QuestRow: View {
         self.guidanceText = guidanceText
         self.hasEscalated = hasEscalated
         self.isCompleted = isCompleted
+        self.onExplainMonster = onExplainMonster
     }
 
     var body: some View {
@@ -92,7 +95,21 @@ struct QuestRow: View {
                             }
                             MobLevelBadge(level: level)
                         }
-                        MonsterGlyph(level: level, questID: quest.id)
+                        if let onExplainMonster {
+                            Button(action: onExplainMonster) {
+                                MonsterGlyph(level: level, questID: quest.id)
+                                    .padding(5)
+                            }
+                            .contentShape(Rectangle())
+                            .padding(-5)
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(
+                                AppStrings.resolve(AppStrings.monsterExplanationButtonAccessibility, locale: .current)
+                            )
+                            .accessibilityIdentifier("monsterExplainButton")
+                        } else {
+                            MonsterGlyph(level: level, questID: quest.id)
+                        }
                     }
                 } else {
                     QuestBattleScene(

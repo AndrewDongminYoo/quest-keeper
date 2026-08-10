@@ -313,6 +313,10 @@ nonisolated extension AppStrings {
 }
 
 nonisolated extension AppStrings {
+    static let monsterExplanationButtonAccessibility = LocalizedStringResource(
+        "monster.explanation.buttonAccessibility",
+        defaultValue: "몬스터가 정해지는 방식 보기"
+    )
     static let monsterExplanationNavigationTitle = LocalizedStringResource(
         "monster.explanation.navigationTitle",
         defaultValue: "이 몬스터는 왜 이 몬스터인가요"

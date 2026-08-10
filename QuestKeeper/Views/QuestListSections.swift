@@ -184,6 +184,7 @@ private struct SwipeableQuestRow: View {
     @State private var battlePhase: QuestBattlePhase = .idle
     @State private var isResolvingBattle = false
     @State private var battleTask: Task<Void, Never>?
+    @State private var explainedQuest: Quest?
 
     var body: some View {
         ZStack {
@@ -219,7 +220,8 @@ private struct SwipeableQuestRow: View {
                 guidanceText: showsGuidedCompletion
                     ? AppStrings.resolve(AppStrings.dungeonFirstWinGuidance, locale: .current)
                     : nil,
-                hasEscalated: hasEscalated
+                hasEscalated: hasEscalated,
+                onExplainMonster: { explainedQuest = quest }
             )
                 .contentShape(Rectangle())
                 .offset(x: offset)
@@ -282,6 +284,9 @@ private struct SwipeableQuestRow: View {
             battlePhase = .idle
             isTrackingSwipe = false
             offset = 0
+        }
+        .sheet(item: $explainedQuest) { quest in
+            MonsterExplanationSheet(quest: quest, now: now)
         }
     }
 
