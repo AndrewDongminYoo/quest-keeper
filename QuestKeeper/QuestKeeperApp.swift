@@ -348,20 +348,14 @@ struct QuestKeeperApp: App {
             return false
         }
         guard shouldDeriveRecovery else {
-            let (deaths, escalations, newLastOpened) = reconstructOnActivation(
+            let replay = makeStandardActivationReplay(
                 quests: quests.map(\.snapshot),
+                previousLastOpened: previousLastOpened,
                 now: now,
-                previousLastOpened: previousLastOpened
+                recoveryOffer: recoveryOffer
             )
-            if !deaths.isEmpty {
-                activationReplay = ActivationReplayResult(
-                    id: UUID(),
-                    deaths: deaths,
-                    escalations: escalations,
-                    recoveryOffer: recoveryOffer
-                )
-            }
-            lastOpenedRaw = newLastOpened.timeIntervalSinceReferenceDate
+            activationReplay = replay.result
+            lastOpenedRaw = replay.newLastOpened.timeIntervalSinceReferenceDate
             return false
         }
         let dailyFocusSelections = try? container.mainContext.fetch(
@@ -438,6 +432,35 @@ nonisolated func shouldDeriveRecoveryOffer(
     didBackground: Bool
 ) -> Bool {
     hasRecoveryVariant && (!hasPerformedActivationReplay || didBackground)
+}
+
+/// The non-recovery activation-replay path (`shouldDeriveRecovery == false`): reconstruct deaths and
+/// escalations against `previousLastOpened` and always return a fresh result. Unconditional on purpose —
+/// mirrors `makeActivationReplay`'s unconditional publish, so both paths give `ContentView` a
+/// replace-on-every-activation result whether or not anything died this activation. `escalationsWhileAway`
+/// is independent of `deathsWhileAway`, so gating the result on `!deaths.isEmpty` (the pre-fix shape) would
+/// silently drop an escalation-only activation — the common case, since it needs no death.
+nonisolated func makeStandardActivationReplay(
+    quests: [QuestSnapshot],
+    previousLastOpened: Date?,
+    now: Date,
+    recoveryOffer: RecoveryActivationOffer?,
+    id: UUID = UUID()
+) -> (result: ActivationReplayResult, newLastOpened: Date) {
+    let (deaths, escalations, newLastOpened) = reconstructOnActivation(
+        quests: quests,
+        now: now,
+        previousLastOpened: previousLastOpened
+    )
+    return (
+        ActivationReplayResult(
+            id: id,
+            deaths: deaths,
+            escalations: escalations,
+            recoveryOffer: recoveryOffer
+        ),
+        newLastOpened
+    )
 }
 
 nonisolated func shouldSeedDailyFocusGraveFixture(
