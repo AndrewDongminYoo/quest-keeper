@@ -1012,22 +1012,6 @@
         }
       }
     },
-    "hero.stat.battleLabel" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Battles"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "전투"
-          }
-        }
-      }
-    },
     "hero.stat.victoryLabel" : {
       "localizations" : {
         "en" : {
