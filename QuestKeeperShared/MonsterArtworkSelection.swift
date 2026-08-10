@@ -41,14 +41,17 @@ nonisolated enum MonsterArtworkSelection {
         }
     }
 
-    static func monster(forMobLevel level: Int, questID: UUID) -> MonsterKind {
-        let index = variantIndex(forQuestID: questID)
-        let variants: [MonsterKind]
-        switch family(forMobLevel: level) {
-        case .low: variants = [.slime, .bat, .mushroom]
-        case .medium: variants = [.skeleton, .orc, .mimic]
-        case .high: variants = [.dragon, .golem, .lich]
+    /// The single source of truth for which monsters a family can render — the explanation
+    /// sheet lists these, so a swap here cannot leave the sheet describing the wrong monster.
+    static func variants(for family: MonsterFamily) -> [MonsterKind] {
+        switch family {
+        case .low: [.slime, .bat, .mushroom]
+        case .medium: [.skeleton, .orc, .mimic]
+        case .high: [.dragon, .golem, .lich]
         }
-        return variants[index]
+    }
+
+    static func monster(forMobLevel level: Int, questID: UUID) -> MonsterKind {
+        variants(for: family(forMobLevel: level))[variantIndex(forQuestID: questID)]
     }
 }
