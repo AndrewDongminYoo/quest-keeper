@@ -98,7 +98,7 @@ In Claude Code and any other agent they are not available, so raw `xcodebuild` (
 
 **Codex — prefer XcodeBuildMCP.** It reuses one dedicated workspace and pins the simulator by **UDID**, avoiding the raw-`xcodebuild` failure mode described below.
 Session defaults are persisted in `.xcodebuildmcp/config.yaml` (git-ignored): project `QuestKeeper.xcodeproj`, scheme `QuestKeeper`, configuration `Debug`, and a pinned simulator UDID.
-**Confirm the pinned UDID against your machine** with `xcrun simctl list devices available` — simulator UDIDs are recreated and drift (the previously documented `CDF2239B-B46C-4A44-A09E-ED656EF7F9EA` is already stale; `iPhone 17e` is currently `31D132A7-FA6F-43BE-A7E3-A313FE4C407B`).
+**Confirm the pinned UDID against your machine** with `xcrun simctl list devices available` — simulator UDIDs are recreated and drift (the device set has been recreated twice, retiring `CDF2239B-…` and then `31D132A7-…` along with the `iPhone 17e` device itself; as of 2026-08-10 the only available device is `iPhone 17 Pro Max` at `24B14321-156A-4BC4-97DC-0183AD675A8D`).
 
 ```text
 # Once per session, confirm defaults (required before the first build/run/test):
@@ -113,13 +113,13 @@ mcp__xcodebuild__screenshot             # capture the running sim
 ```
 
 **Claude Code and any non-Codex agent — use raw `xcodebuild` (this is the primary path there, not a fallback).**
-Always target the device by **id (UDID), never `name`**: `xcodebuild -destination 'platform=iOS Simulator,name=iPhone 17e'` spins up a fresh ephemeral clone per run, which exhausts simulator memory and wedges the runtime (`server died` / `crashed before establishing connection`).
-Name matching also breaks outright whenever a duplicate device shares the name (destination-name ambiguity) — as of 2026-08-05 only one `iPhone 17e` exists, but a UDID destination is immune either way.
+Always target the device by **id (UDID), never `name`**: `xcodebuild -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max'` spins up a fresh ephemeral clone per run, which exhausts simulator memory and wedges the runtime (`server died` / `crashed before establishing connection`).
+Name matching also breaks outright whenever a duplicate device shares the name (destination-name ambiguity) — as of 2026-08-10 only one `iPhone 17 Pro Max` exists, but a UDID destination is immune either way.
 Confirm/replace the UDID with `xcrun simctl list devices available` first, and prefer an already-booted simulator to respect the one-heavy-job-at-a-time limit.
 
 ```bash
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=31D132A7-FA6F-43BE-A7E3-A313FE4C407B' \
+  -destination 'platform=iOS Simulator,id=24B14321-156A-4BC4-97DC-0183AD675A8D' \
   -only-testing:QuestKeeperTests
 ```
 

@@ -20,7 +20,7 @@ Spec: `docs/specs/019-monster-legibility.md`. Linear: AND-114. Branch: `ydm2790/
 - **Strings:** every user-facing string is a catalog key with Korean as `defaultValue` and English as a peer locale. Never hardcode a literal at a call site. Keys are lowerCamelCase dot-separated segments.
 - **Voice:** quest-flavored, plain, shame-free, in both locales. Forbidden in English too: `You failed`, `Graves are piling up`, `You missed it again`.
 - **Non-localizable display text must use `Text(verbatim:)`** or be passed as a `String` variable, or opening the project in Xcode re-extracts it into the catalog.
-- Build/test destination: `-destination 'platform=iOS Simulator,id=<UDID>' -parallel-testing-enabled NO`. Confirm the UDID with `xcrun simctl list devices available` before the first run; `iPhone 17e` was `31D132A7-FA6F-43BE-A7E3-A313FE4C407B` on 2026-08-10. Prefer an already-booted simulator — one heavy job at a time on this machine.
+- Build/test destination: `-destination 'platform=iOS Simulator,id=<UDID>' -parallel-testing-enabled NO`. Confirm the UDID with `xcrun simctl list devices available` before the first run; `iPhone 17 Pro Max` was `24B14321-156A-4BC4-97DC-0183AD675A8D` on 2026-08-10, and it is the only available device. Prefer an already-booted simulator — one heavy job at a time on this machine.
 - Report test counts from the `.xcresult` via `xcrun xcresulttool get test-results summary`, never by grepping the log.
 
 ---
