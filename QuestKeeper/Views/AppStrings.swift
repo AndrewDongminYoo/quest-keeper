@@ -121,6 +121,10 @@ nonisolated extension AppStrings {
 
 nonisolated extension AppStrings {
     static let questActionComplete = LocalizedStringResource("quest.action.complete", defaultValue: "완료")
+    static let questEscalatedMarker = LocalizedStringResource(
+        "quest.escalated.marker",
+        defaultValue: "마감이 다가와 세졌어요"
+    )
     static let questActionDelete = LocalizedStringResource("quest.action.delete", defaultValue: "삭제")
     static let questActionAdd = LocalizedStringResource("quest.action.add", defaultValue: "전투 추가")
     static let questActionRetryTomorrow = LocalizedStringResource("quest.action.retryTomorrow", defaultValue: "내일 도전하기")

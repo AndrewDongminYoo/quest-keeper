@@ -42,4 +42,10 @@ struct AppStringsTests {
         #expect(AppStrings.resolve(AppStrings.a11yMonsterLevel("Slime", 3), locale: en) == "Slime Level 3")
         #expect(AppStrings.resolve(AppStrings.a11yMonsterLevel("슬라임", 3), locale: ko) == "슬라임 레벨 3")
     }
+
+    @Test("quest.escalated.marker names the cause in both locales")
+    func escalatedMarkerLocalizes() {
+        #expect(AppStrings.resolve(AppStrings.questEscalatedMarker, locale: ko) == "마감이 다가와 세졌어요")
+        #expect(AppStrings.resolve(AppStrings.questEscalatedMarker, locale: en) == "Stronger — deadline is closer")
+    }
 }
