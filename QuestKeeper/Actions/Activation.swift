@@ -17,15 +17,16 @@ nonisolated func reconstructOnActivation(
     quests: [QuestSnapshot],
     now: Date,
     previousLastOpened: Date?
-) -> (deaths: [UUID], newLastOpened: Date) {
+) -> (deaths: [UUID], escalations: [UUID], newLastOpened: Date) {
     let previous = previousLastOpened ?? now
     let state = HeroDerivation.state(quests: quests, now: now, lastOpened: previous)
-    return (state.deathsWhileAway, now)
+    return (state.deathsWhileAway, state.escalationsWhileAway, now)
 }
 
 nonisolated struct ActivationReplayResult: Equatable, Identifiable {
     let id: UUID
     let deaths: [UUID]
+    let escalations: [UUID]
     let recoveryOffer: RecoveryActivationOffer?
 }
 
@@ -39,7 +40,7 @@ nonisolated func makeActivationReplay(
     dailyFocusLoopEnabled: Bool,
     recoveryLoopVariant: RecoveryLoopVariant?
 ) -> (result: ActivationReplayResult, newLastOpened: Date) {
-    let (deaths, newLastOpened) = reconstructOnActivation(
+    let (deaths, escalations, newLastOpened) = reconstructOnActivation(
         quests: quests,
         now: now,
         previousLastOpened: previousLastOpened
@@ -49,6 +50,7 @@ nonisolated func makeActivationReplay(
             ActivationReplayResult(
                 id: id,
                 deaths: deaths,
+                escalations: escalations,
                 recoveryOffer: nil
             ),
             newLastOpened
@@ -74,6 +76,7 @@ nonisolated func makeActivationReplay(
         ActivationReplayResult(
             id: id,
             deaths: deaths,
+            escalations: escalations,
             recoveryOffer: recoveryOffer
         ),
         newLastOpened
