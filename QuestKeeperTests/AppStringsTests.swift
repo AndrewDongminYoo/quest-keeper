@@ -46,6 +46,8 @@ struct AppStringsTests {
     @Test("quest.escalated.marker names the cause in both locales")
     func escalatedMarkerLocalizes() {
         #expect(AppStrings.resolve(AppStrings.questEscalatedMarker, locale: ko) == "마감이 다가와 세졌어요")
-        #expect(AppStrings.resolve(AppStrings.questEscalatedMarker, locale: en) == "Stronger — deadline is closer")
+        // Short on purpose: the pill lives in a 100pt trailing column, and the longer
+        // "Stronger — deadline is closer" clipped to "Stronger — deadl…" at .caption2.
+        #expect(AppStrings.resolve(AppStrings.questEscalatedMarker, locale: en) == "Stronger, due soon")
     }
 }
