@@ -85,7 +85,7 @@ A small pill above the `Lv N` badge, shaped like `ImportancePip` so no new visua
 
 **The copy names the cause, not the effect.**
 "한 단계 올라감" reports what happened; "마감이 다가와 세졌어요" reports why, which is the thing the issue asks for.
-English: `Stronger, due soon` — shortened after the rendered check.
+English: `Stronger, due soon` — shortened after the rendered check, so it states the effect and the cause together rather than the cause alone; 88pt of text width does not fit a clause.
 `Stronger — deadline is closer` clipped to `Stronger — deadl…` in the 100pt trailing column, the same width defect as PR #32's `Edit key…`.
 The Korean value renders whole, so only the English one changed.
 
