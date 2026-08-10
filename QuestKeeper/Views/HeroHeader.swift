@@ -12,7 +12,6 @@ import SwiftUI
 struct HeroHeader: View {
     let state: HeroState
     let isMourning: Bool
-    let activeQuestCount: Int
     var appearance: HeroAppearance = .default
     var onEditAppearance: () -> Void = {}
 
@@ -61,19 +60,13 @@ struct HeroHeader: View {
         .fixedSize(horizontal: true, vertical: false)
     }
 
+    // 승리만 남는다. 진행 중 퀘스트 수는 바로 아래 목록이 이미 말하고 있어 지웠다 — DESIGN.md HUD.
     private var stats: some View {
-        HStack(spacing: 14) {
-            HeroStat(
-                icon: .battleFlag,
-                label: AppStrings.resolve(AppStrings.heroStatBattleLabel, locale: .current),
-                value: activeQuestCount
-            )
-            HeroStat(
-                icon: .victoryTrophy,
-                label: AppStrings.resolve(AppStrings.heroStatVictoryLabel, locale: .current),
-                value: state.totalVictories
-            )
-        }
+        HeroStat(
+            icon: .victoryTrophy,
+            label: AppStrings.resolve(AppStrings.heroStatVictoryLabel, locale: .current),
+            value: state.totalVictories
+        )
     }
 }
 
@@ -101,8 +94,7 @@ private struct HeroStat: View {
 #Preview {
     HeroHeader(
         state: HeroState(totalVictories: 13, dailyGraves: [], deathsWhileAway: [], escalationsWhileAway: []),
-        isMourning: false,
-        activeQuestCount: 3
+        isMourning: false
     )
     .padding()
     .background(DungeonPalette.stone)

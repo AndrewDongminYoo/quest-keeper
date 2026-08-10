@@ -40,7 +40,6 @@ struct HomeDungeonBoardView: View {
                     BoardHUD(
                         state: state,
                         isMourning: isMourning,
-                        activeQuestCount: pending.count,
                         heroAppearance: heroAppearance,
                         onCreate: onCreate,
                         onEditAppearance: { presentedSheet = .appearance }
@@ -269,7 +268,6 @@ private struct DungeonBackground: View {
 private struct BoardHUD: View {
     let state: HeroState
     let isMourning: Bool
-    let activeQuestCount: Int
     let heroAppearance: HeroAppearance
     let onCreate: () -> Void
     let onEditAppearance: () -> Void
@@ -299,7 +297,6 @@ private struct BoardHUD: View {
             HeroHeader(
                 state: state,
                 isMourning: isMourning,
-                activeQuestCount: activeQuestCount,
                 appearance: heroAppearance,
                 onEditAppearance: onEditAppearance
             )

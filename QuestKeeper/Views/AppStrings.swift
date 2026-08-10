@@ -181,7 +181,6 @@ nonisolated extension AppStrings {
         "hero.header.appearanceButtonAccessibility",
         defaultValue: "용사 외형 설정"
     )
-    static let heroStatBattleLabel = LocalizedStringResource("hero.stat.battleLabel", defaultValue: "전투")
     static let heroStatVictoryLabel = LocalizedStringResource("hero.stat.victoryLabel", defaultValue: "승리")
 
     static let heroAppearanceGenderSection = LocalizedStringResource(
