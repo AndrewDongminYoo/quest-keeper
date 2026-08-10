@@ -125,12 +125,17 @@ Do not sacrifice readability for the costume.
 The HUD shows the minimum daily context:
 
 - app title;
-- hero name or label;
-- total victories;
-- optionally today's active quest count.
+- hero sprite and label — the sprite is the appearance-editing entry point, because a text label's Korean/English width gap breaks the single line;
+- total victories.
+
+**Every HUD number must carry information the dungeon list does not already show.**
+Total victories qualifies: it is cumulative and historical, and nothing on the board says how many quests have ever been won.
 
 Do not show HP.
 Do not show permanent grave count.
+Do not show an active-quest count (AND-113, decided 2026-08-11).
+Every pending quest is already a row on the same screen, so the counter restated the list one line above it, and "what to do today" is the daily-focus loop's job, not a number's.
+Removing it also keeps the HUD on one line in both locales, which is what pushed the appearance entry point onto the sprite in the first place.
 
 ### Quest Floor Row
 
