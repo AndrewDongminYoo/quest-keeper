@@ -87,6 +87,9 @@ struct QuestRow: View {
                             .padding(.vertical, 4)
                             .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 2))
                         } else {
+                            if hasEscalated {
+                                EscalationPill(tint: tone.tint)
+                            }
                             MobLevelBadge(level: level)
                         }
                         MonsterGlyph(level: level, questID: quest.id)
@@ -214,6 +217,21 @@ private struct ImportancePip: View {
             .padding(.vertical, 3)
             .background(DungeonPalette.ink.opacity(0.10), in: RoundedRectangle(cornerRadius: 2))
             .foregroundStyle(DungeonPalette.ink.opacity(0.72))
+    }
+}
+
+private struct EscalationPill: View {
+    let tint: Color
+
+    var body: some View {
+        Text(AppStrings.questEscalatedMarker)
+            .font(.caption2.weight(.black))
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 2))
+            .foregroundStyle(tint)
     }
 }
 

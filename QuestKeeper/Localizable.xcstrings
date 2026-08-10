@@ -1540,6 +1540,22 @@
         }
       }
     },
+    "quest.escalated.marker" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stronger — deadline is closer"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마감이 다가와 세졌어요"
+          }
+        }
+      }
+    },
     "quest.field.deadline" : {
       "localizations" : {
         "en" : {
