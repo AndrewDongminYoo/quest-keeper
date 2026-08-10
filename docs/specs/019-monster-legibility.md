@@ -85,7 +85,9 @@ A small pill above the `Lv N` badge, shaped like `ImportancePip` so no new visua
 
 **The copy names the cause, not the effect.**
 "한 단계 올라감" reports what happened; "마감이 다가와 세졌어요" reports why, which is the thing the issue asks for.
-English: `Stronger — deadline is closer`.
+English: `Stronger, due soon` — shortened after the rendered check.
+`Stronger — deadline is closer` clipped to `Stronger — deadl…` in the 100pt trailing column, the same width defect as PR #32's `Edit key…`.
+The Korean value renders whole, so only the English one changed.
 
 Both readings state causation and neither assigns blame, satisfying the `DESIGN.md` Voice prohibitions in both locales.
 
