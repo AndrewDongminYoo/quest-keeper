@@ -1076,6 +1076,22 @@
         }
       }
     },
+    "monster.explanation.buttonAccessibility" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how this monster was chosen"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "몬스터가 정해지는 방식 보기"
+          }
+        }
+      }
+    },
     "monster.explanation.doneAction" : {
       "localizations" : {
         "en" : {
