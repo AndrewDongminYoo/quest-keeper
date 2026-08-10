@@ -104,6 +104,12 @@ struct QuestRow: View {
                             .padding(-5)
                             .buttonStyle(.plain)
                             .accessibilityLabel(
+                                AppStrings.resolve(
+                                    AppStrings.a11yMonsterLevel(monsterKind.localizedName(), level),
+                                    locale: .current
+                                )
+                            )
+                            .accessibilityHint(
                                 AppStrings.resolve(AppStrings.monsterExplanationButtonAccessibility, locale: .current)
                             )
                             .accessibilityIdentifier("monsterExplainButton")

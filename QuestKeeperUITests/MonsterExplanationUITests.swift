@@ -13,6 +13,21 @@ final class MonsterExplanationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["monsterExplanationDoneButton"].waitForExistence(timeout: 8))
     }
 
+    /// Wrapping the glyph in a `Button` must not replace its identity announcement with just
+    /// the action hint. `AppStrings.a11yMonsterLevel` always renders "<몬스터> 레벨 <n>", so
+    /// asserting on "레벨" ties this to that format without hardcoding which monster the
+    /// screenshot fixture happens to seed.
+    @MainActor
+    func testMonsterButtonLabelStillAnnouncesTheMonsterIdentity() throws {
+        let app = launch()
+        let button = app.buttons["monsterExplainButton"].firstMatch
+        XCTAssertTrue(button.waitForExistence(timeout: 8))
+        XCTAssertTrue(
+            button.label.contains("레벨"),
+            "expected the monster's name/level in the accessibility label, got: \(button.label)"
+        )
+    }
+
     /// The explain button sits inside a row that already owns a tap gesture and a drag
     /// gesture. This asserts the drag survived.
     @MainActor
