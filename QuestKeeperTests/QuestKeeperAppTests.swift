@@ -175,6 +175,37 @@ struct QuestKeeperAppTests {
         #expect(refreshed.result.recoveryOffer == nil)
     }
 
+    @Test("the standard (non-recovery) replay path publishes escalations even when nothing died")
+    func standardReplayPublishesEscalationsWithoutDeaths() {
+        let now = Date(timeIntervalSinceReferenceDate: 700_000_000)
+        let questID = UUID()
+        let quests = [
+            QuestSnapshot(
+                id: questID,
+                deadline: now.addingTimeInterval(3_600),
+                completedAt: nil,
+                importance: .high
+            ),
+        ]
+
+        let replay = makeStandardActivationReplay(
+            quests: quests,
+            previousLastOpened: now.addingTimeInterval(-6 * 24 * 60 * 60),
+            now: now,
+            recoveryOffer: nil
+        )
+
+        // This is the shape most users hit every day: `shouldDeriveRecovery` is false (no recovery-loop
+        // variant assigned, or the replay already ran this launch), so this is the only path escalations
+        // travel through. Before the fix, the caller only assigned `activationReplay` `if !deaths.isEmpty`
+        // — an escalation with no accompanying death was computed correctly here and then discarded by
+        // the caller. Asserting on this function's *return value* (not a var the caller conditionally
+        // assigns) is what makes the bug structurally impossible to reintroduce: there is no branch left
+        // to gate on.
+        #expect(replay.result.deaths.isEmpty)
+        #expect(replay.result.escalations == [questID])
+    }
+
 #if DEBUG
     @Test("UI test store URL requires an explicit path argument")
     func uiTestStoreURL() {
