@@ -16,6 +16,8 @@ struct ContentView: View {
 
     /// Transient: the deaths to mourn this activation. Drives the "꿱" frame, then resets.
     @State private var pendingDeaths: Set<UUID> = []
+    /// Transient: quests whose monster grew while the app was closed. Replaced on the next activation.
+    @State private var escalatedQuestIDs: Set<UUID> = []
     @State private var route: EditorRoute?
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
@@ -97,6 +99,7 @@ struct ContentView: View {
                     pending: pending,
                     dailyGraves: dailyGraves,
                     newlyMissedQuestIDs: pendingDeaths,
+                    escalatedQuestIDs: escalatedQuestIDs,
                     now: now,
                     showsNotificationPermissionBanner: notificationAuthorization == .denied,
                     onboardingPresentation: onboardingPresentation,
@@ -223,6 +226,7 @@ struct ContentView: View {
     // MARK: - Lifecycle
 
     private func applyActivationReplay() {
+        escalatedQuestIDs = Set(activationReplay?.escalations ?? [])
         let deaths = activationReplay?.deaths ?? []
         guard !deaths.isEmpty else { return }
         mourningTask?.cancel()
