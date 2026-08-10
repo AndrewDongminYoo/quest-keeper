@@ -193,4 +193,38 @@ struct QuestActionsTests {
         #expect(replay.result.recoveryOffer == nil)
         #expect(replay.newLastOpened == now)
     }
+
+    @Test("the replay reports quests whose monster grew while away")
+    func replayReportsEscalations() {
+        let questID = UUID()
+        let quests = [
+            QuestSnapshot(
+                id: questID,
+                deadline: now.addingTimeInterval(3_600),
+                completedAt: nil,
+                importance: .high
+            )
+        ]
+        let replay = reconstructOnActivation(
+            quests: quests,
+            now: now,
+            previousLastOpened: now.addingTimeInterval(-6 * 24 * 60 * 60)
+        )
+        #expect(replay.escalations == [questID])
+        #expect(replay.newLastOpened == now)
+    }
+
+    @Test("a first launch reports no escalations")
+    func firstLaunchHasNoEscalations() {
+        let quests = [
+            QuestSnapshot(
+                id: UUID(),
+                deadline: now.addingTimeInterval(3_600),
+                completedAt: nil,
+                importance: .high
+            )
+        ]
+        let replay = reconstructOnActivation(quests: quests, now: now, previousLastOpened: nil)
+        #expect(replay.escalations.isEmpty)
+    }
 }

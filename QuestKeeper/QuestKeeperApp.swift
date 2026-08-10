@@ -348,7 +348,7 @@ struct QuestKeeperApp: App {
             return false
         }
         guard shouldDeriveRecovery else {
-            let (deaths, newLastOpened) = reconstructOnActivation(
+            let (deaths, escalations, newLastOpened) = reconstructOnActivation(
                 quests: quests.map(\.snapshot),
                 now: now,
                 previousLastOpened: previousLastOpened
@@ -357,6 +357,7 @@ struct QuestKeeperApp: App {
                 activationReplay = ActivationReplayResult(
                     id: UUID(),
                     deaths: deaths,
+                    escalations: escalations,
                     recoveryOffer: recoveryOffer
                 )
             }
