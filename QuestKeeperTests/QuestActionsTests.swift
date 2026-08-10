@@ -227,4 +227,31 @@ struct QuestActionsTests {
         let replay = reconstructOnActivation(quests: quests, now: now, previousLastOpened: nil)
         #expect(replay.escalations.isEmpty)
     }
+
+    /// The recovery path builds its own result value, so it can drop `escalations` while the
+    /// `reconstructOnActivation` tests above stay green — the shape that already shipped once.
+    @Test("the recovery activation path carries escalations through to the result")
+    func recoveryReplayCarriesEscalations() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let questID = UUID()
+        let replay = makeActivationReplay(
+            quests: [
+                QuestSnapshot(
+                    id: questID,
+                    deadline: now.addingTimeInterval(3_600),
+                    completedAt: nil,
+                    importance: .high
+                ),
+            ],
+            dailyFocusSelections: [],
+            previousLastOpened: now.addingTimeInterval(-6 * day),
+            now: now,
+            calendar: calendar,
+            dailyFocusLoopEnabled: true,
+            recoveryLoopVariant: .singleQuest
+        )
+
+        #expect(replay.result.escalations == [questID])
+    }
 }
