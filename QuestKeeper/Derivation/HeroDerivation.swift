@@ -18,6 +18,10 @@ nonisolated struct HeroState: Sendable, Equatable {
     /// Quests whose deadline fell within `(lastOpened, now]` and resolved to a grave —
     /// drives the "꿱 → revive" moment shown on reopen. This is transient replay input.
     let deathsWhileAway: [UUID]
+
+    /// Pending quests whose `mobLevel` rose between `lastOpened` and `now` —
+    /// the monster grew while the app was closed. Transient replay input, like `deathsWhileAway`.
+    let escalationsWhileAway: [UUID]
 }
 
 nonisolated enum HeroDerivation {
@@ -46,6 +50,16 @@ nonisolated enum HeroDerivation {
             .filter { $0.deadline > lastOpened && $0.deadline <= now && $0.outcome(at: now) == .grave }
             .map(\.id)
 
-        return HeroState(totalVictories: totalVictories, dailyGraves: dailyGraves, deathsWhileAway: deathsWhileAway)
+        let escalationsWhileAway = quests
+            .filter { $0.outcome(at: now) == .pending }
+            .filter { $0.mobLevel(at: lastOpened) < $0.mobLevel(at: now) }
+            .map(\.id)
+
+        return HeroState(
+            totalVictories: totalVictories,
+            dailyGraves: dailyGraves,
+            deathsWhileAway: deathsWhileAway,
+            escalationsWhileAway: escalationsWhileAway
+        )
     }
 }

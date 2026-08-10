@@ -100,7 +100,7 @@ private struct HeroStat: View {
 
 #Preview {
     HeroHeader(
-        state: HeroState(totalVictories: 13, dailyGraves: [], deathsWhileAway: []),
+        state: HeroState(totalVictories: 13, dailyGraves: [], deathsWhileAway: [], escalationsWhileAway: []),
         isMourning: false,
         activeQuestCount: 3
     )
