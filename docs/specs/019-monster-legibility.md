@@ -64,8 +64,12 @@ reconstructOnActivation  →  ActivationReplayResult
 
 ### Lifetime
 
-The marker persists until the next activation, matching `newlyMissedQuestIDs`.
-No new concept, nothing to persist, and the meaning reads as a pair with `deathsWhileAway`: what changed while you were away.
+The marker persists until the next activation replaces it. Nothing is persisted; the set lives in `@State` and is overwritten on the next activation.
+
+**It does not share `newlyMissedQuestIDs`' lifetime, despite sharing its path.**
+`pendingDeaths` is cleared by a timer after `GameBalance.mourningDuration` (`ContentView.applyActivationReplay()`), because it drives a one-shot mourning animation that would otherwise latch.
+An escalation marker is information, not an animation: it has to survive long enough to be read after the user navigates back to the board, so it takes no timer.
+`applyActivationReplay` also returns early when `deaths` is empty, so the escalation assignment must sit outside that guard rather than nested inside it.
 
 Reopening the app twice in one day can mark the same row again if it escalated again in between. That is correct behavior, not a defect.
 
@@ -104,7 +108,7 @@ A `.medium` detent sheet, matching `HeroAppearanceSheet`.
 ```plaintext
 이 몬스터는 왜 오크인가요
 
-  중요도 높음   ×   마감 3시간 남음   →   Lv 4 · 오크
+  중요도 높음   ×   마감 3시간 남음   →   Lv 3 · 오크
   (직접 정한 값)     (시간이 정함)
 
 몬스터는 이렇게 정해집니다
