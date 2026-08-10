@@ -312,6 +312,33 @@ nonisolated extension AppStrings {
     )
 }
 
+nonisolated extension AppStrings {
+    static let monsterExplanationNavigationTitle = LocalizedStringResource(
+        "monster.explanation.navigationTitle",
+        defaultValue: "이 몬스터는 왜 이 몬스터인가요"
+    )
+    static let monsterExplanationImportanceCaption = LocalizedStringResource(
+        "monster.explanation.importanceCaption",
+        defaultValue: "직접 정한 값"
+    )
+    static let monsterExplanationUrgencyCaption = LocalizedStringResource(
+        "monster.explanation.urgencyCaption",
+        defaultValue: "시간이 정함"
+    )
+    static let monsterExplanationRulesTitle = LocalizedStringResource(
+        "monster.explanation.rulesTitle",
+        defaultValue: "몬스터는 이렇게 정해집니다"
+    )
+    static let monsterExplanationRulesBody = LocalizedStringResource(
+        "monster.explanation.rulesBody",
+        defaultValue: "중요도는 퀘스트를 만들 때 정하고, 마감까지 남은 시간은 계속 움직입니다. 그래서 같은 퀘스트라도 마감이 다가오면 몬스터가 바뀝니다."
+    )
+    static let monsterExplanationDoneAction = LocalizedStringResource(
+        "monster.explanation.doneAction",
+        defaultValue: "완료"
+    )
+}
+
 #if DEBUG
 nonisolated extension AppStrings {
     static let debugFixtureDailyFocusGraveTitle = LocalizedStringResource(
