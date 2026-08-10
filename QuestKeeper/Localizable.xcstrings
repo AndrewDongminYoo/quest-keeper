@@ -1076,6 +1076,102 @@
         }
       }
     },
+    "monster.explanation.doneAction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        }
+      }
+    },
+    "monster.explanation.importanceCaption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You chose this"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "직접 정한 값"
+          }
+        }
+      }
+    },
+    "monster.explanation.navigationTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Why this monster"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 몬스터는 왜 이 몬스터인가요"
+          }
+        }
+      }
+    },
+    "monster.explanation.rulesBody" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You set importance when you create a quest, and the time left keeps moving. So the same quest meets a different monster as its deadline gets closer."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중요도는 퀘스트를 만들 때 정하고, 마감까지 남은 시간은 계속 움직입니다. 그래서 같은 퀘스트라도 마감이 다가오면 몬스터가 바뀝니다."
+          }
+        }
+      }
+    },
+    "monster.explanation.rulesTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How monsters are chosen"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "몬스터는 이렇게 정해집니다"
+          }
+        }
+      }
+    },
+    "monster.explanation.urgencyCaption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time decides this"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시간이 정함"
+          }
+        }
+      }
+    },
     "monster.golem" : {
       "localizations" : {
         "en" : {
