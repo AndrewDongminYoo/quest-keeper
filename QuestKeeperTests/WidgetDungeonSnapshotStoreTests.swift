@@ -74,6 +74,23 @@ struct WidgetDungeonSnapshotStoreTests {
         #expect(store.load() == .empty)
     }
 
+    @Test("store reports a missing snapshot separately from an empty dungeon")
+    func storeReportsMissingSnapshot() {
+        let directory = temporaryDirectory()
+        let store = WidgetDungeonSnapshotStore(
+            fileURL: directory.appending(path: "missing.json")
+        )
+
+        #expect(store.loadResult() == .failure(.snapshotMissing))
+    }
+
+    @Test("store reports an unavailable App Group")
+    func storeReportsUnavailableAppGroup() {
+        let store = WidgetDungeonSnapshotStore(fileURL: nil)
+
+        #expect(store.loadResult() == .failure(.appGroupUnavailable))
+    }
+
     @Test("store returns empty payload for corrupt file")
     func storeReturnsEmptyPayloadForCorruptFile() throws {
         let directory = temporaryDirectory()
@@ -82,6 +99,7 @@ struct WidgetDungeonSnapshotStoreTests {
         let store = WidgetDungeonSnapshotStore(fileURL: fileURL)
 
         #expect(store.load() == .empty)
+        #expect(store.loadResult() == .failure(.unreadableSnapshot))
     }
 
     @Test("store returns empty payload for unsupported schema")
@@ -99,6 +117,7 @@ struct WidgetDungeonSnapshotStoreTests {
         let store = WidgetDungeonSnapshotStore(fileURL: fileURL)
 
         #expect(store.load() == .empty)
+        #expect(store.loadResult() == .failure(.unsupportedSchema(payload.schemaVersion)))
     }
 
     @Test("store returns empty payload for invalid quest importance", arguments: [Int.min, 0, 4, Int.max])
@@ -124,6 +143,7 @@ struct WidgetDungeonSnapshotStoreTests {
         let store = WidgetDungeonSnapshotStore(fileURL: fileURL)
 
         #expect(store.load() == .empty)
+        #expect(store.loadResult() == .failure(.invalidQuestImportance(importanceRawValue)))
     }
 
     private func temporaryDirectory() -> URL {
