@@ -69,10 +69,14 @@ nonisolated struct WidgetDungeonSnapshotStore: Sendable {
 
         do {
             let data = try Data(contentsOf: fileURL)
-            let payload = try JSONDecoder.widgetDungeon.decode(WidgetDungeonPayload.self, from: data)
-            guard payload.schemaVersion == WidgetDungeonPayload.currentSchemaVersion else {
-                return .failure(.unsupportedSchema(payload.schemaVersion))
+            let versionEnvelope = try JSONDecoder.widgetDungeon.decode(
+                WidgetDungeonSnapshotVersionEnvelope.self,
+                from: data
+            )
+            guard versionEnvelope.schemaVersion == WidgetDungeonPayload.currentSchemaVersion else {
+                return .failure(.unsupportedSchema(versionEnvelope.schemaVersion))
             }
+            let payload = try JSONDecoder.widgetDungeon.decode(WidgetDungeonPayload.self, from: data)
             if let invalidImportance = payload.quests
                 .map(\.importanceRawValue)
                 .first(where: { Importance(rawValue: $0) == nil }) {
@@ -94,6 +98,10 @@ nonisolated struct WidgetDungeonSnapshotStore: Sendable {
         let data = try JSONEncoder.widgetDungeon.encode(payload)
         try data.write(to: fileURL, options: [.atomic])
     }
+}
+
+private nonisolated struct WidgetDungeonSnapshotVersionEnvelope: Decodable {
+    let schemaVersion: Int
 }
 
 private nonisolated final class FileManagerBox: @unchecked Sendable {
