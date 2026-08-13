@@ -228,6 +228,15 @@ struct WidgetDungeonPayloadTests {
         ])
     }
 
+    @Test("widget payload deliberately omits quest details")
+    @MainActor
+    func widgetPayloadOmitsDetails() {
+        let id = UUID()
+        let first = Quest(id: id, title: "Same", deadline: now, importance: .medium, details: "One")
+        let second = Quest(id: id, title: "Same", deadline: now, importance: .medium, details: "Two")
+        #expect(WidgetDungeonPayload.make(from: [first]).quests == WidgetDungeonPayload.make(from: [second]).quests)
+    }
+
     @Test("payload factory appends changed quest when stale source list is missing it")
     @MainActor
     func payloadFactoryAppendsChangedQuestWhenMissingFromSource() {

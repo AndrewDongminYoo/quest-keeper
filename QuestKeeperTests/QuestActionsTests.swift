@@ -15,6 +15,7 @@ import SwiftData
 struct QuestActionsTests {
     let now = Date(timeIntervalSinceReferenceDate: 700_000_000)
     let day: TimeInterval = 24 * 60 * 60
+    let calendar = Calendar(identifier: .gregorian)
 
     func makeContext() throws -> ModelContext {
         let container = try ModelContainer(
@@ -93,6 +94,18 @@ struct QuestActionsTests {
         #expect(quest.completedAt == nil)
         #expect(quest.importance == .high)
         #expect(quest.snapshot.outcome(at: now) == .pending)
+    }
+
+    @Test("retry tomorrow preserves details")
+    func retryPreservesDetails() {
+        let quest = Quest(
+            title: "Retry",
+            deadline: now.addingTimeInterval(-60),
+            importance: .medium,
+            details: "Keep me"
+        )
+        QuestActions.retryTomorrow(quest, now: now, calendar: calendar)
+        #expect(quest.details == "Keep me")
     }
 
     // 5
