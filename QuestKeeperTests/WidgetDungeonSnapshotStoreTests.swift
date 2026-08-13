@@ -120,6 +120,20 @@ struct WidgetDungeonSnapshotStoreTests {
         #expect(store.loadResult() == .failure(.unsupportedSchema(payload.schemaVersion)))
     }
 
+    @Test("store reports a future schema before decoding its payload")
+    func storeReportsFutureSchemaBeforeDecodingPayload() throws {
+        let directory = temporaryDirectory()
+        let fileURL = directory.appending(path: "widget-dungeon-snapshot.json")
+        let futureSchemaVersion = WidgetDungeonPayload.currentSchemaVersion + 1
+        let futurePayload = """
+        {"schemaVersion":\(futureSchemaVersion),"replacementData":{"quests":"changed"}}
+        """
+        try Data(futurePayload.utf8).write(to: fileURL)
+        let store = WidgetDungeonSnapshotStore(fileURL: fileURL)
+
+        #expect(store.loadResult() == .failure(.unsupportedSchema(futureSchemaVersion)))
+    }
+
     @Test("store returns empty payload for invalid quest importance", arguments: [Int.min, 0, 4, Int.max])
     func storeReturnsEmptyPayloadForInvalidQuestImportance(_ importanceRawValue: Int) throws {
         let directory = temporaryDirectory()
