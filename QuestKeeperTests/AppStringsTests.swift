@@ -84,6 +84,11 @@ struct AppStringsTests {
                 "The deadline must be in the future."
             ),
             (
+                CreateQuestIntentError.invalidImportance.resource,
+                "중요도는 낮음, 보통, 높음 중에서 선택해주세요.",
+                "Choose Low, Medium, or High for importance."
+            ),
+            (
                 CreateQuestIntentError.persistenceFailed.resource,
                 "퀘스트를 생성하지 못했습니다. 다시 시도해주세요.",
                 "Couldn't create the quest. Try again."

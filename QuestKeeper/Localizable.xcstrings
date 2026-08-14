@@ -129,6 +129,22 @@
         }
       }
     },
+    "appIntent.createQuest.error.invalidImportance" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Low, Medium, or High for importance."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중요도는 낮음, 보통, 높음 중에서 선택해주세요."
+          }
+        }
+      }
+    },
     "appIntent.createQuest.error.persistenceFailed" : {
       "localizations" : {
         "en" : {
@@ -189,22 +205,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "보통"
-          }
-        }
-      }
-    },
-    "appIntent.createQuest.importance.type" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importance"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "중요도"
           }
         }
       }

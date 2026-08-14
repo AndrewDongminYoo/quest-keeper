@@ -1,31 +1,10 @@
 import AppIntents
 import Foundation
 
-nonisolated enum ShortcutQuestImportance: String, AppEnum, Sendable {
+nonisolated enum ShortcutQuestImportance: String, Sendable {
     case low
     case medium
     case high
-
-    static let typeDisplayRepresentation = TypeDisplayRepresentation(
-        name: LocalizedStringResource(
-            "appIntent.createQuest.importance.type",
-            defaultValue: "중요도"
-        )
-    )
-    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [
-        .low: DisplayRepresentation(title: LocalizedStringResource(
-            "appIntent.createQuest.importance.low",
-            defaultValue: "낮음"
-        )),
-        .medium: DisplayRepresentation(title: LocalizedStringResource(
-            "appIntent.createQuest.importance.medium",
-            defaultValue: "보통"
-        )),
-        .high: DisplayRepresentation(title: LocalizedStringResource(
-            "appIntent.createQuest.importance.high",
-            defaultValue: "높음"
-        )),
-    ]
 
     var value: Importance {
         switch self {
@@ -33,6 +12,28 @@ nonisolated enum ShortcutQuestImportance: String, AppEnum, Sendable {
         case .medium: .medium
         case .high: .high
         }
+    }
+}
+
+nonisolated struct ShortcutQuestImportanceOptionsProvider: DynamicOptionsProvider {
+    typealias Result = IntentItemCollection<String>
+    typealias DefaultValue = String
+
+    func results() async throws -> Result {
+        Result(sections: [IntentItemSection(items: [
+            IntentItem("low", title: LocalizedStringResource(
+                "appIntent.createQuest.importance.low",
+                defaultValue: "낮음"
+            )),
+            IntentItem("medium", title: LocalizedStringResource(
+                "appIntent.createQuest.importance.medium",
+                defaultValue: "보통"
+            )),
+            IntentItem("high", title: LocalizedStringResource(
+                "appIntent.createQuest.importance.high",
+                defaultValue: "높음"
+            )),
+        ])])
     }
 }
 
@@ -81,6 +82,7 @@ nonisolated enum CreateQuestIntentDialogKind: Equatable, Sendable {
 nonisolated enum CreateQuestIntentError: LocalizedError, Equatable, Sendable {
     case emptyTitle
     case deadlineNotInFuture
+    case invalidImportance
     case persistenceFailed
 
     var resource: LocalizedStringResource {
@@ -94,6 +96,11 @@ nonisolated enum CreateQuestIntentError: LocalizedError, Equatable, Sendable {
             LocalizedStringResource(
                 "appIntent.createQuest.error.deadlineNotInFuture",
                 defaultValue: "마감은 현재 시간 이후여야 합니다."
+            )
+        case .invalidImportance:
+            LocalizedStringResource(
+                "appIntent.createQuest.error.invalidImportance",
+                defaultValue: "중요도는 낮음, 보통, 높음 중에서 선택해주세요."
             )
         case .persistenceFailed:
             LocalizedStringResource(
@@ -134,7 +141,7 @@ struct CreateQuestIntent: AppIntent {
     @Parameter(title: LocalizedStringResource(
         "appIntent.createQuest.parameter.importance",
         defaultValue: "중요도"
-    )) var importance: ShortcutQuestImportance?
+    ), optionsProvider: ShortcutQuestImportanceOptionsProvider()) var importance: String?
 
     @Dependency private var coordinator: QuestShortcutCreationCoordinator
 
@@ -153,14 +160,24 @@ struct CreateQuestIntent: AppIntent {
         title: String,
         details: String?,
         deadline: Date?,
-        importance: ShortcutQuestImportance?,
+        importance: String?,
         now: Date
     ) throws -> QuestCreationInput {
-        try QuestCreationInput.shortcut(
+        let resolvedImportance: Importance?
+        if let importance {
+            guard let shortcutImportance = ShortcutQuestImportance(rawValue: importance) else {
+                throw CreateQuestIntentError.invalidImportance
+            }
+            resolvedImportance = shortcutImportance.value
+        } else {
+            resolvedImportance = nil
+        }
+
+        return try QuestCreationInput.shortcut(
             title: title,
             details: details,
             deadline: deadline,
-            importance: importance?.value,
+            importance: resolvedImportance,
             now: now
         )
     }
