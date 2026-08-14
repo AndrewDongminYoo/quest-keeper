@@ -495,10 +495,12 @@ private nonisolated func validCombination(
     switch name {
     case .appActivated, .experimentExposed, .questCreationStarted, .onboardingDeferred:
         source == .app && questID == nil
-    case .questCreated, .questRetried:
+    case .questCreated:
+        (source == .app || source == .shortcut) && questID != nil
+    case .questRetried:
         source == .app && questID != nil
     case .questCompleted:
-        questID != nil
+        (source == .app || source == .widget) && questID != nil
     }
 }
 

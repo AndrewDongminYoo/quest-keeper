@@ -107,10 +107,12 @@ nonisolated enum OnboardingFlowState {
         switch name {
         case .appActivated, .experimentExposed, .questCreationStarted, .onboardingDeferred:
             return source == .app && event.questID == nil
-        case .questCreated, .questRetried:
+        case .questCreated:
+            return (source == .app || source == .shortcut) && event.questID != nil
+        case .questRetried:
             return source == .app && event.questID != nil
         case .questCompleted:
-            return event.questID != nil
+            return (source == .app || source == .widget) && event.questID != nil
         }
     }
 

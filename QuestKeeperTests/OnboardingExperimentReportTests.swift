@@ -25,6 +25,52 @@ struct OnboardingExperimentReportTests {
         #expect(report.dataQuality.status == .complete)
     }
 
+    @Test("shortcut creation is valid onboarding first value")
+    func shortcutCreationCountsInOnboardingReport() {
+        let original = OnboardingExperimentFixture.events[10]
+        let shortcut = RetentionEventSnapshot(
+            id: original.id,
+            schemaVersion: original.schemaVersion,
+            nameRawValue: original.nameRawValue,
+            installationID: original.installationID,
+            occurredAt: original.occurredAt,
+            sourceRawValue: RetentionEventSource.shortcut.rawValue,
+            questID: original.questID,
+            deduplicationKey: original.deduplicationKey
+        )
+        let events = OnboardingExperimentFixture.events.map { $0.id == original.id ? shortcut : $0 }
+        let report = makeReport(events: events)
+        #expect(report.guided.funnel == OnboardingExperimentFixture.expectedGuidedFunnel)
+        #expect(report.dataQuality.unsupportedCount == 0)
+    }
+
+    @Test("shortcut completion is unsupported and does not advance onboarding")
+    func shortcutCompletionDoesNotCountInOnboardingReport() {
+        let completion = OnboardingExperimentFixture.events[11]
+        let shortcutCompletion = RetentionEventSnapshot(
+            id: completion.id,
+            schemaVersion: completion.schemaVersion,
+            nameRawValue: completion.nameRawValue,
+            installationID: completion.installationID,
+            occurredAt: completion.occurredAt,
+            sourceRawValue: RetentionEventSource.shortcut.rawValue,
+            questID: completion.questID,
+            deduplicationKey: completion.deduplicationKey
+        )
+        let events = OnboardingExperimentFixture.events.map {
+            $0.id == completion.id ? shortcutCompletion : $0
+        }
+        let report = makeReport(events: events)
+
+        #expect(report.guided.funnel == OnboardingExperimentFunnel(
+            exposed: 1,
+            creationStarted: 1,
+            firstValue: 1,
+            firstCompletion: 0
+        ))
+        #expect(report.dataQuality.unsupportedCount == 1)
+    }
+
     @Test("two minute boundary is inclusive and immature exposures are excluded")
     func twoMinuteBoundary() {
         let installationID = OnboardingExperimentFixture.uuid(20)

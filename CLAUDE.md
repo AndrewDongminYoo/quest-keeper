@@ -26,7 +26,7 @@ The first spec is `docs/specs/001-project-setup.md` (Phase 0: platform scoping, 
 This is the architectural spine.
 Every gamification rule must preserve it:
 
-- **Persist**: only immutable raw facts — `task.deadline`, `task.completedAt`, `task.importance`.
+- **Persist**: only immutable raw facts — `task.title`, optional `task.details`, `task.deadline`, `task.completedAt`, `task.importance`.
 - **Derive**: outcome, urgency, mob level, victory and daily-grave counts — all computed **against the current time at read time**, never stored.
 - Deadline judgment is **state replay, not event-driven**: on app reopen, compare `lastOpened` against each task's `deadline` to retroactively reconstruct which heroes should have died in between.
 - `urgency = f(time remaining until deadline)` — a derived, time-varying axis (turns the Eisenhower matrix into a live-moving one). `mobLevel = importance (stored) × urgency (derived)`.
@@ -50,8 +50,8 @@ If `Quest` moves again, move the guard with it.
 
 Feature code is grouped by role under `QuestKeeper/`; the widget and the code it shares with the app live in sibling targets.
 
-- `Models/` — the app-side value types: `QuestSnapshot` (what derivation operates on, never the `@Model` class) and `QuestTitlePolicy`.
-  The `Quest` `@Model` itself and the `Importance` enum live in `QuestKeeperShared/Quest.swift`, because the widget extension needs them too.
+- `Models/` — the app-side value types: `QuestSnapshot` (what derivation operates on, never the `@Model` class, and intentionally without `title` or `details`).
+  The `Quest` `@Model` itself and the `Importance` enum live in `QuestKeeperShared/Quest.swift`, and `QuestTitlePolicy` lives in `QuestKeeperShared/`, because the widget extension needs those shared model rules too.
 - `Derivation/` — the pure layer. New gamification rules belong here, never as stored state.
   - `QuestOutcome.swift`: the `QuestOutcome` enum (per-quest derived status) plus the `QuestSnapshot` methods that read it — `outcome(at:)`, `urgency(at:)` (0…1, rising as the deadline nears within `GameBalance.urgencyHorizon`, and 0 unless `.pending`), `mobLevel(at:)` (`importance` × `urgency`, mapped into `0…GameBalance.maxMobLevel`), and `isVisibleDailyGrave(at:calendar:)`.
     A grave is visible **only while its `deadline` falls on the same local calendar day as `now`** (`Calendar.isDate(_:inSameDayAs:)`) — misses outside that day are hidden by derivation, never deleted from the store.
@@ -63,7 +63,7 @@ Feature code is grouped by role under `QuestKeeper/`; the widget and the code it
 - `DailyFocus/`, `Onboarding/`, `Recovery/` — later behavior layers, each following the same pure-function shape as `Derivation/`: `DailyFocusState`, `OnboardingFlowState`, and `RecoveryState` compute a presentation value from facts plus `now`, and hold no stored state of their own.
 - `Measurement/` — `RetentionBaselineWriter`, the app-side writer for the retention baseline report.
 - `Notifications/` and `WidgetSupport/` — see the section below.
-- `QuestKeeperShared/` — everything both targets need. Beyond the widget payload trio (`WidgetDungeonPayload`, `WidgetDungeonDerivation`, `WidgetDungeonSnapshotStore`) it holds the `Quest`/`Importance` model, `QuestModelContainer` (opens the App Group store), the `QuestStoreActor` (`@ModelActor`) the widget writes through, the pixel-art primitives (`PixelSprite`, `DungeonPalette`), and the measurement stack — retention, onboarding-experiment, and daily-focus models, recorders, and report types.
+- `QuestKeeperShared/` — everything both targets need. Beyond the widget payload trio (`WidgetDungeonPayload`, `WidgetDungeonDerivation`, `WidgetDungeonSnapshotStore`) it holds the `Quest`/`Importance` model, `QuestTitlePolicy`, `QuestModelContainer` (opens the App Group store), the `QuestStoreActor` (`@ModelActor`) the widget writes through, the pixel-art primitives (`PixelSprite`, `DungeonPalette`), and the measurement stack — retention, onboarding-experiment, and daily-focus models, recorders, and report types.
   The widget-side derivation is deliberately duplicated here so the widget can render derived state without the app running.
 - `QuestKeeperWidget/` — the WidgetKit extension; a Home Screen dungeon in `systemSmall` / `systemMedium`. Mostly a read view over the snapshot, plus `CompleteQuestIntent` for one-tap completion (see below).
 - `QuestKeeperTests/` — Swift Testing coverage, one `<Subject>Tests.swift` file per subject (`DerivationTests`, `QuestActionsTests`, `WidgetTimelinePolicyTests`, …); `Fixtures/` holds the shared builders. `QuestKeeperUITests/` is the XCTest target.
@@ -82,7 +82,10 @@ The widget _may_ write a raw fact: `CompleteQuestIntent` commits `completedAt` t
   Triggers are `UNCalendarNotificationTrigger`.
 - The lifecycle is **remove-before-add sync**: completion or delete cancels, retry-tomorrow reschedules, and activation reconciles pending against desired.
   Tap routing goes through `NotificationDelegate` and `NotificationRouteStore`.
+- The main-app target's background `CreateQuestIntent` uses the app-owned `ModelContainer` through the `QuestKeeperApp`-injected `QuestShortcutCreationCoordinator`.
+  It never requests notification permission; its follow-up sync only reports the current authorization state.
 - The app writes an App Group JSON snapshot through `QuestKeeper/WidgetSupport/WidgetDungeonSnapshotWriter.swift`, which maps quests to `WidgetDungeonPayload`; `WidgetDungeonSnapshotStore` persists it.
+  Widget JSON intentionally excludes `details`.
   The widget renders from that snapshot, and WidgetKit refreshes after app mutations.
 - `CompleteQuestIntent` (widget process) opens the store via `QuestModelContainer.make()`, writes `completedAt` through `QuestStoreActor`, cancels that quest's notifications, rewrites the snapshot, and reloads the timeline. It is idempotent — a stale double-tap is a no-op.
   A warm-foregrounded app does **not** see that cross-process write; `QuestKeeperApp.syncActivation(using:)` swaps in a fresh `ModelContainer` on the `.active` transition to pick it up. Quest-data-dependent activation work belongs there, never in `ContentView`.

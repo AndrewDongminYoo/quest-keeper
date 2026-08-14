@@ -81,6 +81,310 @@
         }
       }
     },
+    "appIntent.createQuest.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a new quest in Quest Keeper."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quest Keeper에 새 퀘스트를 생성합니다."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.error.deadlineNotInFuture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The deadline must be in the future."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마감은 현재 시간 이후여야 합니다."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.error.emptyTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a title."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "제목을 입력해주세요."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.error.invalidImportance" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Low, Medium, or High for importance."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중요도는 낮음, 보통, 높음 중에서 선택해주세요."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.error.persistenceFailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't create the quest. Try again."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트를 생성하지 못했습니다. 다시 시도해주세요."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.importance.high" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "높음"
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.importance.low" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "낮음"
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.importance.medium" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보통"
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.parameter.deadline" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deadline"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마감"
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.parameter.details" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설명"
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.parameter.importance" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importance"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중요도"
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.parameter.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "제목"
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.result.created" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quest created."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트를 생성했습니다."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.result.partial" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quest created, but some follow-up work couldn't be completed."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트는 생성했지만 일부 후속 작업을 완료하지 못했습니다."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.result.partialAndPermissionRequired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quest created, but some follow-up work couldn't be completed, and notification permission is also required."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트는 생성했지만 일부 후속 작업을 완료하지 못했고 알림 권한도 필요합니다."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.result.permissionRequired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quest created. You can receive notifications after allowing permission in Quest Keeper."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트를 생성했습니다. 알림은 Quest Keeper에서 권한을 허용하면 받을 수 있습니다."
+          }
+        }
+      }
+    },
+    "appIntent.createQuest.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Quest"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트 생성"
+          }
+        }
+      }
+    },
+    "appShortcut.createQuest.shortTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Quest"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트 생성"
+          }
+        }
+      }
+    },
+    "Create quest" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create quest"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트 생성"
+          }
+        }
+      }
+    },
     "battle.scene.victoryBanner" : {
       "localizations" : {
         "en" : {
@@ -1364,6 +1668,22 @@
         }
       }
     },
+    "notification.permissionBanner.requestBody" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow notifications to receive deadline reminders."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마감 알림을 받으려면 알림을 허용하세요."
+          }
+        }
+      }
+    },
     "onboarding.guidedQuest.title" : {
       "localizations" : {
         "en" : {
@@ -1424,6 +1744,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "삭제"
+          }
+        }
+      }
+    },
+    "quest.action.edit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "편집"
           }
         }
       }
@@ -1664,6 +2000,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "마감"
+          }
+        }
+      }
+    },
+    "quest.field.completedAt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed at"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료 시각"
+          }
+        }
+      }
+    },
+    "quest.field.details" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설명"
           }
         }
       }

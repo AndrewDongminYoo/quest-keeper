@@ -126,6 +126,7 @@ nonisolated extension AppStrings {
         defaultValue: "마감이 다가와 세졌어요"
     )
     static let questActionDelete = LocalizedStringResource("quest.action.delete", defaultValue: "삭제")
+    static let questActionEdit = LocalizedStringResource("quest.action.edit", defaultValue: "편집")
     static let questActionAdd = LocalizedStringResource("quest.action.add", defaultValue: "전투 추가")
     static let questActionRetryTomorrow = LocalizedStringResource("quest.action.retryTomorrow", defaultValue: "내일 도전하기")
     static let questStateCompleted = LocalizedStringResource("quest.state.completed", defaultValue: "완료됨")
@@ -152,6 +153,10 @@ nonisolated extension AppStrings {
         "notification.permissionBanner.body",
         defaultValue: "마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요."
     )
+    static let notificationPermissionRequestBody = LocalizedStringResource(
+        "notification.permissionBanner.requestBody",
+        defaultValue: "마감 알림을 받으려면 알림을 허용하세요."
+    )
 }
 
 nonisolated extension AppStrings {
@@ -171,7 +176,15 @@ nonisolated extension AppStrings {
     )
 
     static let questStatusCompleted = LocalizedStringResource("quest.status.completed", defaultValue: "완료")
+    static let questFieldCompletedAt = LocalizedStringResource(
+        "quest.field.completedAt",
+        defaultValue: "완료 시각"
+    )
     static let questFieldDeadline = LocalizedStringResource("quest.field.deadline", defaultValue: "마감")
+    static let questFieldDetails = LocalizedStringResource(
+        "quest.field.details",
+        defaultValue: "설명"
+    )
 }
 
 nonisolated extension AppStrings {

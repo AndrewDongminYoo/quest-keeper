@@ -23,6 +23,22 @@ struct OnboardingFlowStateTests {
         ) == .guidedCompletion(questID))
     }
 
+    @Test("a shortcut-created quest advances guided onboarding")
+    func shortcutCreationAdvancesGuidedFlow() {
+        let shortcutCreation = event(
+            id: 3,
+            name: .questCreated,
+            at: assignedAt.addingTimeInterval(2),
+            questID: questID,
+            source: .shortcut
+        )
+        #expect(makeState(
+            events: [exposure(), creationStarted(), shortcutCreation],
+            pending: [questID],
+            deferred: false
+        ) == .guidedCompletion(questID))
+    }
+
     @Test("same-quest completion finishes guided onboarding")
     func completedFirstQuest() {
         #expect(makeState(
@@ -30,6 +46,22 @@ struct OnboardingFlowStateTests {
             pending: [],
             deferred: false
         ) == .finished)
+    }
+
+    @Test("shortcut completion does not finish guided onboarding")
+    func shortcutCompletionDoesNotFinishGuidedFlow() {
+        let shortcutCompletion = event(
+            id: 4,
+            name: .questCompleted,
+            at: assignedAt.addingTimeInterval(3),
+            questID: questID,
+            source: .shortcut
+        )
+        #expect(makeState(
+            events: [exposure(), creation(), shortcutCompletion],
+            pending: [questID],
+            deferred: false
+        ) == .guidedCompletion(questID))
     }
 
     @Test("another quest completion does not finish onboarding")
@@ -240,7 +272,8 @@ struct OnboardingFlowStateTests {
         id: Int,
         name: RetentionEventName,
         at occurredAt: Date,
-        questID: UUID? = nil
+        questID: UUID? = nil,
+        source: RetentionEventSource = .app
     ) -> RetentionEventSnapshot {
         let component: String
         switch name {
@@ -257,7 +290,7 @@ struct OnboardingFlowStateTests {
             nameRawValue: name.rawValue,
             installationID: installationID,
             occurredAt: occurredAt,
-            sourceRawValue: RetentionEventSource.app.rawValue,
+            sourceRawValue: source.rawValue,
             questID: questID,
             deduplicationKey: "\(name.rawValue):\(installationID.uuidString):\(component)"
         )

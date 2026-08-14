@@ -10,10 +10,11 @@ It crosses the OS surfaces that are easy to avoid from Flutter or React Native: 
 ## Current Status
 
 - iPhone-only SwiftUI app target with Swift 6 strict concurrency enabled.
-- SwiftData `Quest` model stores raw quest facts only: `id`, `title`, `deadline`, `completedAt`, and `importance`.
+- SwiftData `Quest` model stores raw quest facts only: `id`, `title`, optional `details`, `deadline`, `completedAt`, and `importance`.
 - Pure derivation layer computes outcome, urgency, mob level, total victories, daily graves, and reopen death events from facts plus `now`.
 - Root app surface shows a dungeon-oriented quest list with a hero header, active quests, visible daily graves, completion, retry tomorrow, delete, and edit flows.
 - Quest editor includes the elder guide prompt when a deadline is beyond the long-quest warning horizon.
+- A background Create Quest App Shortcut creates quests without foregrounding the app, and every quest opens the common detail surface, which is read-only when editing is unavailable.
 - Local notification lifecycle supports deterministic due-soon and deadline requests, remove-before-add sync, completion/delete cancellation, activation reconcile, and notification tap routing.
 - WidgetKit target reads an App Group JSON snapshot and renders a Home Screen dungeon for `systemSmall` and `systemMedium`, with one-tap quest completion from the widget.
 - Later work adds pixel art, a retention measurement stack, an onboarding experiment, the daily-focus loop, and a DEBUG recovery-loop prototype.
@@ -33,6 +34,7 @@ It crosses the OS surfaces that are easy to avoid from Flutter or React Native: 
 final class Quest {
     var id: UUID
     var title: String
+    var details: String?
     var deadline: Date
     var completedAt: Date?
     var importance: Importance
@@ -95,13 +97,13 @@ QuestKeeperWidget
 Use the focused unit-test gate for normal development:
 
 ```bash
-xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA' -only-testing:QuestKeeperTests
+xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,id=24B14321-156A-4BC4-97DC-0183AD675A8D' -only-testing:QuestKeeperTests
 ```
 
 Use the build gate when target or signing wiring changes:
 
 ```bash
-xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,id=CDF2239B-B46C-4A44-A09E-ED656EF7F9EA'
+xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,id=24B14321-156A-4BC4-97DC-0183AD675A8D'
 ```
 
 Target the simulator by UDID, never by `name`: a name destination clones a fresh ephemeral simulator per run and wedges the runtime.
@@ -117,7 +119,7 @@ Use this guard when changing persistence — it must cover both paths, since `Qu
 
 Check the app through the user-facing surface before calling a feature done:
 
-1. Create a near-deadline quest.
+1. Create a near-deadline quest with an optional description.
 2. Confirm it appears as an active mob with a countdown and derived level.
 3. Complete it and confirm the victory count updates.
 4. Create or edit a far-future quest and confirm the elder guide appears.
@@ -125,6 +127,8 @@ Check the app through the user-facing surface before calling a feature done:
 6. Use `내일 도전하기` and confirm the quest returns to the active dungeon.
 7. Add the QuestKeeper widget to the Home Screen and confirm pending mobs appear from the App Group snapshot.
 8. Complete or retry a quest in the app and confirm the widget refreshes through WidgetKit.
+9. Run Create Quest from Shortcuts while QuestKeeper is in the background and notification permission is undetermined, then confirm it creates the quest without foregrounding the app or showing a permission prompt.
+10. Reactivate the app, open the shortcut-created quest, and confirm the common detail surface shows its description.
 
 ## Documentation Conventions
 

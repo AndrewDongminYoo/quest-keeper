@@ -5,8 +5,9 @@
 //  Created by Dongmin yu on 7/8/26.
 //
 
-import SwiftUI
+import AppIntents
 import SwiftData
+import SwiftUI
 import UserNotifications
 
 @main
@@ -29,6 +30,7 @@ struct QuestKeeperApp: App {
     @State private var onboardingMeasurementAvailable = false
     private let notificationDelegate: NotificationDelegate
     private let notificationService: QuestNotificationService
+    private let shortcutCreationCoordinator: QuestShortcutCreationCoordinator
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     private let retentionBaselineWriter: RetentionBaselineWriter?
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
@@ -86,6 +88,13 @@ struct QuestKeeperApp: App {
                 isStoredInMemoryOnly: usesInMemoryStore
             )
             _sharedModelContainer = State(initialValue: container)
+            let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
+                modelContainer: container,
+                notificationService: notificationService,
+                widgetSnapshotWriter: snapshotWriter
+            )
+            self.shortcutCreationCoordinator = shortcutCreationCoordinator
+            AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)
 #if DEBUG
             if shouldSeedDailyFocusGraveFixture(
                 usesUITestingStore: usesUITestingStore,
@@ -95,6 +104,18 @@ struct QuestKeeperApp: App {
                 container.mainContext.insert(Quest(
                     title: AppStrings.resolve(AppStrings.debugFixtureDailyFocusGraveTitle, locale: .current),
                     deadline: Date.now.addingTimeInterval(-60),
+                    importance: .medium
+                ))
+                try container.mainContext.save()
+            }
+            if shouldSeedDetailDeadlineTransitionFixture(
+                usesUITestingStore: usesUITestingStore,
+                arguments: arguments
+            ),
+               try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
+                container.mainContext.insert(Quest(
+                    title: "Deadline transition UI test",
+                    deadline: Date.now.addingTimeInterval(30),
                     importance: .medium
                 ))
                 try container.mainContext.save()
@@ -232,6 +253,7 @@ struct QuestKeeperApp: App {
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
             case .background:
+                notificationRouteStore.pause()
                 didBackground = true
                 retentionActivationSessionID = UUID()
             case .active:
@@ -250,6 +272,7 @@ struct QuestKeeperApp: App {
                 ) {
                     didBackground = false
                     container = sharedModelContainer
+                    notificationRouteStore.resume(for: container)
                     canReplayActivation = true
                 } else if didBackground,
                           let refreshed = try? QuestModelContainer.make(
@@ -257,6 +280,7 @@ struct QuestKeeperApp: App {
                           ) {
                     didBackground = false
                     sharedModelContainer = refreshed
+                    shortcutCreationCoordinator.updateModelContainer(refreshed)
                     container = refreshed
                     canReplayActivation = true
                 } else {
@@ -468,6 +492,13 @@ nonisolated func shouldSeedDailyFocusGraveFixture(
     arguments: [String]
 ) -> Bool {
     usesUITestingStore && arguments.contains("-uiTestingDailyFocusGrave")
+}
+
+nonisolated func shouldSeedDetailDeadlineTransitionFixture(
+    usesUITestingStore: Bool,
+    arguments: [String]
+) -> Bool {
+    usesUITestingStore && arguments.contains("-uiTestingDetailDeadlineTransition")
 }
 
 nonisolated func shouldSeedRecoveryFixture(

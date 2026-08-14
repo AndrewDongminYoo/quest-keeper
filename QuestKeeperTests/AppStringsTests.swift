@@ -17,6 +17,40 @@ struct AppStringsTests {
     let ko = Locale(identifier: "ko")
     let en = Locale(identifier: "en")
 
+    @Test("quest details field resolves in both locales")
+    func questDetailsFieldLocalizes() {
+        #expect(AppStrings.resolve(AppStrings.questFieldDetails, locale: ko) == "설명")
+        #expect(AppStrings.resolve(AppStrings.questFieldDetails, locale: en) == "Description")
+    }
+
+    @Test("quest detail action and completion time fields resolve in both locales")
+    func questDetailFieldsLocalize() {
+        #expect(AppStrings.resolve(AppStrings.questActionEdit, locale: ko) == "편집")
+        #expect(AppStrings.resolve(AppStrings.questActionEdit, locale: en) == "Edit")
+        #expect(AppStrings.resolve(AppStrings.questFieldCompletedAt, locale: ko) == "완료 시각")
+        #expect(AppStrings.resolve(AppStrings.questFieldCompletedAt, locale: en) == "Completed at")
+    }
+
+    @Test("notification permission recovery copy resolves in both locales")
+    func notificationPermissionRecoveryLocalizes() {
+        #expect(
+            AppStrings.resolve(AppStrings.notificationPermissionRequestBody, locale: ko)
+                == "마감 알림을 받으려면 알림을 허용하세요."
+        )
+        #expect(
+            AppStrings.resolve(AppStrings.notificationPermissionRequestBody, locale: en)
+                == "Allow notifications to receive deadline reminders."
+        )
+        #expect(
+            AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: ko)
+                == "마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요."
+        )
+        #expect(
+            AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: en)
+                == "Turn on QuestKeeper notifications in Settings to get deadline alerts."
+        )
+    }
+
     @Test("focus.progress interpolates both counts in both locales")
     func focusProgressLocalizes() {
         #expect(AppStrings.resolve(AppStrings.focusProgress(2, 3), locale: ko) == "2/3 완료")
@@ -49,5 +83,49 @@ struct AppStringsTests {
         // Short on purpose: the pill lives in a 100pt trailing column, and the longer
         // "Stronger — deadline is closer" clipped to "Stronger — deadl…" at .caption2.
         #expect(AppStrings.resolve(AppStrings.questEscalatedMarker, locale: en) == "Stronger, due soon")
+    }
+
+    @Test("create quest intent strings resolve approved Korean and English copy")
+    func createQuestIntentStringsLocalize() {
+        let resources: [(LocalizedStringResource, String, String)] = [
+            (CreateQuestIntent.title, "퀘스트 생성", "Create Quest"),
+            (CreateQuestIntentDialogKind.created.resource, "퀘스트를 생성했습니다.", "Quest created."),
+            (
+                CreateQuestIntentDialogKind.createdNeedsNotificationPermission.resource,
+                "퀘스트를 생성했습니다. 알림은 Quest Keeper에서 권한을 허용하면 받을 수 있습니다.",
+                "Quest created. You can receive notifications after allowing permission in Quest Keeper."
+            ),
+            (
+                CreateQuestIntentDialogKind.createdWithFollowUpWarning.resource,
+                "퀘스트는 생성했지만 일부 후속 작업을 완료하지 못했습니다.",
+                "Quest created, but some follow-up work couldn't be completed."
+            ),
+            (
+                CreateQuestIntentDialogKind.createdWithFollowUpWarningAndNotificationPermission.resource,
+                "퀘스트는 생성했지만 일부 후속 작업을 완료하지 못했고 알림 권한도 필요합니다.",
+                "Quest created, but some follow-up work couldn't be completed, and notification permission is also required."
+            ),
+            (CreateQuestIntentError.emptyTitle.resource, "제목을 입력해주세요.", "Enter a title."),
+            (
+                CreateQuestIntentError.deadlineNotInFuture.resource,
+                "마감은 현재 시간 이후여야 합니다.",
+                "The deadline must be in the future."
+            ),
+            (
+                CreateQuestIntentError.invalidImportance.resource,
+                "중요도는 낮음, 보통, 높음 중에서 선택해주세요.",
+                "Choose Low, Medium, or High for importance."
+            ),
+            (
+                CreateQuestIntentError.persistenceFailed.resource,
+                "퀘스트를 생성하지 못했습니다. 다시 시도해주세요.",
+                "Couldn't create the quest. Try again."
+            ),
+        ]
+
+        for (resource, korean, english) in resources {
+            #expect(AppStrings.resolve(resource, locale: ko) == korean)
+            #expect(AppStrings.resolve(resource, locale: en) == english)
+        }
     }
 }

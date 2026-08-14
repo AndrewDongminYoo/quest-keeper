@@ -17,6 +17,7 @@ struct QuestKeeperAppTests {
 
         let labels = Mirror(reflecting: app).children.compactMap(\.label)
         #expect(labels.contains { $0.contains("widgetSnapshotWriter") })
+        #expect(labels.contains { $0.contains("shortcutCreationCoordinator") })
         #expect(labels.contains { $0.contains("onboardingSessionID") })
         #expect(labels.contains { $0.contains("hasDeferredOnboardingThisRun") })
     }
@@ -257,6 +258,19 @@ struct QuestKeeperAppTests {
             arguments: arguments
         ))
         #expect(!shouldSeedDailyFocusGraveFixture(
+            usesUITestingStore: false,
+            arguments: arguments
+        ))
+    }
+
+    @Test("detail deadline transition fixture requires an isolated UI test store")
+    func detailDeadlineTransitionFixtureIsolation() {
+        let arguments = ["QuestKeeper", "-uiTestingDetailDeadlineTransition"]
+        #expect(shouldSeedDetailDeadlineTransitionFixture(
+            usesUITestingStore: true,
+            arguments: arguments
+        ))
+        #expect(!shouldSeedDetailDeadlineTransitionFixture(
             usesUITestingStore: false,
             arguments: arguments
         ))

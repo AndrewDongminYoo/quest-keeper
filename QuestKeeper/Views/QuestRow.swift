@@ -3,7 +3,7 @@
 //  QuestKeeper
 //
 //  Phase 2 — presentational rows. A pending quest shows a live countdown and mob level;
-//  a daily grave shows a temporary tombstone plus retry action.
+//  a daily grave shows a temporary tombstone.
 //
 
 import SwiftUI
@@ -142,11 +142,10 @@ struct QuestRow: View {
     }
 }
 
-/// A daily grave — temporary presentation with recovery action.
+/// A daily grave — temporary tombstone presentation.
 struct DailyGraveRow: View {
     let quest: Quest
     let isNewlyMissed: Bool
-    let onRetryTomorrow: () -> Void
 
     private var style: Style { isNewlyMissed ? .mourning : .rest }
 
@@ -164,13 +163,6 @@ struct DailyGraveRow: View {
                     .foregroundStyle(style.captionTint)
             }
             Spacer(minLength: 10)
-            Button(action: onRetryTomorrow) {
-                Label(AppStrings.questActionRetryTomorrow, systemImage: "arrow.uturn.forward")
-                    .labelStyle(.titleAndIcon)
-                    .lineLimit(1)
-                    .fixedSize()
-            }
-            .buttonStyle(.pixel)
         }
         .padding(14)
         .frame(minHeight: 92)

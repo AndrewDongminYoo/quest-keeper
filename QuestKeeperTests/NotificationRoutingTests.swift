@@ -6,11 +6,75 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
 @testable import QuestKeeper
 
 @MainActor
 struct NotificationRoutingTests {
+    @Test("notification routing waits for the current container before consuming a quest")
+    func routeWaitsForCurrentContainer() throws {
+        let schema = Schema([Quest.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let oldContainer = try ModelContainer(for: schema, configurations: [configuration])
+        let replacementContainer = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+        let missingContainer = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+        let questID = UUID()
+        let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        oldContainer.mainContext.insert(Quest(
+            id: questID,
+            title: "Old quest",
+            deadline: deadline,
+            importance: .medium,
+            details: "old"
+        ))
+        replacementContainer.mainContext.insert(Quest(
+            id: questID,
+            title: "Replacement quest",
+            deadline: deadline,
+            importance: .medium,
+            details: "replacement"
+        ))
+        try oldContainer.mainContext.save()
+        try replacementContainer.mainContext.save()
+
+        let store = NotificationRouteStore()
+        #expect(!store.isReady(for: oldContainer))
+        #expect(store.readyGeneration == 0)
+
+        store.resume(for: oldContainer)
+        #expect(store.isReady(for: oldContainer))
+        #expect(store.readyGeneration == 1)
+
+        store.pause()
+        store.route(questIDString: questID.uuidString)
+        #expect(takeNotificationRouteQuest(from: store, in: oldContainer.mainContext) == nil)
+        #expect(store.pendingQuestID == questID)
+
+        store.resume(for: replacementContainer)
+        #expect(store.readyGeneration == 2)
+        store.resume(for: replacementContainer)
+        #expect(store.readyGeneration == 2)
+        let replacement = takeNotificationRouteQuest(
+            from: store,
+            in: replacementContainer.mainContext
+        )
+        #expect(replacement?.details == "replacement")
+        #expect(store.pendingQuestID == nil)
+
+        store.pause()
+        store.route(questIDString: questID.uuidString)
+        store.resume(for: missingContainer)
+        #expect(takeNotificationRouteQuest(from: store, in: missingContainer.mainContext) == nil)
+        #expect(store.pendingQuestID == questID)
+    }
+
     @Test("valid questID routes and invalid userInfo is ignored")
     func routeParser() {
         let store = NotificationRouteStore()
@@ -26,16 +90,38 @@ struct NotificationRoutingTests {
         #expect(store.pendingQuestID == nil)
     }
 
-    @Test("visible daily graves route to retry-capable destination")
-    func visibleDailyGraveRoutesToRetryDestination() {
-        let now = Date(timeIntervalSinceReferenceDate: 700_000_000)
-        let snapshot = QuestSnapshot(
-            id: UUID(),
-            deadline: now.addingTimeInterval(-60),
-            completedAt: nil,
-            importance: .medium
-        )
+    @Test("every quest outcome routes to the common detail destination")
+    func everyOutcomeRoutesToDetail() {
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let snapshots = [
+            QuestSnapshot(
+                id: UUID(),
+                deadline: now.addingTimeInterval(3_600),
+                completedAt: nil,
+                importance: .medium
+            ),
+            QuestSnapshot(
+                id: UUID(),
+                deadline: now.addingTimeInterval(-60),
+                completedAt: nil,
+                importance: .medium
+            ),
+            QuestSnapshot(
+                id: UUID(),
+                deadline: now.addingTimeInterval(-60),
+                completedAt: now.addingTimeInterval(-120),
+                importance: .medium
+            ),
+            QuestSnapshot(
+                id: UUID(),
+                deadline: now.addingTimeInterval(-2 * 86_400),
+                completedAt: nil,
+                importance: .medium
+            ),
+        ]
 
-        #expect(notificationDestination(for: snapshot, now: now) == .dailyGrave)
+        #expect(snapshots.allSatisfy {
+            notificationDestination(for: $0, now: now) == .detail
+        })
     }
 }

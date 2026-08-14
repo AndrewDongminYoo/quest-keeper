@@ -13,7 +13,7 @@ struct HomeDungeonBoardView: View {
     let newlyMissedQuestIDs: Set<UUID>
     let escalatedQuestIDs: Set<UUID>
     let now: Date
-    let showsNotificationPermissionBanner: Bool
+    let notificationPermissionAction: QuestNotificationPermissionAction?
     let onboardingPresentation: OnboardingFlowPresentation
     let dailyFocusPresentation: DailyFocusPresentationState
     let recoveryPresentation: RecoveryCardPresentation?
@@ -26,11 +26,10 @@ struct HomeDungeonBoardView: View {
     let onChooseRecoveryFocus: () -> Void
     let onCreateRecoveryQuest: () -> Void
     let onDismissRecovery: () -> Void
-    let onOpenNotificationSettings: () -> Void
+    let onResolveNotificationPermission: (QuestNotificationPermissionAction) -> Void
     let onComplete: (Quest, Date) -> Void
-    let onRetryTomorrow: (Quest) -> Void
     let onDelete: (Quest) -> Void
-    let onEdit: (Quest) -> Void
+    let onOpenDetail: (Quest) -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -44,8 +43,10 @@ struct HomeDungeonBoardView: View {
                         onCreate: onCreate,
                         onEditAppearance: { presentedSheet = .appearance }
                     )
-                    if showsNotificationPermissionBanner {
-                        NotificationPermissionBanner(onOpenSettings: onOpenNotificationSettings)
+                    if let notificationPermissionAction {
+                        NotificationPermissionBanner(action: notificationPermissionAction) {
+                            onResolveNotificationPermission(notificationPermissionAction)
+                        }
                     }
                     if let recoveryPresentation {
                         RecoveryCardView(
@@ -97,9 +98,8 @@ struct HomeDungeonBoardView: View {
                             },
                             now: now,
                             onComplete: onComplete,
-                            onRetryTomorrow: onRetryTomorrow,
                             onDelete: onDelete,
-                            onEdit: onEdit
+                            onOpenDetail: onOpenDetail
                         )
                         .animation(.default, value: pending.map(\.id))
                         .animation(.default, value: dailyGraves.map(\.id))
@@ -336,12 +336,13 @@ private struct EmptyDungeonState: View {
 }
 
 private struct NotificationPermissionBanner: View {
-    let onOpenSettings: () -> Void
+    let action: QuestNotificationPermissionAction
+    let onAction: () -> Void
 
     var body: some View {
-        Button(action: onOpenSettings) {
+        Button(action: onAction) {
             Label {
-                Text(AppStrings.notificationPermissionBannerBody)
+                Text(bodyResource)
             } icon: {
                 DungeonArtworkView(artwork: .notificationsDisabled, size: 16)
             }
@@ -350,6 +351,15 @@ private struct NotificationPermissionBanner: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(DungeonPalette.danger, in: RoundedRectangle(cornerRadius: 2))
+        }
+    }
+
+    private var bodyResource: LocalizedStringResource {
+        switch action {
+        case .requestAuthorization:
+            AppStrings.notificationPermissionRequestBody
+        case .openSettings:
+            AppStrings.notificationPermissionBannerBody
         }
     }
 }

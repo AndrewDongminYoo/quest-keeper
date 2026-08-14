@@ -10,7 +10,13 @@ final class MonsterExplanationUITests: XCTestCase {
         let app = launch()
         XCTAssertTrue(app.staticTexts["questRowTitle"].firstMatch.waitForExistence(timeout: 8))
         app.buttons["monsterExplainButton"].firstMatch.tap()
-        XCTAssertTrue(app.buttons["monsterExplanationDoneButton"].waitForExistence(timeout: 8))
+        let doneButton = app.buttons["monsterExplanationDoneButton"]
+        XCTAssertTrue(doneButton.waitForExistence(timeout: 8))
+        doneButton.tap()
+
+        XCTAssertTrue(doneButton.waitForNonExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["questRowTitle"].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["퀘스트 기록"].waitForNonExistence(timeout: 2))
     }
 
     /// Wrapping the glyph in a `Button` must not replace its identity announcement with just

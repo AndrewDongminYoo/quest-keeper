@@ -21,9 +21,8 @@ struct QuestListSections: View {
     let onEditDailyFocus: () -> Void
     let now: Date
     let onComplete: (Quest, Date) -> Void
-    let onRetryTomorrow: (Quest) -> Void
     let onDelete: (Quest) -> Void
-    let onEdit: (Quest) -> Void
+    let onOpenDetail: (Quest) -> Void
 
     @State private var showsRemainingQuests = false
 
@@ -43,9 +42,16 @@ struct QuestListSections: View {
                     .accessibilityIdentifier("graveSectionTitle")
                 VStack(spacing: 10) {
                     ForEach(dailyGraves) { quest in
-                        DailyGraveRow(quest: quest, isNewlyMissed: newlyMissedQuestIDs.contains(quest.id)) {
-                            onRetryTomorrow(quest)
+                        Button {
+                            onOpenDetail(quest)
+                        } label: {
+                            DailyGraveRow(
+                                quest: quest,
+                                isNewlyMissed: newlyMissedQuestIDs.contains(quest.id)
+                            )
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityElement(children: .contain)
                     }
                 }
             }
@@ -87,7 +93,18 @@ struct QuestListSections: View {
                 VStack(spacing: 10) {
                     ForEach(focusQuests) { quest in
                         if completedDailyFocusQuestIDs.contains(quest.id) {
-                            QuestRow(quest: quest, now: now, heroAppearance: heroAppearance, isCompleted: true)
+                            Button {
+                                onOpenDetail(quest)
+                            } label: {
+                                QuestRow(
+                                    quest: quest,
+                                    now: now,
+                                    heroAppearance: heroAppearance,
+                                    isCompleted: true
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityElement(children: .contain)
                         } else {
                             swipeableRow(quest)
                         }
@@ -126,7 +143,7 @@ struct QuestListSections: View {
             pinnedBattlePhase: pinnedBattlePhase(for: quest),
             onComplete: onComplete,
             onDelete: onDelete,
-            onEdit: onEdit
+            onOpenDetail: onOpenDetail
         )
     }
 
@@ -177,7 +194,7 @@ private struct SwipeableQuestRow: View {
     let pinnedBattlePhase: QuestBattlePhase
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
-    let onEdit: (Quest) -> Void
+    let onOpenDetail: (Quest) -> Void
 
     @State private var offset: CGFloat = 0
     @State private var isTrackingSwipe = false
@@ -228,7 +245,7 @@ private struct SwipeableQuestRow: View {
                 .onTapGesture {
                     guard !isResolvingBattle else { return }
                     if offset == 0 {
-                        onEdit(quest)
+                        onOpenDetail(quest)
                     } else {
                         reset()
                     }

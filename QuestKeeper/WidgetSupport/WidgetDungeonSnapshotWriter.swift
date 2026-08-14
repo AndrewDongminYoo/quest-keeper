@@ -3,36 +3,48 @@ import OSLog
 import WidgetKit
 
 actor WidgetDungeonSnapshotWriter {
+    private struct Submission {
+        let id: UInt64
+        let payload: WidgetDungeonPayload
+        let continuation: CheckedContinuation<Bool, Never>
+    }
+
     typealias Save = @Sendable (WidgetDungeonPayload) async throws -> Void
-    typealias ReloadAllTimelines = @Sendable () -> Void
+    typealias ReloadAllTimelines = @Sendable () async -> Void
     typealias RetryDelay = @Sendable () async -> Void
+    typealias SubmissionAccepted = @Sendable (WidgetDungeonPayload) -> Void
 
     static let maximumSaveAttempts = 2
 
     private let save: Save
     private let reloadAllTimelines: ReloadAllTimelines
     private let retryDelay: RetryDelay
+    private let onSubmissionAccepted: SubmissionAccepted
     private let logger = Logger(subsystem: "kr.donminzzi.QuestKeeper", category: "WidgetSnapshot")
-    private var pendingPayload: WidgetDungeonPayload?
+    private var pendingSubmission: Submission?
+    private var activeSubmissionID: UInt64?
     private var latestSubmittedAt = Date.distantPast
     private var isSaving = false
+    private var nextSubmissionID: UInt64 = 0
 
     init(
         snapshotStore: WidgetDungeonSnapshotStore = WidgetDungeonSnapshotStore(),
         reloadAllTimelines: @escaping ReloadAllTimelines = {
-            Task { @MainActor in
+            await MainActor.run {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         },
         retryDelay: @escaping RetryDelay = {
             try? await Task.sleep(nanoseconds: 100_000_000)
-        }
+        },
+        onSubmissionAccepted: @escaping SubmissionAccepted = { _ in }
     ) {
         self.save = { payload in
             try snapshotStore.save(payload)
         }
         self.reloadAllTimelines = reloadAllTimelines
         self.retryDelay = retryDelay
+        self.onSubmissionAccepted = onSubmissionAccepted
     }
 
     init(
@@ -40,30 +52,52 @@ actor WidgetDungeonSnapshotWriter {
         reloadAllTimelines: @escaping ReloadAllTimelines = {},
         retryDelay: @escaping RetryDelay = {
             try? await Task.sleep(nanoseconds: 100_000_000)
-        }
+        },
+        onSubmissionAccepted: @escaping SubmissionAccepted = { _ in }
     ) {
         self.save = save
         self.reloadAllTimelines = reloadAllTimelines
         self.retryDelay = retryDelay
+        self.onSubmissionAccepted = onSubmissionAccepted
     }
 
-    func submit(_ payload: WidgetDungeonPayload) async {
-        guard payload.generatedAt >= latestSubmittedAt else { return }
+    @discardableResult
+    func submit(_ payload: WidgetDungeonPayload) async -> Bool {
+        guard payload.generatedAt >= latestSubmittedAt else { return false }
         latestSubmittedAt = payload.generatedAt
-        pendingPayload = payload
 
-        guard !isSaving else { return }
-        isSaving = true
-
-        while let nextPayload = pendingPayload {
-            pendingPayload = nil
-
-            let saved = await saveWithRetry(nextPayload)
-            if saved {
-                if pendingPayload == nil {
-                    reloadAllTimelines()
-                }
+        return await withCheckedContinuation { continuation in
+            nextSubmissionID += 1
+            let submission = Submission(
+                id: nextSubmissionID,
+                payload: payload,
+                continuation: continuation
+            )
+            if let replaced = pendingSubmission {
+                replaced.continuation.resume(returning: false)
             }
+            pendingSubmission = submission
+            onSubmissionAccepted(payload)
+
+            guard !isSaving else { return }
+            isSaving = true
+            Task { await self.drain() }
+        }
+    }
+
+    private func drain() async {
+        while let submission = pendingSubmission {
+            pendingSubmission = nil
+            activeSubmissionID = submission.id
+
+            let saved = await saveWithRetry(submission.payload)
+            var isLatest = activeSubmissionID == submission.id && pendingSubmission == nil
+            if saved, isLatest {
+                await reloadAllTimelines()
+                isLatest = activeSubmissionID == submission.id && pendingSubmission == nil
+            }
+            submission.continuation.resume(returning: saved && isLatest)
+            activeSubmissionID = nil
         }
 
         isSaving = false
@@ -76,11 +110,14 @@ actor WidgetDungeonSnapshotWriter {
                 return true
             } catch {
                 logger.error("Failed to write widget snapshot attempt \(attempt): \(String(describing: error), privacy: .public)")
-                if pendingPayload?.generatedAt ?? .distantPast > payload.generatedAt {
+                if pendingSubmission != nil {
                     return false
                 }
                 if attempt < Self.maximumSaveAttempts {
                     await retryDelay()
+                    if pendingSubmission != nil {
+                        return false
+                    }
                 }
             }
         }

@@ -16,13 +16,22 @@ import SwiftData
 final class Quest {
     var id: UUID
     var title: String
+    var details: String?
     var deadline: Date
     var completedAt: Date?
     var importance: Importance
 
-    init(id: UUID = UUID(), title: String, deadline: Date, importance: Importance, completedAt: Date? = nil) {
+    init(
+        id: UUID = UUID(),
+        title: String,
+        deadline: Date,
+        importance: Importance,
+        completedAt: Date? = nil,
+        details: String? = nil
+    ) {
         self.id = id
         self.title = title
+        self.details = details
         self.deadline = deadline
         self.importance = importance
         self.completedAt = completedAt

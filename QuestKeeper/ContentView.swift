@@ -18,9 +18,9 @@ struct ContentView: View {
     @State private var pendingDeaths: Set<UUID> = []
     /// Transient: quests whose monster grew while the app was closed. Replaced on the next activation.
     @State private var escalatedQuestIDs: Set<UUID> = []
-    @State private var route: EditorRoute?
+    @State private var route: QuestSheetRoute?
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
-    @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
+    @State private var notificationAuthorization: QuestNotificationAuthorization?
     @State private var mourningTask: Task<Void, Never>?
     @Binding private var hasDeferredOnboardingThisRun: Bool
     @Binding private var recoveryOffer: RecoveryActivationOffer?
@@ -101,7 +101,9 @@ struct ContentView: View {
                     newlyMissedQuestIDs: pendingDeaths,
                     escalatedQuestIDs: escalatedQuestIDs,
                     now: now,
-                    showsNotificationPermissionBanner: notificationAuthorization == .denied,
+                    notificationPermissionAction: QuestNotificationPermissionAction.make(
+                        authorization: notificationAuthorization
+                    ),
                     onboardingPresentation: onboardingPresentation,
                     dailyFocusPresentation: dailyFocusPresentation,
                     recoveryPresentation: recoveryPresentation,
@@ -127,11 +129,10 @@ struct ContentView: View {
                         route = .recoveryCreate(.guided(at: .now))
                     },
                     onDismissRecovery: { recoveryOffer = nil },
-                    onOpenNotificationSettings: openNotificationSettings,
+                    onResolveNotificationPermission: resolveNotificationPermission,
                     onComplete: complete,
-                    onRetryTomorrow: retryTomorrow,
                     onDelete: delete,
-                    onEdit: { route = .edit($0) }
+                    onOpenDetail: { route = .detail($0) }
                 )
             }
             .sheet(item: $route) { route in
@@ -155,20 +156,20 @@ struct ContentView: View {
                             writeWidgetSnapshot(including: quest)
                         }
                     )
-                case .edit(let quest):
-                    QuestEditor(
-                        quest: quest,
-                        notificationService: notificationService,
-                        onAuthorizationChange: { notificationAuthorization = $0 },
-                        onSaved: writeWidgetSnapshot(including:)
-                    )
-                case .dailyGrave(let quest):
-                    QuestResolutionView(quest: quest, now: .now) {
-                        retryTomorrow(quest)
-                        self.route = nil
+                case .detail(let quest):
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        QuestDetailView(
+                            quest: quest,
+                            now: context.date,
+                            notificationService: notificationService,
+                            onAuthorizationChange: { notificationAuthorization = $0 },
+                            onSaved: writeWidgetSnapshot(including:),
+                            onRetryTomorrow: {
+                                retryTomorrow(quest)
+                                self.route = nil
+                            }
+                        )
                     }
-                case .resolved(let quest):
-                    QuestResolutionView(quest: quest, now: .now)
                 }
             }
             .sheet(item: $dailyFocusEditor) { editor in
@@ -207,19 +208,33 @@ struct ContentView: View {
             .task {
                 notificationAuthorization = await notificationService.authorizationStatus()
             }
-            .onChange(of: notificationRouteStore.pendingQuestID, initial: true) { _, questID in
-                consumeNotificationRoute(questID)
+            .onChange(of: ObjectIdentifier(modelContext.container), initial: true) { _, _ in
+                notificationRouteStore.resume(for: modelContext.container)
+            }
+            .onChange(of: notificationRouteStore.readyGeneration, initial: true) { _, _ in
+                consumeNotificationRoute()
+            }
+            .onChange(of: notificationRouteStore.pendingQuestID, initial: true) { _, _ in
+                consumeNotificationRoute()
             }
             .onChange(of: quests.map(\.id), initial: true) { _, _ in
-                consumeNotificationRoute(notificationRouteStore.pendingQuestID)
+                consumeNotificationRoute()
             }
         }
         .onChange(of: activationReplay?.id, initial: true) { _, _ in
             applyActivationReplay()
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
-            guard phase == .active else { return }
-            refreshNotificationAuthorization()
+            switch phase {
+            case .background:
+                if case .detail = route {
+                    route = nil
+                }
+            case .active:
+                refreshNotificationAuthorization()
+            default:
+                break
+            }
         }
     }
 
@@ -242,6 +257,21 @@ struct ContentView: View {
     private func refreshNotificationAuthorization() {
         Task { @MainActor in
             notificationAuthorization = await notificationService.authorizationStatus()
+        }
+    }
+
+    private func resolveNotificationPermission(_ action: QuestNotificationPermissionAction) {
+        switch action {
+        case .requestAuthorization:
+            let currentQuests = quests
+            Task { @MainActor in
+                notificationAuthorization = await notificationService.requestAuthorizationAndReconcile(
+                    quests: currentQuests,
+                    now: .now
+                )
+            }
+        case .openSettings:
+            openNotificationSettings()
         }
     }
 
@@ -407,23 +437,17 @@ struct ContentView: View {
         }
     }
 
-    private func consumeNotificationRoute(_ questID: UUID?) {
-        guard let questID else { return }
-        guard let quest = quests.first(where: { $0.id == questID }) else {
-            print("Notification route is waiting for quest: \(questID)")
-            return
-        }
+    private func consumeNotificationRoute() {
+        guard let quest = takeNotificationRouteQuest(
+            from: notificationRouteStore,
+            in: modelContext
+        ) else { return }
 
         let now = Date.now
         switch notificationDestination(for: quest.snapshot, now: now) {
-        case .edit:
-            route = .edit(quest)
-        case .dailyGrave:
-            route = .dailyGrave(quest)
-        case .resolved:
-            route = .resolved(quest)
+        case .detail:
+            route = .detail(quest)
         }
-        notificationRouteStore.clear()
     }
 
     private func openNotificationSettings() {
@@ -432,21 +456,16 @@ struct ContentView: View {
     }
 }
 
-/// Which quest, if any, the editor sheet is editing. `.create` inserts a new one.
-enum EditorRoute: Identifiable {
+enum QuestSheetRoute: Identifiable {
     case create(QuestEditorDraft?)
     case recoveryCreate(QuestEditorDraft)
-    case edit(Quest)
-    case dailyGrave(Quest)
-    case resolved(Quest)
+    case detail(Quest)
 
     var id: String {
         switch self {
         case .create: "create"
         case .recoveryCreate: "recovery-create"
-        case .edit(let quest): quest.id.uuidString
-        case .dailyGrave(let quest): "daily-grave-\(quest.id.uuidString)"
-        case .resolved(let quest): "resolved-\(quest.id.uuidString)"
+        case .detail(let quest): "detail-\(quest.id.uuidString)"
         }
     }
 }
@@ -460,20 +479,13 @@ struct DailyFocusEditorRoute: Identifiable {
 }
 
 nonisolated enum NotificationQuestDestination: Equatable {
-    case edit
-    case dailyGrave
-    case resolved
+    case detail
 }
 
 nonisolated func notificationDestination(for snapshot: QuestSnapshot, now: Date) -> NotificationQuestDestination {
-    switch snapshot.outcome(at: now) {
-    case .pending:
-        return .edit
-    case .grave where snapshot.isVisibleDailyGrave(at: now):
-        return .dailyGrave
-    case .victory, .grave:
-        return .resolved
-    }
+    _ = snapshot
+    _ = now
+    return .detail
 }
 
 #Preview {

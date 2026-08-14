@@ -14,6 +14,7 @@ nonisolated enum RetentionEventName: String, Codable, CaseIterable, Sendable {
 nonisolated enum RetentionEventSource: String, Codable, CaseIterable, Sendable {
     case app
     case widget
+    case shortcut
 }
 
 @Model
