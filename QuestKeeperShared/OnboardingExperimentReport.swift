@@ -500,7 +500,7 @@ private nonisolated func validCombination(
     case .questRetried:
         source == .app && questID != nil
     case .questCompleted:
-        questID != nil
+        (source == .app || source == .widget) && questID != nil
     }
 }
 

@@ -305,7 +305,7 @@ private nonisolated func isValidCombination(
     case .questRetried:
         source == .app && questID != nil
     case .questCompleted:
-        questID != nil
+        (source == .app || source == .widget) && questID != nil
     case .experimentExposed, .questCreationStarted, .onboardingDeferred:
         source == .app && questID == nil
     }

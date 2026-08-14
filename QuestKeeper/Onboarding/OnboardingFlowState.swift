@@ -112,7 +112,7 @@ nonisolated enum OnboardingFlowState {
         case .questRetried:
             return source == .app && event.questID != nil
         case .questCompleted:
-            return event.questID != nil
+            return (source == .app || source == .widget) && event.questID != nil
         }
     }
 

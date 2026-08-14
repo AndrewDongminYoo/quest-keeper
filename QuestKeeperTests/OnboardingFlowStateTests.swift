@@ -48,6 +48,22 @@ struct OnboardingFlowStateTests {
         ) == .finished)
     }
 
+    @Test("shortcut completion does not finish guided onboarding")
+    func shortcutCompletionDoesNotFinishGuidedFlow() {
+        let shortcutCompletion = event(
+            id: 4,
+            name: .questCompleted,
+            at: assignedAt.addingTimeInterval(3),
+            questID: questID,
+            source: .shortcut
+        )
+        #expect(makeState(
+            events: [exposure(), creation(), shortcutCompletion],
+            pending: [questID],
+            deferred: false
+        ) == .guidedCompletion(questID))
+    }
+
     @Test("another quest completion does not finish onboarding")
     func otherQuestCompletion() {
         #expect(makeState(

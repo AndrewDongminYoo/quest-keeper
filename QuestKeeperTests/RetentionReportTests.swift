@@ -36,6 +36,26 @@ struct RetentionReportTests {
         #expect(report.dataQuality.unsupportedCount == 0)
     }
 
+    @Test("shortcut completion is unsupported and receives no completion credit")
+    func shortcutCompletionDoesNotCount() {
+        let completion = RetentionBaselineFixture.events[9]
+        let shortcutCompletion = RetentionEventSnapshot(
+            id: completion.id,
+            schemaVersion: completion.schemaVersion,
+            nameRawValue: completion.nameRawValue,
+            installationID: completion.installationID,
+            occurredAt: completion.occurredAt,
+            sourceRawValue: RetentionEventSource.shortcut.rawValue,
+            questID: completion.questID,
+            deduplicationKey: completion.deduplicationKey
+        )
+        let events = RetentionBaselineFixture.events.map { $0.id == completion.id ? shortcutCompletion : $0 }
+        let report = makeReport(events: events, expectation: nil)
+
+        #expect(report.firstCompletion == RetentionRate(achieved: 1, eligible: 3))
+        #expect(report.dataQuality.unsupportedCount == 1)
+    }
+
     @Test("experiment events do not alter core metrics")
     func experimentEventsPreserveCoreMetrics() {
         let experimentEvents = [

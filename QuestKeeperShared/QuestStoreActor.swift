@@ -8,10 +8,9 @@ nonisolated struct QuestStoreCreateResult: Equatable, Sendable {
     let retentionRecordResult: RetentionRecordResult
 }
 
-/// Off-main store access for the widget intent. Writes only the raw `completedAt` fact.
+/// Actor-owned store access for shortcut creation, widget completion, and widget snapshot reads.
 ///
-/// `@ModelActor` gives it a private `ModelContext` bound to the actor, so a bare context does not
-/// fight Swift 6 strict concurrency in the intent's async `perform()`.
+/// `@ModelActor` keeps Quest and retention writes inside a private `ModelContext`, avoiding cross-actor SwiftData models under Swift 6 strict concurrency.
 @ModelActor
 actor QuestStoreActor {
     func create(
