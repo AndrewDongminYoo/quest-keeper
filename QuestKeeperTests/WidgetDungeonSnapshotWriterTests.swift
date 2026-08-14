@@ -48,9 +48,7 @@ struct WidgetDungeonSnapshotWriterTests {
                 await probe.recordSaveFinish(payload)
             },
             reloadAllTimelines: {
-                Task {
-                    await probe.recordReload()
-                }
+                await probe.recordReload()
             },
             onSubmissionAccepted: { payload in
                 acceptedPayloadContinuation.yield(payload)
@@ -100,7 +98,7 @@ struct WidgetDungeonSnapshotWriterTests {
                 await probe.recordSaveFinish(payload)
             },
             reloadAllTimelines: {
-                Task { await probe.recordReload() }
+                await probe.recordReload()
             },
             onSubmissionAccepted: { payload in
                 acceptedPayloadContinuation.yield(payload)
@@ -146,9 +144,7 @@ struct WidgetDungeonSnapshotWriterTests {
                 await probe.recordSaveFinish(payload)
             },
             reloadAllTimelines: {
-                Task {
-                    await probe.recordReload()
-                }
+                await probe.recordReload()
             }
         )
 
@@ -183,9 +179,7 @@ struct WidgetDungeonSnapshotWriterTests {
                 await probe.recordSaveFinish(payload)
             },
             reloadAllTimelines: {
-                Task {
-                    await probe.recordReload()
-                }
+                await probe.recordReload()
             }
         )
 
@@ -205,6 +199,133 @@ struct WidgetDungeonSnapshotWriterTests {
         #expect(snapshot.reloadCount == 1)
     }
 
+    @Test("writer aborts an older retry when a newer submission arrives during retry delay")
+    func writerRechecksPendingSubmissionAfterRetryDelay() async {
+        let oldPayload = payload(title: "old", generatedAt: now)
+        let newPayload = payload(title: "new", generatedAt: now.addingTimeInterval(1))
+        let probe = SnapshotWriterProbe()
+        let (acceptedPayloads, acceptedPayloadContinuation) = AsyncStream<WidgetDungeonPayload>.makeStream()
+        var acceptedPayloadIterator = acceptedPayloads.makeAsyncIterator()
+        let writer = WidgetDungeonSnapshotWriter(
+            save: { payload in
+                await probe.recordSaveStart(payload)
+                if payload == oldPayload {
+                    struct SaveFailure: Error {}
+                    throw SaveFailure()
+                }
+                await probe.recordSaveFinish(payload)
+            },
+            reloadAllTimelines: {
+                await probe.recordReload()
+            },
+            retryDelay: {
+                await probe.waitInRetryDelay()
+            },
+            onSubmissionAccepted: { payload in
+                acceptedPayloadContinuation.yield(payload)
+            }
+        )
+
+        let oldTask = Task { await writer.submit(oldPayload) }
+        #expect(await acceptedPayloadIterator.next() == oldPayload)
+        await probe.waitForRetryDelayToStart()
+        let newTask = Task { await writer.submit(newPayload) }
+        #expect(await acceptedPayloadIterator.next() == newPayload)
+        acceptedPayloadContinuation.finish()
+        await probe.allowRetryDelayToFinish()
+
+        let oldResult = await oldTask.value
+        let newResult = await newTask.value
+        await waitForCondition("writer to skip the old retry and save the newer payload") {
+            let snapshot = await probe.snapshot()
+            return snapshot.finished == [newPayload]
+                && snapshot.reloadCount == 1
+        }
+
+        let snapshot = await probe.snapshot()
+        #expect(oldResult == false)
+        #expect(newResult == true)
+        #expect(snapshot.started == [oldPayload, newPayload])
+        #expect(snapshot.finished == [newPayload])
+        #expect(snapshot.reloadCount == 1)
+    }
+
+    @Test("writer returns true only after the latest reload finishes")
+    func writerAwaitsReloadBeforeReturningSuccess() async {
+        let latestPayload = payload(title: "latest", generatedAt: now)
+        let probe = SnapshotWriterProbe()
+        let resultProbe = SubmissionResultProbe()
+        let writer = WidgetDungeonSnapshotWriter(
+            save: { payload in
+                await probe.recordSaveStart(payload)
+                await probe.recordSaveFinish(payload)
+            },
+            reloadAllTimelines: {
+                await probe.waitInReload()
+            }
+        )
+
+        let submitTask = Task {
+            let result = await writer.submit(latestPayload)
+            await resultProbe.record(result)
+            return result
+        }
+
+        await probe.waitForReloadToStart()
+        #expect(await resultProbe.current() == nil)
+        await probe.allowReloadToFinish()
+
+        #expect(await submitTask.value == true)
+        #expect(await resultProbe.current() == true)
+        let snapshot = await probe.snapshot()
+        #expect(snapshot.started == [latestPayload])
+        #expect(snapshot.finished == [latestPayload])
+        #expect(snapshot.reloadCount == 1)
+    }
+
+    @Test("writer reports an older reload false when a newer submission arrives")
+    func writerRechecksLatestSubmissionAfterReload() async {
+        let oldPayload = payload(title: "old", generatedAt: now)
+        let newPayload = payload(title: "new", generatedAt: now.addingTimeInterval(1))
+        let probe = SnapshotWriterProbe()
+        let oldResultProbe = SubmissionResultProbe()
+        let (acceptedPayloads, acceptedPayloadContinuation) = AsyncStream<WidgetDungeonPayload>.makeStream()
+        var acceptedPayloadIterator = acceptedPayloads.makeAsyncIterator()
+        let writer = WidgetDungeonSnapshotWriter(
+            save: { payload in
+                await probe.recordSaveStart(payload)
+                await probe.recordSaveFinish(payload)
+            },
+            reloadAllTimelines: {
+                await probe.waitInReload()
+            },
+            onSubmissionAccepted: { payload in
+                acceptedPayloadContinuation.yield(payload)
+            }
+        )
+
+        let oldTask = Task {
+            let result = await writer.submit(oldPayload)
+            await oldResultProbe.record(result)
+            return result
+        }
+        #expect(await acceptedPayloadIterator.next() == oldPayload)
+        await probe.waitForReloadToStart()
+        #expect(await oldResultProbe.current() == nil)
+
+        let newTask = Task { await writer.submit(newPayload) }
+        #expect(await acceptedPayloadIterator.next() == newPayload)
+        acceptedPayloadContinuation.finish()
+        await probe.allowReloadToFinish()
+
+        #expect(await oldTask.value == false)
+        #expect(await newTask.value == true)
+        let snapshot = await probe.snapshot()
+        #expect(snapshot.started == [oldPayload, newPayload])
+        #expect(snapshot.finished == [oldPayload, newPayload])
+        #expect(snapshot.reloadCount == 2)
+    }
+
     @Test("writer delays retry and recovers after permanent failure")
     func writerDelaysRetryAndRecoversAfterPermanentFailure() async {
         let failedPayload = payload(title: "fail", generatedAt: now)
@@ -220,9 +341,7 @@ struct WidgetDungeonSnapshotWriterTests {
                 await probe.recordSaveFinish(payload)
             },
             reloadAllTimelines: {
-                Task {
-                    await probe.recordReload()
-                }
+                await probe.recordReload()
             },
             retryDelay: {
                 await probe.recordRetryDelay()
@@ -304,6 +423,10 @@ private actor SnapshotWriterProbe {
     private var reloadCount = 0
     private var firstSaveStartedContinuation: CheckedContinuation<Void, Never>?
     private var firstSaveFinishContinuation: CheckedContinuation<Void, Never>?
+    private var retryDelayStartedContinuation: CheckedContinuation<Void, Never>?
+    private var retryDelayFinishContinuation: CheckedContinuation<Void, Never>?
+    private var reloadStartedContinuation: CheckedContinuation<Void, Never>?
+    private var reloadFinishContinuation: CheckedContinuation<Void, Never>?
 
     func recordSaveStart(_ payload: WidgetDungeonPayload) {
         started.append(payload)
@@ -346,6 +469,53 @@ private actor SnapshotWriterProbe {
         retryDelayCount += 1
     }
 
+    func waitInRetryDelay() async {
+        retryDelayCount += 1
+        retryDelayStartedContinuation?.resume()
+        retryDelayStartedContinuation = nil
+
+        await withCheckedContinuation { continuation in
+            retryDelayFinishContinuation = continuation
+        }
+    }
+
+    func waitForRetryDelayToStart() async {
+        guard retryDelayCount == 0 else { return }
+
+        await withCheckedContinuation { continuation in
+            retryDelayStartedContinuation = continuation
+        }
+    }
+
+    func allowRetryDelayToFinish() {
+        retryDelayFinishContinuation?.resume()
+        retryDelayFinishContinuation = nil
+    }
+
+    func waitInReload() async {
+        reloadCount += 1
+        guard reloadCount == 1 else { return }
+        reloadStartedContinuation?.resume()
+        reloadStartedContinuation = nil
+
+        await withCheckedContinuation { continuation in
+            reloadFinishContinuation = continuation
+        }
+    }
+
+    func waitForReloadToStart() async {
+        guard reloadCount == 0 else { return }
+
+        await withCheckedContinuation { continuation in
+            reloadStartedContinuation = continuation
+        }
+    }
+
+    func allowReloadToFinish() {
+        reloadFinishContinuation?.resume()
+        reloadFinishContinuation = nil
+    }
+
     func snapshot() -> SnapshotWriterProbeState {
         SnapshotWriterProbeState(
             started: started,
@@ -363,4 +533,16 @@ private struct SnapshotWriterProbeState: Sendable {
     let finished: [WidgetDungeonPayload]
     let reloadCount: Int
     let retryDelayCount: Int
+}
+
+private actor SubmissionResultProbe {
+    private var result: Bool?
+
+    func record(_ result: Bool) {
+        self.result = result
+    }
+
+    func current() -> Bool? {
+        result
+    }
 }

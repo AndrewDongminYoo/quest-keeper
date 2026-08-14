@@ -10,7 +10,7 @@ actor WidgetDungeonSnapshotWriter {
     }
 
     typealias Save = @Sendable (WidgetDungeonPayload) async throws -> Void
-    typealias ReloadAllTimelines = @Sendable () -> Void
+    typealias ReloadAllTimelines = @Sendable () async -> Void
     typealias RetryDelay = @Sendable () async -> Void
     typealias SubmissionAccepted = @Sendable (WidgetDungeonPayload) -> Void
 
@@ -30,7 +30,7 @@ actor WidgetDungeonSnapshotWriter {
     init(
         snapshotStore: WidgetDungeonSnapshotStore = WidgetDungeonSnapshotStore(),
         reloadAllTimelines: @escaping ReloadAllTimelines = {
-            Task { @MainActor in
+            await MainActor.run {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         },
@@ -91,9 +91,10 @@ actor WidgetDungeonSnapshotWriter {
             activeSubmissionID = submission.id
 
             let saved = await saveWithRetry(submission.payload)
-            let isLatest = activeSubmissionID == submission.id && pendingSubmission == nil
+            var isLatest = activeSubmissionID == submission.id && pendingSubmission == nil
             if saved, isLatest {
-                reloadAllTimelines()
+                await reloadAllTimelines()
+                isLatest = activeSubmissionID == submission.id && pendingSubmission == nil
             }
             submission.continuation.resume(returning: saved && isLatest)
             activeSubmissionID = nil
@@ -114,6 +115,9 @@ actor WidgetDungeonSnapshotWriter {
                 }
                 if attempt < Self.maximumSaveAttempts {
                     await retryDelay()
+                    if pendingSubmission != nil {
+                        return false
+                    }
                 }
             }
         }
