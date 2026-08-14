@@ -243,6 +243,21 @@ nonisolated enum RetentionEventRecorder {
         keyComponent: String,
         in context: ModelContext
     ) -> RetentionRecordResult {
+        switch (name, source) {
+        case (.appActivated, .app),
+             (.questCreated, .app),
+             (.questCreated, .shortcut),
+             (.questCompleted, .app),
+             (.questCompleted, .widget),
+             (.questRetried, .app),
+             (.experimentExposed, .app),
+             (.questCreationStarted, .app),
+             (.onboardingDeferred, .app):
+            break
+        default:
+            return .failed
+        }
+
         do {
             var installationDescriptor = FetchDescriptor<RetentionInstallation>(
                 sortBy: [SortDescriptor(\.measurementStartedAt)]

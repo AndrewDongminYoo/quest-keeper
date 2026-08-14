@@ -119,6 +119,27 @@ struct RetentionEventRecorderTests {
         #expect(event?.snapshot.source == .shortcut)
     }
 
+    @Test("recorder rejects unsupported quest source combinations before persistence")
+    func recorderRejectsUnsupportedQuestSourceCombinationsBeforePersistence() throws {
+        let container = try measurementContainer()
+        let context = container.mainContext
+
+        #expect(RetentionEventRecorder.recordQuestCreated(
+            questID: questID,
+            at: now,
+            source: .widget,
+            in: context
+        ) == .failed)
+        #expect(RetentionEventRecorder.recordQuestCompleted(
+            questID: questID,
+            completedAt: now,
+            source: .shortcut,
+            in: context
+        ) == .failed)
+        #expect(try context.fetch(FetchDescriptor<RetentionEvent>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<RetentionInstallation>()).isEmpty)
+    }
+
     @Test("completion identity ignores process source but includes completion time")
     func completionCanonicalIdentity() throws {
         let container = try measurementContainer()
