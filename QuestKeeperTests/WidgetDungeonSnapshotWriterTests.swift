@@ -6,7 +6,7 @@ import Testing
 struct WidgetDungeonSnapshotWriterTests {
     private let now = Date(timeIntervalSinceReferenceDate: 820_454_400)
 
-    @Test("writer saves newer payload after an older in-flight write and reloads only once")
+    @Test("failed older write yields false before a newer write succeeds")
     func writerPrefersLatestPayload() async {
         let firstPayload = WidgetDungeonPayload(
             schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
@@ -35,11 +35,15 @@ struct WidgetDungeonSnapshotWriterTests {
             ]
         )
         let probe = SnapshotWriterProbe()
+        let (acceptedPayloads, acceptedPayloadContinuation) = AsyncStream<WidgetDungeonPayload>.makeStream()
+        var acceptedPayloadIterator = acceptedPayloads.makeAsyncIterator()
         let writer = WidgetDungeonSnapshotWriter(
             save: { payload in
                 await probe.recordSaveStart(payload)
                 if payload == firstPayload {
                     await probe.waitUntilFirstSaveCanFinish()
+                    struct SaveFailure: Error {}
+                    throw SaveFailure()
                 }
                 await probe.recordSaveFinish(payload)
             },
@@ -47,32 +51,91 @@ struct WidgetDungeonSnapshotWriterTests {
                 Task {
                     await probe.recordReload()
                 }
+            },
+            onSubmissionAccepted: { payload in
+                acceptedPayloadContinuation.yield(payload)
             }
         )
 
-        let firstTask = Task {
-            await writer.submit(firstPayload)
-        }
+        let firstTask = Task { await writer.submit(firstPayload) }
 
         await probe.waitForFirstSaveToStart()
-        await writer.submit(secondPayload)
+        #expect(await acceptedPayloadIterator.next() == firstPayload)
+        let secondTask = Task { await writer.submit(secondPayload) }
+        #expect(await acceptedPayloadIterator.next() == secondPayload)
+        acceptedPayloadContinuation.finish()
         await probe.allowFirstSaveToFinish()
-        await firstTask.value
+        let firstResult = await firstTask.value
+        let secondResult = await secondTask.value
 
         await waitForCondition("writer to save both payloads and reload latest once") {
             let snapshot = await probe.snapshot()
             return snapshot.started == [firstPayload, secondPayload]
-                && snapshot.finished == [firstPayload, secondPayload]
+                && snapshot.finished == [secondPayload]
                 && snapshot.reloadCount == 1
         }
 
         let snapshot = await probe.snapshot()
+        #expect(firstResult == false)
+        #expect(secondResult == true)
         #expect(snapshot.started == [firstPayload, secondPayload])
-        #expect(snapshot.finished == [firstPayload, secondPayload])
+        #expect(snapshot.finished == [secondPayload])
         #expect(snapshot.reloadCount == 1)
     }
 
-    @Test("writer ignores older payload submitted after newer payload")
+    @Test("writer replaces a pending submission even when timestamps are equal")
+    func writerReplacesPendingSubmission() async {
+        let activePayload = payload(title: "active", generatedAt: now)
+        let middlePayload = payload(title: "middle", generatedAt: now.addingTimeInterval(1))
+        let latestPayload = payload(title: "latest", generatedAt: now.addingTimeInterval(1))
+        let probe = SnapshotWriterProbe()
+        let (acceptedPayloads, acceptedPayloadContinuation) = AsyncStream<WidgetDungeonPayload>.makeStream()
+        var acceptedPayloadIterator = acceptedPayloads.makeAsyncIterator()
+        let writer = WidgetDungeonSnapshotWriter(
+            save: { payload in
+                await probe.recordSaveStart(payload)
+                if payload == activePayload {
+                    await probe.waitUntilFirstSaveCanFinish()
+                }
+                await probe.recordSaveFinish(payload)
+            },
+            reloadAllTimelines: {
+                Task { await probe.recordReload() }
+            },
+            onSubmissionAccepted: { payload in
+                acceptedPayloadContinuation.yield(payload)
+            }
+        )
+
+        let activeTask = Task { await writer.submit(activePayload) }
+        await probe.waitForFirstSaveToStart()
+        #expect(await acceptedPayloadIterator.next() == activePayload)
+        let middleTask = Task { await writer.submit(middlePayload) }
+        #expect(await acceptedPayloadIterator.next() == middlePayload)
+        let latestTask = Task { await writer.submit(latestPayload) }
+        #expect(await acceptedPayloadIterator.next() == latestPayload)
+        acceptedPayloadContinuation.finish()
+        await probe.allowFirstSaveToFinish()
+
+        let activeResult = await activeTask.value
+        let middleResult = await middleTask.value
+        let latestResult = await latestTask.value
+        await waitForCondition("writer to save only active and latest payloads") {
+            let snapshot = await probe.snapshot()
+            return snapshot.finished == [activePayload, latestPayload]
+                && snapshot.reloadCount == 1
+        }
+
+        let snapshot = await probe.snapshot()
+        #expect(activeResult == false)
+        #expect(middleResult == false)
+        #expect(latestResult == true)
+        #expect(snapshot.started == [activePayload, latestPayload])
+        #expect(snapshot.finished == [activePayload, latestPayload])
+        #expect(snapshot.reloadCount == 1)
+    }
+
+    @Test("writer reports stale payload false without saving or reloading")
     func writerIgnoresOlderPayloadSubmittedAfterNewerPayload() async {
         let oldPayload = payload(title: "old", generatedAt: now)
         let newPayload = payload(title: "new", generatedAt: now.addingTimeInterval(1))
@@ -89,8 +152,8 @@ struct WidgetDungeonSnapshotWriterTests {
             }
         )
 
-        await writer.submit(newPayload)
-        await writer.submit(oldPayload)
+        let newResult = await writer.submit(newPayload)
+        let oldResult = await writer.submit(oldPayload)
 
         await waitForCondition("writer to ignore stale older payload") {
             let snapshot = await probe.snapshot()
@@ -99,6 +162,8 @@ struct WidgetDungeonSnapshotWriterTests {
         }
 
         let snapshot = await probe.snapshot()
+        #expect(newResult == true)
+        #expect(oldResult == false)
         #expect(snapshot.started == [newPayload])
         #expect(snapshot.finished == [newPayload])
         #expect(snapshot.reloadCount == 1)
@@ -124,7 +189,7 @@ struct WidgetDungeonSnapshotWriterTests {
             }
         )
 
-        await writer.submit(latestPayload)
+        let result = await writer.submit(latestPayload)
 
         await waitForCondition("writer to retry failed latest payload") {
             let snapshot = await probe.snapshot()
@@ -134,6 +199,7 @@ struct WidgetDungeonSnapshotWriterTests {
         }
 
         let snapshot = await probe.snapshot()
+        #expect(result == true)
         #expect(snapshot.started == [latestPayload, latestPayload])
         #expect(snapshot.finished == [latestPayload])
         #expect(snapshot.reloadCount == 1)
@@ -169,8 +235,17 @@ struct WidgetDungeonSnapshotWriterTests {
         ) + [recoveryPayload]
         let expectedRetryDelayCount = WidgetDungeonSnapshotWriter.maximumSaveAttempts - 1
 
-        await writer.submit(failedPayload)
-        await writer.submit(recoveryPayload)
+        let failedResult = await writer.submit(failedPayload)
+
+        let failedSnapshot = await probe.snapshot()
+        #expect(failedResult == false)
+        #expect(failedSnapshot.started == Array(
+            repeating: failedPayload,
+            count: WidgetDungeonSnapshotWriter.maximumSaveAttempts
+        ))
+        #expect(failedSnapshot.reloadCount == 0)
+
+        let recoveryResult = await writer.submit(recoveryPayload)
 
         await waitForCondition("writer to recover after permanent failure") {
             let snapshot = await probe.snapshot()
@@ -181,6 +256,7 @@ struct WidgetDungeonSnapshotWriterTests {
         }
 
         let snapshot = await probe.snapshot()
+        #expect(recoveryResult == true)
         #expect(snapshot.started == expectedStarts)
         #expect(snapshot.finished == [recoveryPayload])
         #expect(snapshot.reloadCount == 1)

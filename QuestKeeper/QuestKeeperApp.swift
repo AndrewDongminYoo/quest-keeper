@@ -90,7 +90,8 @@ struct QuestKeeperApp: App {
             _sharedModelContainer = State(initialValue: container)
             let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
                 modelContainer: container,
-                notificationService: notificationService
+                notificationService: notificationService,
+                widgetSnapshotWriter: snapshotWriter
             )
             self.shortcutCreationCoordinator = shortcutCreationCoordinator
             AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)

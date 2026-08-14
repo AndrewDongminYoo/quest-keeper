@@ -1,7 +1,6 @@
 import Foundation
 import OSLog
 import SwiftData
-import WidgetKit
 
 nonisolated enum QuestShortcutFollowUpFailure: Hashable, Sendable {
     case notifications
@@ -55,7 +54,8 @@ final class QuestShortcutCreationCoordinator: Sendable {
 
     convenience init(
         modelContainer: ModelContainer,
-        notificationService: QuestNotificationService
+        notificationService: QuestNotificationService,
+        widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     ) {
         self.init(
             modelContainer: modelContainer,
@@ -67,22 +67,7 @@ final class QuestShortcutCreationCoordinator: Sendable {
                 )
             },
             updateWidgetSnapshot: { payload in
-                let saved = await Task.detached(priority: .utility) {
-                    let snapshotStore = WidgetDungeonSnapshotStore()
-                    for _ in 0..<2 {
-                        do {
-                            try snapshotStore.save(payload)
-                            return true
-                        } catch {
-                            continue
-                        }
-                    }
-                    return false
-                }.value
-                if saved {
-                    WidgetCenter.shared.reloadTimelines(ofKind: "QuestKeeperWidget")
-                }
-                return saved
+                await widgetSnapshotWriter.submit(payload)
             }
         )
     }
