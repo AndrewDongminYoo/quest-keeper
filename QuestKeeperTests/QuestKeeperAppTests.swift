@@ -263,6 +263,19 @@ struct QuestKeeperAppTests {
         ))
     }
 
+    @Test("detail deadline transition fixture requires an isolated UI test store")
+    func detailDeadlineTransitionFixtureIsolation() {
+        let arguments = ["QuestKeeper", "-uiTestingDetailDeadlineTransition"]
+        #expect(shouldSeedDetailDeadlineTransitionFixture(
+            usesUITestingStore: true,
+            arguments: arguments
+        ))
+        #expect(!shouldSeedDetailDeadlineTransitionFixture(
+            usesUITestingStore: false,
+            arguments: arguments
+        ))
+    }
+
     @Test("previews do not resolve or expose onboarding experiments")
     func previewExclusion() {
         #expect(!shouldResolveOnboardingExperiment(

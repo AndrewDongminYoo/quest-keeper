@@ -108,6 +108,18 @@ struct QuestKeeperApp: App {
                 ))
                 try container.mainContext.save()
             }
+            if shouldSeedDetailDeadlineTransitionFixture(
+                usesUITestingStore: usesUITestingStore,
+                arguments: arguments
+            ),
+               try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
+                container.mainContext.insert(Quest(
+                    title: "Deadline transition UI test",
+                    deadline: Date.now.addingTimeInterval(30),
+                    importance: .medium
+                ))
+                try container.mainContext.save()
+            }
             if usesInMemoryStore,
                arguments.contains("-storeScreenshotFixture") {
                 let now = Date.now
@@ -478,6 +490,13 @@ nonisolated func shouldSeedDailyFocusGraveFixture(
     arguments: [String]
 ) -> Bool {
     usesUITestingStore && arguments.contains("-uiTestingDailyFocusGrave")
+}
+
+nonisolated func shouldSeedDetailDeadlineTransitionFixture(
+    usesUITestingStore: Bool,
+    arguments: [String]
+) -> Bool {
+    usesUITestingStore && arguments.contains("-uiTestingDetailDeadlineTransition")
 }
 
 nonisolated func shouldSeedRecoveryFixture(

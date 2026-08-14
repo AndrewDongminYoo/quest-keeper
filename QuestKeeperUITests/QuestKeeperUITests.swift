@@ -333,6 +333,27 @@ final class QuestKeeperUITests: XCTestCase {
     }
 
     @MainActor
+    func testOpenPendingDetailRefreshesCapabilitiesWhenDeadlinePasses() throws {
+        let app = XCUIApplication()
+        app.launchArguments = uiTestKoreanLocaleArguments + [
+            "-uiTestingInMemoryStore",
+            "-onboardingVariant", "control",
+            "-uiTestingDetailDeadlineTransition",
+        ]
+        app.launch()
+
+        let title = "Deadline transition UI test"
+        let questTitle = app.staticTexts[title]
+        XCTAssertTrue(questTitle.waitForExistence(timeout: 3))
+        questTitle.tap()
+
+        let editButton = app.buttons["questDetailEditButton"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 3))
+        XCTAssertTrue(editButton.waitForNonExistence(timeout: 45))
+        XCTAssertTrue(app.buttons["questDetailRetryButton"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func testCompletedFocusDetailIsReadOnly() throws {
         let app = XCUIApplication()
         app.launchArguments = uiTestKoreanLocaleArguments + [

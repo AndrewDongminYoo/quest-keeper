@@ -155,17 +155,19 @@ struct ContentView: View {
                         }
                     )
                 case .detail(let quest):
-                    QuestDetailView(
-                        quest: quest,
-                        now: .now,
-                        notificationService: notificationService,
-                        onAuthorizationChange: { notificationAuthorization = $0 },
-                        onSaved: writeWidgetSnapshot(including:),
-                        onRetryTomorrow: {
-                            retryTomorrow(quest)
-                            self.route = nil
-                        }
-                    )
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        QuestDetailView(
+                            quest: quest,
+                            now: context.date,
+                            notificationService: notificationService,
+                            onAuthorizationChange: { notificationAuthorization = $0 },
+                            onSaved: writeWidgetSnapshot(including:),
+                            onRetryTomorrow: {
+                                retryTomorrow(quest)
+                                self.route = nil
+                            }
+                        )
+                    }
                 }
             }
             .sheet(item: $dailyFocusEditor) { editor in
