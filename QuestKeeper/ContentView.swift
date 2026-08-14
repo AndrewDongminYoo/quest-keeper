@@ -215,8 +215,16 @@ struct ContentView: View {
             applyActivationReplay()
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
-            guard phase == .active else { return }
-            refreshNotificationAuthorization()
+            switch phase {
+            case .background:
+                if case .detail = route {
+                    route = nil
+                }
+            case .active:
+                refreshNotificationAuthorization()
+            default:
+                break
+            }
         }
     }
 

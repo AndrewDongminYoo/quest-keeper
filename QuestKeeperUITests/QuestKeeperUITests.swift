@@ -285,6 +285,30 @@ final class QuestKeeperUITests: XCTestCase {
     }
 
     @MainActor
+    func testBackgroundingNestedDetailEditorDismissesDetailAndKeepsBoardRow() throws {
+        let app = XCUIApplication()
+        app.launchArguments = uiTestKoreanLocaleArguments + ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
+        app.launch()
+
+        let title = "Warm swap detail UI test"
+        createQuest(title: title, in: app)
+
+        app.staticTexts[title].tap()
+        let editButton = app.buttons["questDetailEditButton"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 3))
+        editButton.tap()
+        let titleField = app.textFields["제목"]
+        XCTAssertTrue(titleField.waitForExistence(timeout: 2))
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+
+        XCTAssertTrue(titleField.waitForNonExistence(timeout: 3))
+        XCTAssertTrue(editButton.waitForNonExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func testDailyGraveDetailOffersRetry() throws {
         let app = XCUIApplication()
         app.launchArguments = uiTestKoreanLocaleArguments + [
