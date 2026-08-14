@@ -51,21 +51,20 @@ final class NotificationRouteStore {
     func isReady(for container: ModelContainer) -> Bool {
         readyContainerIdentity == ObjectIdentifier(container)
     }
-}
 
-@MainActor
-func takeNotificationRouteQuest(
-    from store: NotificationRouteStore,
-    in context: ModelContext
-) -> Quest? {
-    guard store.isReady(for: context.container), let questID = store.pendingQuestID else {
-        return nil
+    /// Consumes the pending route, if any, and resolves it against `context`. Clears the pending ID
+    /// only once the quest actually resolved, so a route that arrives before its quest is visible
+    /// stays queued for the next attempt instead of being silently dropped.
+    func takeRoutedQuest(in context: ModelContext) -> Quest? {
+        guard isReady(for: context.container), let questID = pendingQuestID else {
+            return nil
+        }
+
+        let descriptor = FetchDescriptor<Quest>(
+            predicate: #Predicate { $0.id == questID }
+        )
+        guard let quest = try? context.fetch(descriptor).first else { return nil }
+        clear()
+        return quest
     }
-
-    let descriptor = FetchDescriptor<Quest>(
-        predicate: #Predicate { $0.id == questID }
-    )
-    guard let quest = try? context.fetch(descriptor).first else { return nil }
-    store.clear()
-    return quest
 }
