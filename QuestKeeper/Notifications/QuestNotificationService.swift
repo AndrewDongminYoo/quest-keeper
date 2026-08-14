@@ -202,6 +202,7 @@ final class QuestNotificationService {
             do {
                 try await center.add(request(for: plan))
             } catch {
+                performCancel(questID: questID)
                 return .unavailable
             }
         }

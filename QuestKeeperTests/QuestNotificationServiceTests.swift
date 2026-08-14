@@ -254,6 +254,26 @@ struct QuestNotificationServiceTests {
         #expect(authorization == .unavailable)
     }
 
+    @Test("sync removes partial Quest requests when a later add fails")
+    func syncRemovesPartialRequestsAfterAddFailure() async {
+        let center = FakeQuestNotificationCenter(status: .authorized)
+        let unrelatedID = "external.notification"
+        center.pendingRequestsList = [makeRequest(identifier: unrelatedID)]
+        center.addErrorOnAttempt = 2
+        let service = makeService(center: center)
+        let questID = UUID(uuidString: "99999999-9999-9999-9999-999999999999")!
+
+        let authorization = await service.sync(
+            quest: quest(id: questID, deadlineOffset: 3 * hour),
+            now: now
+        )
+
+        let questIdentifiers = QuestNotificationPlanner.identifiers(for: questID)
+        #expect(authorization == .unavailable)
+        #expect(center.pendingRequestsList.map(\.identifier) == [unrelatedID])
+        #expect(center.pendingRequestsList.contains { questIdentifiers.contains($0.identifier) } == false)
+    }
+
     @Test("denied permission skips scheduling without throwing")
     func deniedPermissionDoesNotFailSavePath() async {
         let center = FakeQuestNotificationCenter(status: .denied)
@@ -276,6 +296,8 @@ private final class FakeQuestNotificationCenter: QuestNotificationCenter {
     var status: UNAuthorizationStatus
     var requestAuthorizationResult = true
     var addError: Error?
+    var addErrorOnAttempt: Int?
+    var addAttemptCount = 0
     var addedRequests: [UNNotificationRequest] = []
     var pendingRequestsList: [UNNotificationRequest] = []
     var removedPendingIdentifiers: [[String]] = []
@@ -297,6 +319,8 @@ private final class FakeQuestNotificationCenter: QuestNotificationCenter {
     }
 
     func add(_ request: UNNotificationRequest) async throws {
+        addAttemptCount += 1
+        if addErrorOnAttempt == addAttemptCount { throw FakeNotificationError.addFailed }
         if let addError { throw addError }
         events.append("add:\(request.identifier)")
         addedRequests.append(request)
