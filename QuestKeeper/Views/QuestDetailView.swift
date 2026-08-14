@@ -56,17 +56,6 @@ struct QuestDetailView: View {
         self.onRetryTomorrow = onRetryTomorrow
     }
 
-    init(quest: Quest, now: Date, onRetryTomorrow: @escaping () -> Void) {
-        self.init(
-            quest: quest,
-            now: now,
-            notificationService: .shared,
-            onAuthorizationChange: { _ in },
-            onSaved: { _ in },
-            onRetryTomorrow: onRetryTomorrow
-        )
-    }
-
     private var capabilities: QuestDetailCapabilities {
         .make(snapshot: quest.snapshot, now: now)
     }
@@ -156,5 +145,3 @@ struct QuestDetailView: View {
         return AppStrings.resolve(resource, locale: .current)
     }
 }
-
-typealias QuestResolutionView = QuestDetailView

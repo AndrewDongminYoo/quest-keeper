@@ -252,6 +252,94 @@ final class QuestKeeperUITests: XCTestCase {
     }
 
     @MainActor
+    func testPendingRowOpensDetailEditsDetailsAndKeepsSwipeDelete() throws {
+        let app = XCUIApplication()
+        app.launchArguments = uiTestKoreanLocaleArguments + ["-uiTestingInMemoryStore", "-onboardingVariant", "control"]
+        app.launch()
+
+        let title = "Pending detail UI test"
+        createQuest(title: title, details: "First details", in: app)
+
+        app.staticTexts[title].tap()
+        let detail = app.staticTexts["questDetailDetails"]
+        XCTAssertTrue(detail.waitForExistence(timeout: 3))
+        XCTAssertTrue(detail.label.contains("First details"))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "진행 중")).firstMatch.exists)
+
+        app.buttons["questDetailEditButton"].tap()
+        let detailsField = app.textFields["questDetailsField"]
+        XCTAssertTrue(detailsField.waitForExistence(timeout: 2))
+        detailsField.tap()
+        detailsField.typeKey(.rightArrow, modifierFlags: .command)
+        detailsField.typeText(" Updated details")
+        app.buttons["questEditorSaveButton"].tap()
+
+        XCTAssertTrue(detail.waitForExistence(timeout: 3))
+        XCTAssertTrue(detail.label.contains("First details Updated details"))
+        app.buttons["닫기"].tap()
+
+        let questTitle = app.staticTexts[title]
+        XCTAssertTrue(questTitle.waitForExistence(timeout: 3))
+        questTitle.swipeLeft()
+        XCTAssertTrue(app.buttons["삭제"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testDailyGraveDetailOffersRetry() throws {
+        let app = XCUIApplication()
+        app.launchArguments = uiTestKoreanLocaleArguments + [
+            "-uiTestingInMemoryStore",
+            "-uiTestingDailyFocusGrave",
+            "-onboardingVariant", "control",
+        ]
+        app.launch()
+
+        let title = "어제의 퀘스트"
+        let graveTitle = app.staticTexts[title]
+        XCTAssertTrue(graveTitle.waitForExistence(timeout: 3))
+        graveTitle.tap()
+
+        XCTAssertFalse(app.buttons["questDetailEditButton"].exists)
+        let retryButton = app.buttons["questDetailRetryButton"]
+        XCTAssertTrue(retryButton.waitForExistence(timeout: 2))
+        retryButton.tap()
+
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["graveSectionTitle"].waitForNonExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testCompletedFocusDetailIsReadOnly() throws {
+        let app = XCUIApplication()
+        app.launchArguments = uiTestKoreanLocaleArguments + [
+            "-uiTestingInMemoryStore",
+            "-onboardingVariant", "control",
+            "-dailyFocusLoopEnabled",
+        ]
+        app.launch()
+
+        let title = "Completed focus detail UI test"
+        createQuest(title: title, in: app)
+        app.buttons["오늘 이대로 시작"].tap()
+
+        let questTitle = app.staticTexts[title]
+        XCTAssertTrue(questTitle.waitForExistence(timeout: 3))
+        revealCompletion(for: questTitle)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+            .withOffset(CGVector(dx: 68, dy: questTitle.frame.midY))
+            .tap()
+
+        XCTAssertTrue(app.staticTexts["\(title) 완료됨"].waitForExistence(timeout: 4))
+        app.staticTexts[title].tap()
+
+        XCTAssertTrue(app.navigationBars["퀘스트 기록"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "완료")).firstMatch.exists)
+        XCTAssertFalse(app.buttons["questDetailEditButton"].exists)
+        XCTAssertFalse(app.buttons["questDetailRetryButton"].exists)
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
@@ -262,7 +350,7 @@ final class QuestKeeperUITests: XCTestCase {
     }
 
     @MainActor
-    private func createQuest(title: String, in app: XCUIApplication) {
+    private func createQuest(title: String, details: String? = nil, in app: XCUIApplication) {
         let addButton = app.buttons["전투 추가"].firstMatch
         XCTAssertTrue(addButton.waitForExistence(timeout: 3))
         addButton.tap()
@@ -271,6 +359,13 @@ final class QuestKeeperUITests: XCTestCase {
         XCTAssertTrue(titleField.waitForExistence(timeout: 2))
         titleField.tap()
         titleField.typeText(title)
+
+        if let details {
+            let detailsField = app.textFields["questDetailsField"]
+            XCTAssertTrue(detailsField.waitForExistence(timeout: 2))
+            detailsField.tap()
+            detailsField.typeText(details)
+        }
 
         let saveButton = app.buttons["저장"]
         XCTAssertTrue(saveButton.waitForExistence(timeout: 2))

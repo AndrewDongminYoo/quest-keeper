@@ -18,7 +18,7 @@ struct ContentView: View {
     @State private var pendingDeaths: Set<UUID> = []
     /// Transient: quests whose monster grew while the app was closed. Replaced on the next activation.
     @State private var escalatedQuestIDs: Set<UUID> = []
-    @State private var route: EditorRoute?
+    @State private var route: QuestSheetRoute?
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
     @State private var mourningTask: Task<Void, Never>?
@@ -129,9 +129,8 @@ struct ContentView: View {
                     onDismissRecovery: { recoveryOffer = nil },
                     onOpenNotificationSettings: openNotificationSettings,
                     onComplete: complete,
-                    onRetryTomorrow: retryTomorrow,
                     onDelete: delete,
-                    onEdit: { route = .edit($0) }
+                    onOpenDetail: { route = .detail($0) }
                 )
             }
             .sheet(item: $route) { route in
@@ -155,20 +154,18 @@ struct ContentView: View {
                             writeWidgetSnapshot(including: quest)
                         }
                     )
-                case .edit(let quest):
-                    QuestEditor(
+                case .detail(let quest):
+                    QuestDetailView(
                         quest: quest,
+                        now: .now,
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
-                        onSaved: writeWidgetSnapshot(including:)
+                        onSaved: writeWidgetSnapshot(including:),
+                        onRetryTomorrow: {
+                            retryTomorrow(quest)
+                            self.route = nil
+                        }
                     )
-                case .dailyGrave(let quest):
-                    QuestResolutionView(quest: quest, now: .now) {
-                        retryTomorrow(quest)
-                        self.route = nil
-                    }
-                case .resolved(let quest):
-                    QuestResolutionView(quest: quest, now: .now)
                 }
             }
             .sheet(item: $dailyFocusEditor) { editor in
@@ -416,12 +413,8 @@ struct ContentView: View {
 
         let now = Date.now
         switch notificationDestination(for: quest.snapshot, now: now) {
-        case .edit:
-            route = .edit(quest)
-        case .dailyGrave:
-            route = .dailyGrave(quest)
-        case .resolved:
-            route = .resolved(quest)
+        case .detail:
+            route = .detail(quest)
         }
         notificationRouteStore.clear()
     }
@@ -432,21 +425,16 @@ struct ContentView: View {
     }
 }
 
-/// Which quest, if any, the editor sheet is editing. `.create` inserts a new one.
-enum EditorRoute: Identifiable {
+enum QuestSheetRoute: Identifiable {
     case create(QuestEditorDraft?)
     case recoveryCreate(QuestEditorDraft)
-    case edit(Quest)
-    case dailyGrave(Quest)
-    case resolved(Quest)
+    case detail(Quest)
 
     var id: String {
         switch self {
         case .create: "create"
         case .recoveryCreate: "recovery-create"
-        case .edit(let quest): quest.id.uuidString
-        case .dailyGrave(let quest): "daily-grave-\(quest.id.uuidString)"
-        case .resolved(let quest): "resolved-\(quest.id.uuidString)"
+        case .detail(let quest): "detail-\(quest.id.uuidString)"
         }
     }
 }
@@ -460,20 +448,13 @@ struct DailyFocusEditorRoute: Identifiable {
 }
 
 nonisolated enum NotificationQuestDestination: Equatable {
-    case edit
-    case dailyGrave
-    case resolved
+    case detail
 }
 
 nonisolated func notificationDestination(for snapshot: QuestSnapshot, now: Date) -> NotificationQuestDestination {
-    switch snapshot.outcome(at: now) {
-    case .pending:
-        return .edit
-    case .grave where snapshot.isVisibleDailyGrave(at: now):
-        return .dailyGrave
-    case .victory, .grave:
-        return .resolved
-    }
+    _ = snapshot
+    _ = now
+    return .detail
 }
 
 #Preview {

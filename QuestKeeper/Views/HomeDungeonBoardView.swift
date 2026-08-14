@@ -28,9 +28,8 @@ struct HomeDungeonBoardView: View {
     let onDismissRecovery: () -> Void
     let onOpenNotificationSettings: () -> Void
     let onComplete: (Quest, Date) -> Void
-    let onRetryTomorrow: (Quest) -> Void
     let onDelete: (Quest) -> Void
-    let onEdit: (Quest) -> Void
+    let onOpenDetail: (Quest) -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -97,9 +96,8 @@ struct HomeDungeonBoardView: View {
                             },
                             now: now,
                             onComplete: onComplete,
-                            onRetryTomorrow: onRetryTomorrow,
                             onDelete: onDelete,
-                            onEdit: onEdit
+                            onOpenDetail: onOpenDetail
                         )
                         .animation(.default, value: pending.map(\.id))
                         .animation(.default, value: dailyGraves.map(\.id))
