@@ -5,8 +5,9 @@
 //  Created by Dongmin yu on 7/8/26.
 //
 
-import SwiftUI
+import AppIntents
 import SwiftData
+import SwiftUI
 import UserNotifications
 
 @main
@@ -29,6 +30,7 @@ struct QuestKeeperApp: App {
     @State private var onboardingMeasurementAvailable = false
     private let notificationDelegate: NotificationDelegate
     private let notificationService: QuestNotificationService
+    private let shortcutCreationCoordinator: QuestShortcutCreationCoordinator
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     private let retentionBaselineWriter: RetentionBaselineWriter?
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
@@ -86,6 +88,12 @@ struct QuestKeeperApp: App {
                 isStoredInMemoryOnly: usesInMemoryStore
             )
             _sharedModelContainer = State(initialValue: container)
+            let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
+                modelContainer: container,
+                notificationService: notificationService
+            )
+            self.shortcutCreationCoordinator = shortcutCreationCoordinator
+            AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)
 #if DEBUG
             if shouldSeedDailyFocusGraveFixture(
                 usesUITestingStore: usesUITestingStore,
@@ -257,6 +265,7 @@ struct QuestKeeperApp: App {
                           ) {
                     didBackground = false
                     sharedModelContainer = refreshed
+                    shortcutCreationCoordinator.updateModelContainer(refreshed)
                     container = refreshed
                     canReplayActivation = true
                 } else {

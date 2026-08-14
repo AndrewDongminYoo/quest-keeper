@@ -10,6 +10,10 @@ import Testing
 import UserNotifications
 @testable import QuestKeeper
 
+private enum FakeNotificationError: Error {
+    case addFailed
+}
+
 @MainActor
 struct QuestNotificationServiceTests {
     let now = Date(timeIntervalSinceReferenceDate: 700_000_000)
@@ -203,6 +207,53 @@ struct QuestNotificationServiceTests {
         #expect(center.events.contains("requestAuthorization") == false)
     }
 
+    @Test("shortcut sync never requests undetermined notification permission")
+    func shortcutSyncDoesNotPrompt() async {
+        let center = FakeQuestNotificationCenter(status: .notDetermined)
+        let service = makeService(center: center)
+        let snapshot = quest(deadlineOffset: 3 * hour).snapshot
+
+        let authorization = await service.syncWithoutRequestingAuthorization(
+            snapshot: snapshot,
+            now: now,
+            locale: Locale(identifier: "ko")
+        )
+
+        #expect(authorization == .notDetermined)
+        #expect(center.addedRequests.isEmpty)
+        #expect(center.events.contains("requestAuthorization") == false)
+    }
+
+    @Test("shortcut sync schedules when permission already exists")
+    func shortcutSyncUsesExistingPermission() async {
+        let center = FakeQuestNotificationCenter(status: .authorized)
+        let service = makeService(center: center)
+        let snapshot = quest(deadlineOffset: 3 * hour).snapshot
+
+        let authorization = await service.syncWithoutRequestingAuthorization(
+            snapshot: snapshot,
+            now: now
+        )
+
+        #expect(authorization == .allowed)
+        #expect(center.addedRequests.count == 2)
+        #expect(center.events.contains("requestAuthorization") == false)
+    }
+
+    @Test("shortcut sync reports scheduling failure as unavailable")
+    func shortcutSyncReportsAddFailure() async {
+        let center = FakeQuestNotificationCenter(status: .authorized)
+        center.addError = FakeNotificationError.addFailed
+        let service = makeService(center: center)
+
+        let authorization = await service.syncWithoutRequestingAuthorization(
+            snapshot: quest(deadlineOffset: 3 * hour).snapshot,
+            now: now
+        )
+
+        #expect(authorization == .unavailable)
+    }
+
     @Test("denied permission skips scheduling without throwing")
     func deniedPermissionDoesNotFailSavePath() async {
         let center = FakeQuestNotificationCenter(status: .denied)
@@ -224,6 +275,7 @@ struct QuestNotificationServiceTests {
 private final class FakeQuestNotificationCenter: QuestNotificationCenter {
     var status: UNAuthorizationStatus
     var requestAuthorizationResult = true
+    var addError: Error?
     var addedRequests: [UNNotificationRequest] = []
     var pendingRequestsList: [UNNotificationRequest] = []
     var removedPendingIdentifiers: [[String]] = []
@@ -245,6 +297,7 @@ private final class FakeQuestNotificationCenter: QuestNotificationCenter {
     }
 
     func add(_ request: UNNotificationRequest) async throws {
+        if let addError { throw addError }
         events.append("add:\(request.identifier)")
         addedRequests.append(request)
         pendingRequestsList.append(request)

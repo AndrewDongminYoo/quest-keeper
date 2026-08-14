@@ -17,6 +17,7 @@ struct QuestKeeperAppTests {
 
         let labels = Mirror(reflecting: app).children.compactMap(\.label)
         #expect(labels.contains { $0.contains("widgetSnapshotWriter") })
+        #expect(labels.contains { $0.contains("shortcutCreationCoordinator") })
         #expect(labels.contains { $0.contains("onboardingSessionID") })
         #expect(labels.contains { $0.contains("hasDeferredOnboardingThisRun") })
     }
