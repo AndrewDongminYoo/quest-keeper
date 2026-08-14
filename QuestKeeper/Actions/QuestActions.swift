@@ -7,12 +7,12 @@
 
 import Foundation
 
-nonisolated func retryDeadlineTomorrow(from now: Date, calendar: Calendar = .current) -> Date {
-    calendar.date(byAdding: .day, value: 1, to: now)
-        ?? now.addingTimeInterval(24 * 60 * 60)
-}
-
 enum QuestActions {
+    nonisolated static func retryDeadlineTomorrow(from now: Date, calendar: Calendar = .current) -> Date {
+        calendar.date(byAdding: .day, value: 1, to: now)
+            ?? now.addingTimeInterval(24 * 60 * 60)
+    }
+
     /// Raw cleanup is allowed for any quest; primary recovery UI should still prefer retry tomorrow for daily graves.
     nonisolated static func canDelete(_ snapshot: QuestSnapshot, at now: Date) -> Bool {
         snapshot.isDeletable(at: now)

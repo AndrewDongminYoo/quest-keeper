@@ -183,6 +183,50 @@ struct OnboardingFlowStateTests {
         ) == .standard)
     }
 
+    @Test("guided-flow gate agrees with make for every unsupported input")
+    func guidedFlowGateMatchesMake() {
+        let unsupported = ExperimentAssignmentSnapshot(
+            schemaVersion: 2,
+            experimentKey: OnboardingExperiment.key,
+            installationID: installationID,
+            variantRawValue: OnboardingExperimentVariant.guided.rawValue,
+            assignedAt: assignedAt
+        )
+        let foreignKey = ExperimentAssignmentSnapshot(
+            schemaVersion: 1,
+            experimentKey: "other-experiment",
+            installationID: installationID,
+            variantRawValue: OnboardingExperimentVariant.guided.rawValue,
+            assignedAt: assignedAt
+        )
+        let cases: [(ExperimentAssignmentSnapshot?, Bool)] = [
+            (assignment(), true),
+            (assignment(), false),
+            (assignment(variant: .control), true),
+            (unsupported, true),
+            (foreignKey, true),
+            (nil, true),
+        ]
+
+        for (assignment, measurementAvailable) in cases {
+            // The call site skips materialising the event history when the gate is false, so a gate
+            // that says "inactive" while `make` would have returned something else silently drops UI.
+            let isActive = OnboardingFlowState.isGuidedFlowActive(
+                assignment: assignment,
+                measurementAvailable: measurementAvailable
+            )
+            let presentation = OnboardingFlowState.make(
+                assignment: assignment,
+                events: [exposure()],
+                pendingQuestIDs: [],
+                hasExistingQuests: false,
+                deferredThisRun: false,
+                measurementAvailable: measurementAvailable
+            )
+            #expect(isActive || presentation == .standard)
+        }
+    }
+
     @Test("events before exposure do not create synthetic progress")
     func preExposureEvents() {
         let earlyCreation = event(

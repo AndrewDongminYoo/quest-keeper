@@ -13,12 +13,13 @@ This file summarizes the parts that shape _how_ to write code here; BLUEPRINT ow
 
 **Current state:** the boilerplate template is gone — `Quest` (`@Model`) replaced `Item`, and `ContentView` is now the Phase 2 dungeon root, not template scaffolding.
 BLUEPRINT's Phases 1–5 are implemented: the fact-only SwiftData model (`QuestKeeperShared/Quest.swift`), the pure derivation layer (`QuestKeeper/Derivation/`), the dungeon UI with completion/retry/daily-grave/edit flows (`QuestKeeper/Views/`), the local-notification lifecycle (`QuestKeeper/Notifications/`), and the WidgetKit App Group snapshot (`QuestKeeperShared/`, `QuestKeeperWidget/`).
-Work past the BLUEPRINT roadmap has since added interactive widget completion, pixel art, retention measurement, an onboarding experiment, the daily-focus loop, the recovery-loop prototype, store release automation, combat assets with hero customization, and English localization — `docs/specs/` runs to `018-english-localization.md`.
+Work past the BLUEPRINT roadmap has since added interactive widget completion, pixel art, retention measurement, an onboarding experiment, the daily-focus loop, the recovery-loop prototype, store release automation, combat assets with hero customization, and English localization — `docs/specs/` runs to `019-monster-legibility.md`.
 Extend the established per-role layer conventions; `docs/specs/` holds the per-phase contracts.
 
 ## Docs Layout
 
 Additional docs live under `docs/` — `docs/notes/` (working notes), `docs/plans/` (implementation plans), `docs/specs/` (specifications).
+The rest are release-support material, not knowledge docs: `docs/assets/`, `docs/legal/`, `docs/releases/`, `docs/store/`, and `docs/handoff/`.
 The first spec is `docs/specs/001-project-setup.md` (Phase 0: platform scoping, Swift 6, boilerplate cleanup).
 
 ## Core Design Principle — "Persist facts only, derive state"
@@ -62,6 +63,8 @@ Feature code is grouped by role under `QuestKeeper/`; the widget and the code it
 - `Views/` — the SwiftUI dungeon UI. Root is `HomeDungeonBoardView`, rows are `QuestRow`, battle transitions are `QuestBattleResolution`.
 - `DailyFocus/`, `Onboarding/`, `Recovery/` — later behavior layers, each following the same pure-function shape as `Derivation/`: `DailyFocusState`, `OnboardingFlowState`, and `RecoveryState` compute a presentation value from facts plus `now`, and hold no stored state of their own.
 - `Measurement/` — `RetentionBaselineWriter`, the app-side writer for the retention baseline report.
+- `Intents/` — the App Intents surface: `CreateQuestIntent`, `QuestShortcutCreationCoordinator`, `QuestKeeperAppShortcuts` (see the notifications section below for how the coordinator is injected).
+- `Debug/` — `DebugFixtureSeeder`, the UI-test and store-screenshot fixtures. The whole file is inside `#if DEBUG`, so it does not exist in a Release build; keep launch-argument fixtures here rather than inlining them into `QuestKeeperApp.init`.
 - `Notifications/` and `WidgetSupport/` — see the section below.
 - `QuestKeeperShared/` — everything both targets need. Beyond the widget payload trio (`WidgetDungeonPayload`, `WidgetDungeonDerivation`, `WidgetDungeonSnapshotStore`) it holds the `Quest`/`Importance` model, `QuestTitlePolicy`, `QuestModelContainer` (opens the App Group store), the `QuestStoreActor` (`@ModelActor`) the widget writes through, the pixel-art primitives (`PixelSprite`, `DungeonPalette`), and the measurement stack — retention, onboarding-experiment, and daily-focus models, recorders, and report types.
   The widget-side derivation is deliberately duplicated here so the widget can render derived state without the app running.

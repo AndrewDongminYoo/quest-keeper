@@ -120,8 +120,8 @@ struct IntegrationVerificationTests {
             snapshot(id: completedID, deadline: now.addingTimeInterval(-2 * day), completedAt: now.addingTimeInterval(-3 * day), importance: .medium),
         ]
 
-        let first = reconstructOnActivation(quests: quests, now: now, previousLastOpened: lastOpened)
-        let second = reconstructOnActivation(quests: quests, now: now, previousLastOpened: first.newLastOpened)
+        let first = Activation.reconstructOnActivation(quests: quests, now: now, previousLastOpened: lastOpened)
+        let second = Activation.reconstructOnActivation(quests: quests, now: now, previousLastOpened: first.newLastOpened)
 
         #expect(first.deaths == [missedWhileAwayID])
         #expect(second.deaths.isEmpty)

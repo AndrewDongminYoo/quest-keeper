@@ -8,6 +8,18 @@ nonisolated enum OnboardingFlowPresentation: Equatable, Sendable {
 }
 
 nonisolated enum OnboardingFlowState {
+    /// Whether `make` can return anything other than `.standard`. Callers gate on this before
+    /// materialising the event history — `make` re-checks it, so the two can never disagree.
+    static func isGuidedFlowActive(
+        assignment: ExperimentAssignmentSnapshot?,
+        measurementAvailable: Bool
+    ) -> Bool {
+        guard measurementAvailable, let assignment else { return false }
+        return assignment.schemaVersion == ExperimentAssignment.currentSchemaVersion
+            && assignment.experimentKey == OnboardingExperiment.key
+            && assignment.variant == .guided
+    }
+
     static func make(
         assignment: ExperimentAssignmentSnapshot?,
         events: [RetentionEventSnapshot],
@@ -16,11 +28,10 @@ nonisolated enum OnboardingFlowState {
         deferredThisRun: Bool,
         measurementAvailable: Bool
     ) -> OnboardingFlowPresentation {
-        guard measurementAvailable,
-              let assignment,
-              assignment.schemaVersion == ExperimentAssignment.currentSchemaVersion,
-              assignment.experimentKey == OnboardingExperiment.key,
-              assignment.variant == .guided else {
+        guard isGuidedFlowActive(
+            assignment: assignment,
+            measurementAvailable: measurementAvailable
+        ), let assignment else {
             return .standard
         }
 

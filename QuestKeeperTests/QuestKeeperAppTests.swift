@@ -35,7 +35,7 @@ struct QuestKeeperAppTests {
         arguments: [String],
         expected: OnboardingExperimentVariant?
     ) {
-        #expect(onboardingVariantOverride(arguments: arguments) == expected)
+        #expect(LaunchArguments.onboardingVariantOverride(arguments: arguments) == expected)
     }
 
     @Test(
@@ -47,7 +47,7 @@ struct QuestKeeperAppTests {
         ]
     )
     func dailyFocusGate(arguments: [String], expected: Bool) {
-        #expect(dailyFocusLoopEnabled(arguments: arguments) == expected)
+        #expect(LaunchArguments.dailyFocusLoopEnabled(arguments: arguments) == expected)
     }
 
     @Test(
@@ -77,7 +77,7 @@ struct QuestKeeperAppTests {
         dailyFocusEnabled: Bool,
         expected: RecoveryLoopVariant?
     ) {
-        #expect(recoveryLoopVariant(
+        #expect(LaunchArguments.recoveryLoopVariant(
             arguments: arguments,
             dailyFocusLoopEnabled: dailyFocusEnabled
         ) == expected)
@@ -86,11 +86,11 @@ struct QuestKeeperAppTests {
     @Test("recovery fixtures require an isolated UI test store")
     func recoveryFixtureIsolation() {
         let arguments = ["QuestKeeper", "-uiTestingRecoveryFixture"]
-        #expect(shouldSeedRecoveryFixture(
+        #expect(DebugFixtureSeeder.shouldSeedRecoveryFixture(
             usesUITestingStore: true,
             arguments: arguments
         ))
-        #expect(!shouldSeedRecoveryFixture(
+        #expect(!DebugFixtureSeeder.shouldSeedRecoveryFixture(
             usesUITestingStore: false,
             arguments: arguments
         ))
@@ -112,7 +112,7 @@ struct QuestKeeperAppTests {
         didBackground: Bool,
         expected: Bool
     ) {
-        #expect(shouldDeriveRecoveryOffer(
+        #expect(ActivationPolicy.shouldDeriveRecoveryOffer(
             hasRecoveryVariant: hasRecoveryVariant,
             hasPerformedActivationReplay: hasPerformedActivationReplay,
             didBackground: didBackground
@@ -151,7 +151,7 @@ struct QuestKeeperAppTests {
             )
         }
 
-        let stale = makeActivationReplay(
+        let stale = Activation.makeActivationReplay(
             quests: staleQuests,
             dailyFocusSelections: [],
             previousLastOpened: previous,
@@ -160,7 +160,7 @@ struct QuestKeeperAppTests {
             dailyFocusLoopEnabled: true,
             recoveryLoopVariant: .singleQuest
         )
-        let refreshed = makeActivationReplay(
+        let refreshed = Activation.makeActivationReplay(
             quests: refreshedQuests,
             dailyFocusSelections: [],
             previousLastOpened: previous,
@@ -189,7 +189,7 @@ struct QuestKeeperAppTests {
             ),
         ]
 
-        let replay = makeStandardActivationReplay(
+        let replay = ActivationPolicy.makeStandardActivationReplay(
             quests: quests,
             previousLastOpened: now.addingTimeInterval(-6 * 24 * 60 * 60),
             now: now,
@@ -210,25 +210,25 @@ struct QuestKeeperAppTests {
 #if DEBUG
     @Test("UI test store URL requires an explicit path argument")
     func uiTestStoreURL() {
-        #expect(parsedUITestingStoreURL(arguments: [
+        #expect(LaunchArguments.parsedUITestingStoreURL(arguments: [
             "QuestKeeper", "-uiTestingStoreURL", "/tmp/quest-keeper-ui-test/store.sqlite",
         ])?.path == "/tmp/quest-keeper-ui-test/store.sqlite")
-        #expect(parsedUITestingStoreURL(arguments: ["QuestKeeper", "-uiTestingStoreURL"]) == nil)
-        #expect(parsedUITestingStoreURL(arguments: ["QuestKeeper"]) == nil)
+        #expect(LaunchArguments.parsedUITestingStoreURL(arguments: ["QuestKeeper", "-uiTestingStoreURL"]) == nil)
+        #expect(LaunchArguments.parsedUITestingStoreURL(arguments: ["QuestKeeper"]) == nil)
     }
 #endif
 
     @Test("UI test stores stay isolated across background refresh")
     func uiTestStoreBackgroundReuse() {
-        #expect(shouldReuseContainerOnBackground(
+        #expect(ActivationPolicy.shouldReuseContainerOnBackground(
             usesInMemoryStore: true,
             uiTestingStoreURL: nil
         ))
-        #expect(shouldReuseContainerOnBackground(
+        #expect(ActivationPolicy.shouldReuseContainerOnBackground(
             usesInMemoryStore: false,
             uiTestingStoreURL: URL(fileURLWithPath: "/tmp/quest-keeper-ui-test/store.sqlite")
         ))
-        #expect(!shouldReuseContainerOnBackground(
+        #expect(!ActivationPolicy.shouldReuseContainerOnBackground(
             usesInMemoryStore: false,
             uiTestingStoreURL: nil
         ))
@@ -236,15 +236,15 @@ struct QuestKeeperAppTests {
 
     @Test("background replay waits when a fresh production container is unavailable")
     func backgroundReplayFreshnessBoundary() {
-        #expect(shouldReplayActivation(
+        #expect(ActivationPolicy.shouldReplayActivation(
             wasBackgrounded: false,
             hasFreshContainer: false
         ))
-        #expect(!shouldReplayActivation(
+        #expect(!ActivationPolicy.shouldReplayActivation(
             wasBackgrounded: true,
             hasFreshContainer: false
         ))
-        #expect(shouldReplayActivation(
+        #expect(ActivationPolicy.shouldReplayActivation(
             wasBackgrounded: true,
             hasFreshContainer: true
         ))
@@ -253,11 +253,11 @@ struct QuestKeeperAppTests {
     @Test("daily grave fixture requires an isolated UI test store")
     func dailyGraveFixtureIsolation() {
         let arguments = ["QuestKeeper", "-uiTestingDailyFocusGrave"]
-        #expect(shouldSeedDailyFocusGraveFixture(
+        #expect(DebugFixtureSeeder.shouldSeedDailyFocusGraveFixture(
             usesUITestingStore: true,
             arguments: arguments
         ))
-        #expect(!shouldSeedDailyFocusGraveFixture(
+        #expect(!DebugFixtureSeeder.shouldSeedDailyFocusGraveFixture(
             usesUITestingStore: false,
             arguments: arguments
         ))
@@ -266,11 +266,11 @@ struct QuestKeeperAppTests {
     @Test("detail deadline transition fixture requires an isolated UI test store")
     func detailDeadlineTransitionFixtureIsolation() {
         let arguments = ["QuestKeeper", "-uiTestingDetailDeadlineTransition"]
-        #expect(shouldSeedDetailDeadlineTransitionFixture(
+        #expect(DebugFixtureSeeder.shouldSeedDetailDeadlineTransitionFixture(
             usesUITestingStore: true,
             arguments: arguments
         ))
-        #expect(!shouldSeedDetailDeadlineTransitionFixture(
+        #expect(!DebugFixtureSeeder.shouldSeedDetailDeadlineTransitionFixture(
             usesUITestingStore: false,
             arguments: arguments
         ))
@@ -278,10 +278,10 @@ struct QuestKeeperAppTests {
 
     @Test("previews do not resolve or expose onboarding experiments")
     func previewExclusion() {
-        #expect(!shouldResolveOnboardingExperiment(
+        #expect(!ActivationPolicy.shouldResolveOnboardingExperiment(
             environment: ["XCODE_RUNNING_FOR_PREVIEWS": "1"]
         ))
-        #expect(shouldResolveOnboardingExperiment(environment: [:]))
+        #expect(ActivationPolicy.shouldResolveOnboardingExperiment(environment: [:]))
     }
 
     @Test(
@@ -297,7 +297,7 @@ struct QuestKeeperAppTests {
         didBackground: Bool,
         expected: Bool
     ) {
-        #expect(shouldRecordRetentionActivation(
+        #expect(ActivationPolicy.shouldRecordRetentionActivation(
             hasRecordedActivation: hasRecordedActivation,
             didBackground: didBackground
         ) == expected)
@@ -314,7 +314,7 @@ struct QuestKeeperAppTests {
         usesInMemoryStore: Bool,
         expected: Bool
     ) {
-        #expect(shouldPersistMeasurementArtifacts(
+        #expect(ActivationPolicy.shouldPersistMeasurementArtifacts(
             usesInMemoryStore: usesInMemoryStore
         ) == expected)
     }
@@ -334,7 +334,7 @@ struct QuestKeeperAppTests {
         isActive: Bool,
         expected: Bool
     ) {
-        #expect(shouldAttemptOnboardingExposure(
+        #expect(ActivationPolicy.shouldAttemptOnboardingExposure(
             hasAssignment: hasAssignment,
             hasAttempted: hasAttempted,
             isActive: isActive
@@ -345,7 +345,7 @@ struct QuestKeeperAppTests {
     func exposureSaveRollback() {
         var didRollback = false
 
-        let available = persistOnboardingExposure(
+        let available = OnboardingExposureWriter.persist(
             record: { .inserted },
             save: { throw ExposureSaveError.failed },
             rollback: { didRollback = true }

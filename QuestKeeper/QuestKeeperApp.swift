@@ -44,7 +44,7 @@ struct QuestKeeperApp: App {
 #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         let usesInMemoryStore = arguments.contains("-uiTestingInMemoryStore")
-        let uiTestingStoreURL = parsedUITestingStoreURL(arguments: arguments)
+        let uiTestingStoreURL = LaunchArguments.parsedUITestingStoreURL(arguments: arguments)
         let usesUITestingStore = usesInMemoryStore || uiTestingStoreURL != nil
         let notificationService = usesUITestingStore
             ? QuestNotificationService(center: UITestingQuestNotificationCenter())
@@ -65,15 +65,15 @@ struct QuestKeeperApp: App {
         notificationDelegate = delegate
         self.notificationService = notificationService
         widgetSnapshotWriter = snapshotWriter
-        retentionBaselineWriter = shouldPersistMeasurementArtifacts(
+        retentionBaselineWriter = ActivationPolicy.shouldPersistMeasurementArtifacts(
             usesInMemoryStore: usesUITestingStore
         ) ? RetentionBaselineWriter() : nil
         self.usesInMemoryStore = usesInMemoryStore
         self.uiTestingStoreURL = uiTestingStoreURL
 #if DEBUG
-        let dailyFocusEnabled = dailyFocusLoopEnabled(arguments: arguments)
+        let dailyFocusEnabled = LaunchArguments.dailyFocusLoopEnabled(arguments: arguments)
         isDailyFocusLoopEnabled = dailyFocusEnabled
-        recoveryLoopVariant = QuestKeeper.recoveryLoopVariant(
+        recoveryLoopVariant = LaunchArguments.recoveryLoopVariant(
             arguments: arguments,
             dailyFocusLoopEnabled: dailyFocusEnabled
         )
@@ -96,117 +96,23 @@ struct QuestKeeperApp: App {
             self.shortcutCreationCoordinator = shortcutCreationCoordinator
             AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)
 #if DEBUG
-            if shouldSeedDailyFocusGraveFixture(
+            try DebugFixtureSeeder.seed(
+                into: container,
+                arguments: arguments,
                 usesUITestingStore: usesUITestingStore,
-                arguments: arguments
-            ),
-               try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
-                container.mainContext.insert(Quest(
-                    title: AppStrings.resolve(AppStrings.debugFixtureDailyFocusGraveTitle, locale: .current),
-                    deadline: Date.now.addingTimeInterval(-60),
-                    importance: .medium
-                ))
-                try container.mainContext.save()
-            }
-            if shouldSeedDetailDeadlineTransitionFixture(
-                usesUITestingStore: usesUITestingStore,
-                arguments: arguments
-            ),
-               try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
-                container.mainContext.insert(Quest(
-                    title: "Deadline transition UI test",
-                    deadline: Date.now.addingTimeInterval(30),
-                    importance: .medium
-                ))
-                try container.mainContext.save()
-            }
-            if usesInMemoryStore,
-               arguments.contains("-storeScreenshotFixture") {
-                let now = Date.now
-                let fixtures: [(String, TimeInterval, Importance)] = [
-                    (AppStrings.resolve(AppStrings.debugFixtureScreenshotPrepare, locale: .current), 3_600, .high),
-                    (
-                        AppStrings.resolve(AppStrings.debugFixtureScreenshotPrivacyPolicy, locale: .current),
-                        86_400,
-                        .medium
-                    ),
-                    (
-                        AppStrings.resolve(AppStrings.debugFixtureScreenshotLandingPage, locale: .current),
-                        2 * 86_400,
-                        .high
-                    ),
-                    (
-                        AppStrings.resolve(AppStrings.debugFixtureScreenshotLaunchChecklist, locale: .current),
-                        5 * 86_400,
-                        .low
-                    ),
-                ]
-                for (title, interval, importance) in fixtures {
-                    container.mainContext.insert(Quest(
-                        title: title,
-                        deadline: now.addingTimeInterval(interval),
-                        importance: importance
-                    ))
-                }
-                try container.mainContext.save()
-            }
-            if shouldSeedRecoveryFixture(
-                usesUITestingStore: usesUITestingStore,
-                arguments: arguments
-            ),
-               try container.mainContext.fetchCount(FetchDescriptor<Quest>()) == 0 {
-                let now = Date.now
-                if !arguments.contains("-uiTestingRecoveryPersistenceFailure") {
-                    container.mainContext.insert(RetentionInstallation(
-                        installationID: UUID(
-                            uuidString: "00000000-0000-0000-0000-000000000001"
-                        )!,
-                        measurementStartedAt: now.addingTimeInterval(-4 * 86_400)
-                    ))
-                }
-                if arguments.contains("-uiTestingRecoveryNoPending") {
-                    container.mainContext.insert(Quest(
-                        title: AppStrings.resolve(AppStrings.debugFixtureRecoveryLeftoverQuest, locale: .current),
-                        deadline: now.addingTimeInterval(-60),
-                        importance: .medium
-                    ))
-                } else {
-                    container.mainContext.insert(Quest(
-                        id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
-                        title: AppStrings.resolve(AppStrings.debugFixtureRecoveryQuestOne, locale: .current),
-                        deadline: now.addingTimeInterval(600),
-                        importance: .high
-                    ))
-                    container.mainContext.insert(Quest(
-                        id: UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
-                        title: AppStrings.resolve(AppStrings.debugFixtureRecoveryQuestTwo, locale: .current),
-                        deadline: now.addingTimeInterval(1_200),
-                        importance: .medium
-                    ))
-                }
-                container.mainContext.insert(Quest(
-                    title: AppStrings.resolve(AppStrings.debugFixtureRecoveryVictorySecured, locale: .current),
-                    deadline: now.addingTimeInterval(-86_400),
-                    importance: .low,
-                    completedAt: now.addingTimeInterval(-86_460)
-                ))
-                UserDefaults.standard.set(
-                    now.addingTimeInterval(-3 * 86_400).timeIntervalSinceReferenceDate,
-                    forKey: "lastOpenedTIRD"
-                )
-                try container.mainContext.save()
-            }
+                usesInMemoryStore: usesInMemoryStore
+            )
 #endif
 
             let enrollment: ExperimentEnrollmentResult
-            if !shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
+            if !ActivationPolicy.shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
                 enrollment = .ineligible
             } else {
 #if DEBUG
                 let installationIDProvider: () throws -> UUID = usesUITestingStore
                     ? { UUID() }
                     : { try RetentionInstallationIdentityStore.appGroup().loadOrCreate() }
-                if let variant = onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
+                if let variant = LaunchArguments.onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
                     enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
                         at: .now,
                         in: container.mainContext,
@@ -266,7 +172,7 @@ struct QuestKeeperApp: App {
                 let wasBackgrounded = didBackground
                 let container: ModelContainer
                 let canReplayActivation: Bool
-                if didBackground, shouldReuseContainerOnBackground(
+                if didBackground, ActivationPolicy.shouldReuseContainerOnBackground(
                     usesInMemoryStore: usesInMemoryStore,
                     uiTestingStoreURL: uiTestingStoreURL
                 ) {
@@ -285,12 +191,12 @@ struct QuestKeeperApp: App {
                     canReplayActivation = true
                 } else {
                     container = sharedModelContainer
-                    canReplayActivation = shouldReplayActivation(
+                    canReplayActivation = ActivationPolicy.shouldReplayActivation(
                         wasBackgrounded: didBackground,
                         hasFreshContainer: false
                     )
                 }
-                let shouldDeriveRecovery = shouldDeriveRecoveryOffer(
+                let shouldDeriveRecovery = ActivationPolicy.shouldDeriveRecoveryOffer(
                     hasRecoveryVariant: recoveryLoopVariant != nil,
                     hasPerformedActivationReplay: hasPerformedActivationReplay,
                     didBackground: wasBackgrounded
@@ -308,19 +214,19 @@ struct QuestKeeperApp: App {
                 if shouldDeriveRecovery {
                     hasPerformedActivationReplay = didDeriveRecovery
                 }
-                if shouldAttemptOnboardingExposure(
+                if ActivationPolicy.shouldAttemptOnboardingExposure(
                     hasAssignment: onboardingAssignment != nil,
                     hasAttempted: hasAttemptedOnboardingExposure,
                     isActive: true
                 ), let assignment = onboardingAssignment {
                     hasAttemptedOnboardingExposure = true
-                    onboardingMeasurementAvailable = recordOnboardingExposure(
+                    onboardingMeasurementAvailable = OnboardingExposureWriter.record(
                         assignment: assignment,
                         at: .now,
                         in: container.mainContext
                     )
                 }
-                if shouldRecordRetentionActivation(
+                if ActivationPolicy.shouldRecordRetentionActivation(
                     hasRecordedActivation: hasRecordedRetentionActivation,
                     didBackground: wasBackgrounded
                 ) {
@@ -372,7 +278,7 @@ struct QuestKeeperApp: App {
             return false
         }
         guard shouldDeriveRecovery else {
-            let replay = makeStandardActivationReplay(
+            let replay = ActivationPolicy.makeStandardActivationReplay(
                 quests: quests.map(\.snapshot),
                 previousLastOpened: previousLastOpened,
                 now: now,
@@ -387,7 +293,7 @@ struct QuestKeeperApp: App {
                 sortBy: [SortDescriptor(\.recordedAt)]
             )
         )
-        let replay = makeActivationReplay(
+        let replay = Activation.makeActivationReplay(
             quests: quests.map(\.snapshot),
             dailyFocusSelections: dailyFocusSelections?.map(\.snapshot),
             previousLastOpened: previousLastOpened,
@@ -420,175 +326,164 @@ private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
 }
 #endif
 
-nonisolated func dailyFocusLoopEnabled(arguments: [String]) -> Bool {
-    arguments.contains("-dailyFocusLoopEnabled")
-}
-
-nonisolated func recoveryLoopVariant(
-    arguments: [String],
-    dailyFocusLoopEnabled: Bool
-) -> RecoveryLoopVariant? {
-    guard dailyFocusLoopEnabled,
-          let index = arguments.firstIndex(of: "-recoveryLoopVariant"),
-          arguments.indices.contains(index + 1) else {
-        return nil
+/// Launch-argument parsing. A namespace rather than file-scope functions so these never collide with
+/// the same-named stored properties on `QuestKeeperApp` (`recoveryLoopVariant` already did, which is
+/// why the call site once needed a `QuestKeeper.` module qualifier).
+nonisolated enum LaunchArguments {
+    static func dailyFocusLoopEnabled(arguments: [String]) -> Bool {
+        arguments.contains("-dailyFocusLoopEnabled")
     }
-    return RecoveryLoopVariant(rawValue: arguments[index + 1])
-}
 
-nonisolated func shouldReuseContainerOnBackground(
-    usesInMemoryStore: Bool,
-    uiTestingStoreURL: URL?
-) -> Bool {
-    usesInMemoryStore || uiTestingStoreURL != nil
-}
+    static func recoveryLoopVariant(
+        arguments: [String],
+        dailyFocusLoopEnabled: Bool
+    ) -> RecoveryLoopVariant? {
+        guard dailyFocusLoopEnabled,
+              let index = arguments.firstIndex(of: "-recoveryLoopVariant"),
+              arguments.indices.contains(index + 1) else {
+            return nil
+        }
+        return RecoveryLoopVariant(rawValue: arguments[index + 1])
+    }
 
-nonisolated func shouldReplayActivation(
-    wasBackgrounded: Bool,
-    hasFreshContainer: Bool
-) -> Bool {
-    !wasBackgrounded || hasFreshContainer
-}
-
-nonisolated func shouldDeriveRecoveryOffer(
-    hasRecoveryVariant: Bool,
-    hasPerformedActivationReplay: Bool,
-    didBackground: Bool
-) -> Bool {
-    hasRecoveryVariant && (!hasPerformedActivationReplay || didBackground)
-}
-
-/// The non-recovery activation-replay path (`shouldDeriveRecovery == false`): reconstruct deaths and
-/// escalations against `previousLastOpened` and always return a fresh result. Unconditional on purpose —
-/// mirrors `makeActivationReplay`'s unconditional publish, so both paths give `ContentView` a
-/// replace-on-every-activation result whether or not anything died this activation. `escalationsWhileAway`
-/// is independent of `deathsWhileAway`, so gating the result on `!deaths.isEmpty` (the pre-fix shape) would
-/// silently drop an escalation-only activation — the common case, since it needs no death.
-nonisolated func makeStandardActivationReplay(
-    quests: [QuestSnapshot],
-    previousLastOpened: Date?,
-    now: Date,
-    recoveryOffer: RecoveryActivationOffer?,
-    id: UUID = UUID()
-) -> (result: ActivationReplayResult, newLastOpened: Date) {
-    let (deaths, escalations, newLastOpened) = reconstructOnActivation(
-        quests: quests,
-        now: now,
-        previousLastOpened: previousLastOpened
-    )
-    return (
-        ActivationReplayResult(
-            id: id,
-            deaths: deaths,
-            escalations: escalations,
-            recoveryOffer: recoveryOffer
-        ),
-        newLastOpened
-    )
-}
-
-nonisolated func shouldSeedDailyFocusGraveFixture(
-    usesUITestingStore: Bool,
-    arguments: [String]
-) -> Bool {
-    usesUITestingStore && arguments.contains("-uiTestingDailyFocusGrave")
-}
-
-nonisolated func shouldSeedDetailDeadlineTransitionFixture(
-    usesUITestingStore: Bool,
-    arguments: [String]
-) -> Bool {
-    usesUITestingStore && arguments.contains("-uiTestingDetailDeadlineTransition")
-}
-
-nonisolated func shouldSeedRecoveryFixture(
-    usesUITestingStore: Bool,
-    arguments: [String]
-) -> Bool {
-    usesUITestingStore && arguments.contains("-uiTestingRecoveryFixture")
-}
+    static func onboardingVariantOverride(
+        arguments: [String]
+    ) -> OnboardingExperimentVariant? {
+        guard let flagIndex = arguments.firstIndex(of: "-onboardingVariant"),
+              arguments.indices.contains(flagIndex + 1) else {
+            return nil
+        }
+        return OnboardingExperimentVariant(rawValue: arguments[flagIndex + 1])
+    }
 
 #if DEBUG
-nonisolated func parsedUITestingStoreURL(arguments: [String]) -> URL? {
-    guard let index = arguments.firstIndex(of: "-uiTestingStoreURL"),
-          arguments.indices.contains(index + 1) else { return nil }
-    return URL(fileURLWithPath: arguments[index + 1])
-}
+    static func parsedUITestingStoreURL(arguments: [String]) -> URL? {
+        guard let index = arguments.firstIndex(of: "-uiTestingStoreURL"),
+              arguments.indices.contains(index + 1) else { return nil }
+        return URL(fileURLWithPath: arguments[index + 1])
+    }
 #endif
+}
 
-nonisolated func onboardingVariantOverride(
-    arguments: [String]
-) -> OnboardingExperimentVariant? {
-    guard let flagIndex = arguments.firstIndex(of: "-onboardingVariant"),
-          arguments.indices.contains(flagIndex + 1) else {
-        return nil
+/// Pure predicates deciding what the `.active` scene-phase transition should do. Kept side-effect free
+/// so each rule is testable without a container, a scene, or a simulator.
+nonisolated enum ActivationPolicy {
+    static func shouldReuseContainerOnBackground(
+        usesInMemoryStore: Bool,
+        uiTestingStoreURL: URL?
+    ) -> Bool {
+        usesInMemoryStore || uiTestingStoreURL != nil
     }
-    return OnboardingExperimentVariant(rawValue: arguments[flagIndex + 1])
-}
 
-nonisolated func shouldResolveOnboardingExperiment(
-    environment: [String: String]
-) -> Bool {
-    environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1"
-}
+    static func shouldReplayActivation(
+        wasBackgrounded: Bool,
+        hasFreshContainer: Bool
+    ) -> Bool {
+        !wasBackgrounded || hasFreshContainer
+    }
 
-nonisolated func shouldPersistMeasurementArtifacts(
-    usesInMemoryStore: Bool
-) -> Bool {
-    !usesInMemoryStore
-}
+    static func shouldDeriveRecoveryOffer(
+        hasRecoveryVariant: Bool,
+        hasPerformedActivationReplay: Bool,
+        didBackground: Bool
+    ) -> Bool {
+        hasRecoveryVariant && (!hasPerformedActivationReplay || didBackground)
+    }
 
-nonisolated func shouldRecordRetentionActivation(
-    hasRecordedActivation: Bool,
-    didBackground: Bool
-) -> Bool {
-    !hasRecordedActivation || didBackground
-}
+    static func shouldResolveOnboardingExperiment(
+        environment: [String: String]
+    ) -> Bool {
+        environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1"
+    }
 
-nonisolated func shouldAttemptOnboardingExposure(
-    hasAssignment: Bool,
-    hasAttempted: Bool,
-    isActive: Bool
-) -> Bool {
-    hasAssignment && !hasAttempted && isActive
+    static func shouldPersistMeasurementArtifacts(
+        usesInMemoryStore: Bool
+    ) -> Bool {
+        !usesInMemoryStore
+    }
+
+    static func shouldRecordRetentionActivation(
+        hasRecordedActivation: Bool,
+        didBackground: Bool
+    ) -> Bool {
+        !hasRecordedActivation || didBackground
+    }
+
+    static func shouldAttemptOnboardingExposure(
+        hasAssignment: Bool,
+        hasAttempted: Bool,
+        isActive: Bool
+    ) -> Bool {
+        hasAssignment && !hasAttempted && isActive
+    }
+
+    /// The non-recovery activation-replay path (`shouldDeriveRecovery == false`): reconstruct deaths and
+    /// escalations against `previousLastOpened` and always return a fresh result. Unconditional on purpose —
+    /// mirrors `makeActivationReplay`'s unconditional publish, so both paths give `ContentView` a
+    /// replace-on-every-activation result whether or not anything died this activation. `escalationsWhileAway`
+    /// is independent of `deathsWhileAway`, so gating the result on `!deaths.isEmpty` (the pre-fix shape) would
+    /// silently drop an escalation-only activation — the common case, since it needs no death.
+    static func makeStandardActivationReplay(
+        quests: [QuestSnapshot],
+        previousLastOpened: Date?,
+        now: Date,
+        recoveryOffer: RecoveryActivationOffer?,
+        id: UUID = UUID()
+    ) -> (result: ActivationReplayResult, newLastOpened: Date) {
+        let (deaths, escalations, newLastOpened) = Activation.reconstructOnActivation(
+            quests: quests,
+            now: now,
+            previousLastOpened: previousLastOpened
+        )
+        return (
+            ActivationReplayResult(
+                id: id,
+                deaths: deaths,
+                escalations: escalations,
+                recoveryOffer: recoveryOffer
+            ),
+            newLastOpened
+        )
+    }
 }
 
 @MainActor
-func recordOnboardingExposure(
-    assignment: ExperimentAssignmentSnapshot,
-    at occurredAt: Date,
-    in context: ModelContext
-) -> Bool {
-    persistOnboardingExposure(
-        record: {
-            RetentionEventRecorder.recordExperimentExposed(
-                experimentKey: assignment.experimentKey,
-                at: occurredAt,
-                in: context
-            )
-        },
-        save: {
-            if context.hasChanges { try context.save() }
-        },
-        rollback: context.rollback
-    )
-}
-
-@MainActor
-func persistOnboardingExposure(
-    record: () -> RetentionRecordResult,
-    save: () throws -> Void,
-    rollback: () -> Void
-) -> Bool {
-    guard record() != .failed else {
-        rollback()
-        return false
+enum OnboardingExposureWriter {
+    static func record(
+        assignment: ExperimentAssignmentSnapshot,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> Bool {
+        persist(
+            record: {
+                RetentionEventRecorder.recordExperimentExposed(
+                    experimentKey: assignment.experimentKey,
+                    at: occurredAt,
+                    in: context
+                )
+            },
+            save: {
+                if context.hasChanges { try context.save() }
+            },
+            rollback: context.rollback
+        )
     }
-    do {
-        try save()
-        return true
-    } catch {
-        rollback()
-        return false
+
+    static func persist(
+        record: () -> RetentionRecordResult,
+        save: () throws -> Void,
+        rollback: () -> Void
+    ) -> Bool {
+        guard record() != .failed else {
+            rollback()
+            return false
+        }
+        do {
+            try save()
+            return true
+        } catch {
+            rollback()
+            return false
+        }
     }
 }

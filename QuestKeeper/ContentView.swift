@@ -69,14 +69,23 @@ struct ContentView: View {
                 // Derived membership — recomputed every tick, never queried (outcome depends on `now`).
                 let pending = quests.filter { $0.snapshot.outcome(at: now) == .pending }
                 let dailyGraves = quests.filter { $0.snapshot.isVisibleDailyGrave(at: now) }
-                let onboardingPresentation = OnboardingFlowState.make(
+                // `retentionEvents` is append-only and unbounded, and this body re-runs every tick.
+                // Skip the copy + sort entirely unless the guided flow can actually change the UI.
+                // ponytail: the guided cohort still re-derives post-onboarding; latch on `.finished`
+                // (terminal, since events only ever append) if that shows up in a trace.
+                let onboardingPresentation = OnboardingFlowState.isGuidedFlowActive(
                     assignment: onboardingAssignment,
-                    events: retentionEvents.map(\.snapshot),
-                    pendingQuestIDs: Set(pending.map(\.id)),
-                    hasExistingQuests: !quests.isEmpty,
-                    deferredThisRun: hasDeferredOnboardingThisRun,
                     measurementAvailable: onboardingMeasurementAvailable
                 )
+                    ? OnboardingFlowState.make(
+                        assignment: onboardingAssignment,
+                        events: retentionEvents.map(\.snapshot),
+                        pendingQuestIDs: Set(pending.map(\.id)),
+                        hasExistingQuests: !quests.isEmpty,
+                        deferredThisRun: hasDeferredOnboardingThisRun,
+                        measurementAvailable: onboardingMeasurementAvailable
+                    )
+                    : .standard
                 let dailyFocusPresentation = DailyFocusState.make(
                     enabled: dailyFocusLoopEnabled,
                     quests: snapshots,
@@ -438,16 +447,9 @@ struct ContentView: View {
     }
 
     private func consumeNotificationRoute() {
-        guard let quest = takeNotificationRouteQuest(
-            from: notificationRouteStore,
-            in: modelContext
-        ) else { return }
+        guard let quest = notificationRouteStore.takeRoutedQuest(in: modelContext) else { return }
 
-        let now = Date.now
-        switch notificationDestination(for: quest.snapshot, now: now) {
-        case .detail:
-            route = .detail(quest)
-        }
+        route = .detail(quest)
     }
 
     private func openNotificationSettings() {
@@ -476,16 +478,6 @@ struct DailyFocusEditorRoute: Identifiable {
     let kind: DailyFocusSelectionKind
     let localDayKey: String
     let dismissesRecoveryOnSave: Bool
-}
-
-nonisolated enum NotificationQuestDestination: Equatable {
-    case detail
-}
-
-nonisolated func notificationDestination(for snapshot: QuestSnapshot, now: Date) -> NotificationQuestDestination {
-    _ = snapshot
-    _ = now
-    return .detail
 }
 
 #Preview {
