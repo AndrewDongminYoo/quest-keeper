@@ -270,8 +270,8 @@ final class QuestKeeperUITests: XCTestCase {
         let detailsField = app.textFields["questDetailsField"]
         XCTAssertTrue(detailsField.waitForExistence(timeout: 2))
         detailsField.tap()
-        detailsField.typeKey(.rightArrow, modifierFlags: .command)
-        detailsField.typeText(" Updated details")
+        detailsField.typeKey("a", modifierFlags: .command)
+        detailsField.typeText("First details Updated details")
         app.buttons["questEditorSaveButton"].tap()
 
         XCTAssertTrue(detail.waitForExistence(timeout: 3))
