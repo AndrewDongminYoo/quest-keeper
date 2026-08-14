@@ -1,0 +1,137 @@
+//
+//  DebugFixtureSeeder.swift
+//  QuestKeeper
+//
+//  UI-test and store-screenshot fixtures, kept out of `QuestKeeperApp.init` so app bootstrap
+//  (container, dependencies, experiment enrolment) stays readable. Debug-only by construction:
+//  the whole file compiles away in Release, so no fixture can reach a shipped build.
+//
+
+#if DEBUG
+import Foundation
+import SwiftData
+
+enum DebugFixtureSeeder {
+    nonisolated static func shouldSeedDailyFocusGraveFixture(
+        usesUITestingStore: Bool,
+        arguments: [String]
+    ) -> Bool {
+        usesUITestingStore && arguments.contains("-uiTestingDailyFocusGrave")
+    }
+
+    nonisolated static func shouldSeedDetailDeadlineTransitionFixture(
+        usesUITestingStore: Bool,
+        arguments: [String]
+    ) -> Bool {
+        usesUITestingStore && arguments.contains("-uiTestingDetailDeadlineTransition")
+    }
+
+    nonisolated static func shouldSeedRecoveryFixture(
+        usesUITestingStore: Bool,
+        arguments: [String]
+    ) -> Bool {
+        usesUITestingStore && arguments.contains("-uiTestingRecoveryFixture")
+    }
+
+    /// Seeds whichever fixture the launch arguments ask for. Each fixture is inert unless its own
+    /// flag is present, and the quest-inserting ones only run against an empty store so a re-launch
+    /// against a persistent UI-testing store does not stack duplicates.
+    static func seed(
+        into container: ModelContainer,
+        arguments: [String],
+        usesUITestingStore: Bool,
+        usesInMemoryStore: Bool
+    ) throws {
+        let context = container.mainContext
+
+        if shouldSeedDailyFocusGraveFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
+           try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
+            context.insert(Quest(
+                title: AppStrings.resolve(AppStrings.debugFixtureDailyFocusGraveTitle, locale: .current),
+                deadline: Date.now.addingTimeInterval(-60),
+                importance: .medium
+            ))
+            try context.save()
+        }
+
+        if shouldSeedDetailDeadlineTransitionFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
+           try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
+            context.insert(Quest(
+                title: "Deadline transition UI test",
+                deadline: Date.now.addingTimeInterval(30),
+                importance: .medium
+            ))
+            try context.save()
+        }
+
+        if usesInMemoryStore, arguments.contains("-storeScreenshotFixture") {
+            try seedStoreScreenshotFixture(in: context)
+        }
+
+        if shouldSeedRecoveryFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
+           try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
+            try seedRecoveryFixture(in: context, arguments: arguments)
+        }
+    }
+
+    private static func seedStoreScreenshotFixture(in context: ModelContext) throws {
+        let now = Date.now
+        let fixtures: [(LocalizedStringResource, TimeInterval, Importance)] = [
+            (AppStrings.debugFixtureScreenshotPrepare, 3_600, .high),
+            (AppStrings.debugFixtureScreenshotPrivacyPolicy, 86_400, .medium),
+            (AppStrings.debugFixtureScreenshotLandingPage, 2 * 86_400, .high),
+            (AppStrings.debugFixtureScreenshotLaunchChecklist, 5 * 86_400, .low),
+        ]
+        for (title, interval, importance) in fixtures {
+            context.insert(Quest(
+                title: AppStrings.resolve(title, locale: .current),
+                deadline: now.addingTimeInterval(interval),
+                importance: importance
+            ))
+        }
+        try context.save()
+    }
+
+    private static func seedRecoveryFixture(in context: ModelContext, arguments: [String]) throws {
+        let now = Date.now
+        if !arguments.contains("-uiTestingRecoveryPersistenceFailure") {
+            context.insert(RetentionInstallation(
+                installationID: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                measurementStartedAt: now.addingTimeInterval(-4 * 86_400)
+            ))
+        }
+        if arguments.contains("-uiTestingRecoveryNoPending") {
+            context.insert(Quest(
+                title: AppStrings.resolve(AppStrings.debugFixtureRecoveryLeftoverQuest, locale: .current),
+                deadline: now.addingTimeInterval(-60),
+                importance: .medium
+            ))
+        } else {
+            context.insert(Quest(
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
+                title: AppStrings.resolve(AppStrings.debugFixtureRecoveryQuestOne, locale: .current),
+                deadline: now.addingTimeInterval(600),
+                importance: .high
+            ))
+            context.insert(Quest(
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
+                title: AppStrings.resolve(AppStrings.debugFixtureRecoveryQuestTwo, locale: .current),
+                deadline: now.addingTimeInterval(1_200),
+                importance: .medium
+            ))
+        }
+        context.insert(Quest(
+            title: AppStrings.resolve(AppStrings.debugFixtureRecoveryVictorySecured, locale: .current),
+            deadline: now.addingTimeInterval(-86_400),
+            importance: .low,
+            completedAt: now.addingTimeInterval(-86_460)
+        ))
+        // The recovery card only appears after a multi-day absence, which is derived from `lastOpened`.
+        UserDefaults.standard.set(
+            now.addingTimeInterval(-3 * 86_400).timeIntervalSinceReferenceDate,
+            forKey: "lastOpenedTIRD"
+        )
+        try context.save()
+    }
+}
+#endif

@@ -127,12 +127,12 @@ struct QuestActionsTests {
         ]
         let previous = now.addingTimeInterval(-2 * day)   // deadline (-1d) falls within (previous, now]
 
-        let first = reconstructOnActivation(quests: quests, now: now, previousLastOpened: previous)
+        let first = Activation.reconstructOnActivation(quests: quests, now: now, previousLastOpened: previous)
         #expect(first.deaths == [died])
         #expect(first.newLastOpened == now)
 
         // Re-run with the advanced lastOpened: the same death is not replayed.
-        let second = reconstructOnActivation(quests: quests, now: now, previousLastOpened: first.newLastOpened)
+        let second = Activation.reconstructOnActivation(quests: quests, now: now, previousLastOpened: first.newLastOpened)
         #expect(second.deaths.isEmpty)
     }
 
@@ -150,7 +150,7 @@ struct QuestActionsTests {
                 importance: .medium
             ),
         ]
-        let first = reconstructOnActivation(
+        let first = Activation.reconstructOnActivation(
             quests: quests,
             now: now,
             previousLastOpened: previous
@@ -185,7 +185,7 @@ struct QuestActionsTests {
         let previous = calendar.date(byAdding: .day, value: -3, to: now)!
         let questID = UUID()
         let unavailableSelections: [DailyFocusSelectionSnapshot]? = nil
-        let replay = makeActivationReplay(
+        let replay = Activation.makeActivationReplay(
             quests: [
                 QuestSnapshot(
                     id: questID,
@@ -218,7 +218,7 @@ struct QuestActionsTests {
                 importance: .high
             )
         ]
-        let replay = reconstructOnActivation(
+        let replay = Activation.reconstructOnActivation(
             quests: quests,
             now: now,
             previousLastOpened: now.addingTimeInterval(-6 * 24 * 60 * 60)
@@ -237,7 +237,7 @@ struct QuestActionsTests {
                 importance: .high
             )
         ]
-        let replay = reconstructOnActivation(quests: quests, now: now, previousLastOpened: nil)
+        let replay = Activation.reconstructOnActivation(quests: quests, now: now, previousLastOpened: nil)
         #expect(replay.escalations.isEmpty)
     }
 
@@ -248,7 +248,7 @@ struct QuestActionsTests {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
         let questID = UUID()
-        let replay = makeActivationReplay(
+        let replay = Activation.makeActivationReplay(
             quests: [
                 QuestSnapshot(
                     id: questID,
