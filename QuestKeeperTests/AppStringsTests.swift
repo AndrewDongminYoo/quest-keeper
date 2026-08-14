@@ -23,6 +23,14 @@ struct AppStringsTests {
         #expect(AppStrings.resolve(AppStrings.questFieldDetails, locale: en) == "Description")
     }
 
+    @Test("quest detail action and completion time fields resolve in both locales")
+    func questDetailFieldsLocalize() {
+        #expect(AppStrings.resolve(AppStrings.questActionEdit, locale: ko) == "편집")
+        #expect(AppStrings.resolve(AppStrings.questActionEdit, locale: en) == "Edit")
+        #expect(AppStrings.resolve(AppStrings.questFieldCompletedAt, locale: ko) == "완료 시각")
+        #expect(AppStrings.resolve(AppStrings.questFieldCompletedAt, locale: en) == "Completed at")
+    }
+
     @Test("focus.progress interpolates both counts in both locales")
     func focusProgressLocalizes() {
         #expect(AppStrings.resolve(AppStrings.focusProgress(2, 3), locale: ko) == "2/3 완료")

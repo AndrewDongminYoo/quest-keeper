@@ -1732,6 +1732,22 @@
         }
       }
     },
+    "quest.action.edit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "편집"
+          }
+        }
+      }
+    },
     "quest.action.retryTomorrow" : {
       "localizations" : {
         "en" : {
@@ -1968,6 +1984,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "마감"
+          }
+        }
+      }
+    },
+    "quest.field.completedAt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed at"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료 시각"
           }
         }
       }
