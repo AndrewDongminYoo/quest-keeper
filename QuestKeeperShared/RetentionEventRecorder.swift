@@ -93,11 +93,12 @@ nonisolated enum RetentionEventRecorder {
     static func recordQuestCreated(
         questID: UUID,
         at occurredAt: Date,
+        source: RetentionEventSource = .app,
         in context: ModelContext
     ) -> RetentionRecordResult {
         record(
             name: .questCreated,
-            source: .app,
+            source: source,
             occurredAt: occurredAt,
             questID: questID,
             keyComponent: questID.uuidString,

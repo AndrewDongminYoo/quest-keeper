@@ -103,6 +103,22 @@ struct RetentionEventRecorderTests {
         #expect(experimentEvents.allSatisfy { $0.snapshot.questID == nil })
     }
 
+    @Test("shortcut quest creation is retained as its own valid source")
+    func shortcutCreationSource() throws {
+        let container = try measurementContainer()
+        let context = container.mainContext
+        context.insert(RetentionInstallation(installationID: installationID, measurementStartedAt: now))
+        #expect(RetentionEventRecorder.recordQuestCreated(
+            questID: questID,
+            at: now,
+            source: .shortcut,
+            in: context
+        ) == .inserted)
+        try context.save()
+        let event = try context.fetch(FetchDescriptor<RetentionEvent>()).first
+        #expect(event?.snapshot.source == .shortcut)
+    }
+
     @Test("completion identity ignores process source but includes completion time")
     func completionCanonicalIdentity() throws {
         let container = try measurementContainer()

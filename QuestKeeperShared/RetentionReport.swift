@@ -300,7 +300,9 @@ private nonisolated func isValidCombination(
     switch name {
     case .appActivated:
         source == .app && questID == nil
-    case .questCreated, .questRetried:
+    case .questCreated:
+        (source == .app || source == .shortcut) && questID != nil
+    case .questRetried:
         source == .app && questID != nil
     case .questCompleted:
         questID != nil
