@@ -15,7 +15,7 @@
 ## Success Criteria
 
 - 앱을 6개월간 안 열었다가 다시 열어도 용사의 상태와 던전(오늘의 할 일)이 **결정론적으로 올바르게 재구성**된다 (실시간 이벤트 의존 0).
-- DB에 `HP`, `isDead`, `무덤 개수` 같은 파생 상태가 저장되어 있지 않다. 저장되는 것은 원시 사실(`deadline`, `completedAt`, `importance`)뿐이다.
+- DB에 `HP`, `isDead`, `무덤 개수` 같은 파생 상태가 저장되어 있지 않다. 저장되는 것은 원시 사실(`title`, optional `details`, `deadline`, `completedAt`, `importance`)뿐이다.
 - 매일 아침 던전이 리셋되어, 어제 실패한 일(무덤)이 유저를 압박하지 않는다.
 - 마감 알림이 스케줄→취소→재등록 라이프사이클을 정확히 따른다 (완료/이월 시 pending 알림 제거됨).
 - 홈 화면 위젯이 앱을 열지 않고도 몹과 용사의 상태를 반영한다.
@@ -41,7 +41,7 @@
 
 이 원칙이 전체 아키텍처의 뼈대이며, 유쾌한 게이미피케이션 규칙을 뒷받침한다.
 
-- **저장(persist)**: `task.deadline`, `task.completedAt`, `task.importance` — 시간이 지나도 변하지 않는 원시 사실.
+- **저장(persist)**: `task.title`, optional `task.details`, `task.deadline`, `task.completedAt`, `task.importance` — 시간이 지나도 변하지 않는 원시 사실.
 - **파생(derive)**: 몹 레벨, 긴급도, 오늘의 무덤 노출 여부 — 모두 **조회 시점의 현재 시각 대비 계산**.
 - 마감 판정은 **상태 재구성(state replay)**: 앱이 다시 열리는 순간 `lastOpened`와 각 태스크 `deadline`을 비교해 그 사이에 죽었어야 할 용사의 "꿱" 이벤트를 소급해서 한 번만 보여준다.
 - **매일 리셋되는 던전**: DB에 실패한 사실(Fact)은 남지만, 파생 계층(Derivation Layer)에서 `마감(deadline)이 현재와 같은 로컬 달력 날짜인 무덤`만 UI에 노출되도록 필터링한다. 무덤 개수를 세거나 누적하지 않는다.
@@ -53,7 +53,7 @@
 
 목표: 저장/파생 경계를 코드로 못박는다. 실패의 누적(무덤 카운트)을 없애고 긍정적인 '작은 성공'을 기록하는 구조로 변경.
 
-- [x] SwiftData `@Model Task(또는 Quest)` 정의 — 원시 사실만 저장 (`id`, `title`, `deadline`, `completedAt?`, `importance`)
+- [x] SwiftData `@Model Task(또는 Quest)` 정의 — 원시 사실만 저장 (`id`, `title`, optional `details`, `deadline`, `completedAt?`, `importance`)
 - [x] `HeroDerivation` + `QuestSnapshot.urgency(at:)` / `QuestSnapshot.mobLevel(at:)` 파생 로직 작성
 - [x] `HeroState` 파생 로직 — 영구적인 무덤 카운트를 제거하고, '오늘 발생한 무덤(Daily Graves)'과 '누적된 작은 성공(Total Victories)'만 계산
 - [x] 단위 테스트: "저장은 사실만" 원칙 검증 및 날짜 변경 시 무덤이 화면에서 사라지는 필터링(리셋) 검증
@@ -95,6 +95,12 @@
 - [x] 짧은 회고 메모 작성 (`docs/notes/006-phase-5-retrospective.md`)
 
 ---
+
+## Shipped Extensions
+
+- Optional quest descriptions are persisted as raw facts.
+- One common Quest detail surface presents quest information and becomes read-only when editing is unavailable.
+- One background Create Quest App Shortcut creates quests without opening the app.
 
 ## Backlog (2차 이후, 스코프 밖)
 
