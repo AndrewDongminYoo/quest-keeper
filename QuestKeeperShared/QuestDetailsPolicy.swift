@@ -18,17 +18,18 @@ nonisolated enum QuestDetailsPolicy {
         let trimmed = lineNormalized.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        var collapsed = ""
-        var newlineRun = 0
-        for character in trimmed {
-            if character == "\n" {
-                newlineRun += 1
-                if newlineRun <= 2 { collapsed.append(character) }
+        var collapsedLines: [String] = []
+        var previousLineWasBlank = false
+        for line in trimmed.split(separator: "\n", omittingEmptySubsequences: false) {
+            let lineIsBlank = line.allSatisfy { $0.isWhitespace }
+            if lineIsBlank {
+                if !previousLineWasBlank { collapsedLines.append("") }
             } else {
-                newlineRun = 0
-                collapsed.append(character)
+                collapsedLines.append(String(line))
             }
+            previousLineWasBlank = lineIsBlank
         }
+        let collapsed = collapsedLines.joined(separator: "\n")
         let bounded = constrainedInput(collapsed)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return bounded.isEmpty ? nil : bounded

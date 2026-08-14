@@ -14,6 +14,11 @@ struct QuestDetailsPolicyTests {
         #expect(QuestDetailsPolicy.normalized(raw) == "First\n\nSecond\nThird")
     }
 
+    @Test("whitespace-only internal lines count as blank lines")
+    func normalizesWhitespaceOnlyBlankLines() {
+        #expect(QuestDetailsPolicy.normalized("First\n   \n\t\nSecond") == "First\n\nSecond")
+    }
+
     @Test("normalization preserves internal spaces")
     func preservesInternalSpaces() {
         #expect(QuestDetailsPolicy.normalized("one   two") == "one   two")
