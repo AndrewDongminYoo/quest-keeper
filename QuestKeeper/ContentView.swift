@@ -206,11 +206,17 @@ struct ContentView: View {
             .task {
                 notificationAuthorization = await notificationService.authorizationStatus()
             }
-            .onChange(of: notificationRouteStore.pendingQuestID, initial: true) { _, questID in
-                consumeNotificationRoute(questID)
+            .onChange(of: ObjectIdentifier(modelContext.container), initial: true) { _, _ in
+                notificationRouteStore.resume(for: modelContext.container)
+            }
+            .onChange(of: notificationRouteStore.readyGeneration, initial: true) { _, _ in
+                consumeNotificationRoute()
+            }
+            .onChange(of: notificationRouteStore.pendingQuestID, initial: true) { _, _ in
+                consumeNotificationRoute()
             }
             .onChange(of: quests.map(\.id), initial: true) { _, _ in
-                consumeNotificationRoute(notificationRouteStore.pendingQuestID)
+                consumeNotificationRoute()
             }
         }
         .onChange(of: activationReplay?.id, initial: true) { _, _ in
@@ -414,19 +420,17 @@ struct ContentView: View {
         }
     }
 
-    private func consumeNotificationRoute(_ questID: UUID?) {
-        guard let questID else { return }
-        guard let quest = quests.first(where: { $0.id == questID }) else {
-            print("Notification route is waiting for quest: \(questID)")
-            return
-        }
+    private func consumeNotificationRoute() {
+        guard let quest = takeNotificationRouteQuest(
+            from: notificationRouteStore,
+            in: modelContext
+        ) else { return }
 
         let now = Date.now
         switch notificationDestination(for: quest.snapshot, now: now) {
         case .detail:
             route = .detail(quest)
         }
-        notificationRouteStore.clear()
     }
 
     private func openNotificationSettings() {

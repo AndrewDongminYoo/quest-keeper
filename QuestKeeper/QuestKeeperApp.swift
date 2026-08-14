@@ -253,6 +253,7 @@ struct QuestKeeperApp: App {
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
             case .background:
+                notificationRouteStore.pause()
                 didBackground = true
                 retentionActivationSessionID = UUID()
             case .active:
@@ -271,6 +272,7 @@ struct QuestKeeperApp: App {
                 ) {
                     didBackground = false
                     container = sharedModelContainer
+                    notificationRouteStore.resume(for: container)
                     canReplayActivation = true
                 } else if didBackground,
                           let refreshed = try? QuestModelContainer.make(
