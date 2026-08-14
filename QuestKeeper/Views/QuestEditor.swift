@@ -19,6 +19,7 @@ struct QuestEditor: View {
     let onSaved: (Quest) -> Void
 
     @State private var title: String
+    @State private var details: String
     @State private var deadline: Date
     @State private var importance: Importance
     @State private var showingChunkingGuide = false
@@ -39,6 +40,7 @@ struct QuestEditor: View {
         let initialDeadline = quest?.deadline ?? draft?.deadline ?? now.addingTimeInterval(60 * 60)
         let initialImportance = quest?.importance ?? draft?.importance ?? .medium
         _title = State(initialValue: initialTitle)
+        _details = State(initialValue: QuestDetailsPolicy.constrainedInput(quest?.details ?? ""))
         _deadline = State(initialValue: max(initialDeadline, now))
         _importance = State(initialValue: initialImportance)
     }
@@ -50,6 +52,16 @@ struct QuestEditor: View {
                     get: { title },
                     set: { title = QuestTitlePolicy.constrainedInput($0) }
                 ))
+                TextField(
+                    AppStrings.questFieldDetails,
+                    text: Binding(
+                        get: { details },
+                        set: { details = QuestDetailsPolicy.constrainedInput($0) }
+                    ),
+                    axis: .vertical
+                )
+                .lineLimit(3...8)
+                .accessibilityIdentifier("questDetailsField")
                 DatePicker(AppStrings.questFieldDeadline, selection: $deadline, in: Date.now...)
                 Picker(AppStrings.questEditorImportanceField, selection: $importance) {
                     Text(AppStrings.questEditorImportanceLow).tag(Importance.low)
@@ -90,15 +102,26 @@ struct QuestEditor: View {
 
     private func save() {
         let savedAt = Date.now
-        let trimmed = QuestTitlePolicy.normalized(title)
+        guard let input = try? QuestCreationInput(
+            title: title,
+            details: details,
+            deadline: deadline,
+            importance: importance
+        ) else { return }
         let savedQuest: Quest
         if let quest {
-            quest.title = trimmed
-            quest.deadline = deadline
-            quest.importance = importance
+            quest.title = input.title
+            quest.details = input.details
+            quest.deadline = input.deadline
+            quest.importance = input.importance
             savedQuest = quest
         } else {
-            let newQuest = Quest(title: trimmed, deadline: deadline, importance: importance)
+            let newQuest = Quest(
+                title: input.title,
+                deadline: input.deadline,
+                importance: input.importance,
+                details: input.details
+            )
             modelContext.insert(newQuest)
             _ = RetentionEventRecorder.recordQuestCreated(
                 questID: newQuest.id,

@@ -17,6 +17,12 @@ struct AppStringsTests {
     let ko = Locale(identifier: "ko")
     let en = Locale(identifier: "en")
 
+    @Test("quest details field resolves in both locales")
+    func questDetailsFieldLocalizes() {
+        #expect(AppStrings.resolve(AppStrings.questFieldDetails, locale: ko) == "설명")
+        #expect(AppStrings.resolve(AppStrings.questFieldDetails, locale: en) == "Description")
+    }
+
     @Test("focus.progress interpolates both counts in both locales")
     func focusProgressLocalizes() {
         #expect(AppStrings.resolve(AppStrings.focusProgress(2, 3), locale: ko) == "2/3 완료")

@@ -1668,6 +1668,22 @@
         }
       }
     },
+    "quest.field.details" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설명"
+          }
+        }
+      }
+    },
     "quest.grave.justMissed" : {
       "localizations" : {
         "en" : {

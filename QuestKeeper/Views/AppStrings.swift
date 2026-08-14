@@ -172,6 +172,10 @@ nonisolated extension AppStrings {
 
     static let questStatusCompleted = LocalizedStringResource("quest.status.completed", defaultValue: "완료")
     static let questFieldDeadline = LocalizedStringResource("quest.field.deadline", defaultValue: "마감")
+    static let questFieldDetails = LocalizedStringResource(
+        "quest.field.details",
+        defaultValue: "설명"
+    )
 }
 
 nonisolated extension AppStrings {
