@@ -20,7 +20,7 @@ struct ContentView: View {
     @State private var escalatedQuestIDs: Set<UUID> = []
     @State private var route: QuestSheetRoute?
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
-    @State private var notificationAuthorization: QuestNotificationAuthorization = .notDetermined
+    @State private var notificationAuthorization: QuestNotificationAuthorization?
     @State private var mourningTask: Task<Void, Never>?
     @Binding private var hasDeferredOnboardingThisRun: Bool
     @Binding private var recoveryOffer: RecoveryActivationOffer?
@@ -101,7 +101,9 @@ struct ContentView: View {
                     newlyMissedQuestIDs: pendingDeaths,
                     escalatedQuestIDs: escalatedQuestIDs,
                     now: now,
-                    showsNotificationPermissionBanner: notificationAuthorization == .denied,
+                    notificationPermissionAction: QuestNotificationPermissionAction.make(
+                        authorization: notificationAuthorization
+                    ),
                     onboardingPresentation: onboardingPresentation,
                     dailyFocusPresentation: dailyFocusPresentation,
                     recoveryPresentation: recoveryPresentation,
@@ -127,7 +129,7 @@ struct ContentView: View {
                         route = .recoveryCreate(.guided(at: .now))
                     },
                     onDismissRecovery: { recoveryOffer = nil },
-                    onOpenNotificationSettings: openNotificationSettings,
+                    onResolveNotificationPermission: resolveNotificationPermission,
                     onComplete: complete,
                     onDelete: delete,
                     onOpenDetail: { route = .detail($0) }
@@ -255,6 +257,21 @@ struct ContentView: View {
     private func refreshNotificationAuthorization() {
         Task { @MainActor in
             notificationAuthorization = await notificationService.authorizationStatus()
+        }
+    }
+
+    private func resolveNotificationPermission(_ action: QuestNotificationPermissionAction) {
+        switch action {
+        case .requestAuthorization:
+            let currentQuests = quests
+            Task { @MainActor in
+                notificationAuthorization = await notificationService.requestAuthorizationAndReconcile(
+                    quests: currentQuests,
+                    now: .now
+                )
+            }
+        case .openSettings:
+            openNotificationSettings()
         }
     }
 

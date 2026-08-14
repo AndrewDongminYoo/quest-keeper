@@ -31,6 +31,26 @@ struct AppStringsTests {
         #expect(AppStrings.resolve(AppStrings.questFieldCompletedAt, locale: en) == "Completed at")
     }
 
+    @Test("notification permission recovery copy resolves in both locales")
+    func notificationPermissionRecoveryLocalizes() {
+        #expect(
+            AppStrings.resolve(AppStrings.notificationPermissionRequestBody, locale: ko)
+                == "마감 알림을 받으려면 알림을 허용하세요."
+        )
+        #expect(
+            AppStrings.resolve(AppStrings.notificationPermissionRequestBody, locale: en)
+                == "Allow notifications to receive deadline reminders."
+        )
+        #expect(
+            AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: ko)
+                == "마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요."
+        )
+        #expect(
+            AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: en)
+                == "Turn on QuestKeeper notifications in Settings to get deadline alerts."
+        )
+    }
+
     @Test("focus.progress interpolates both counts in both locales")
     func focusProgressLocalizes() {
         #expect(AppStrings.resolve(AppStrings.focusProgress(2, 3), locale: ko) == "2/3 완료")

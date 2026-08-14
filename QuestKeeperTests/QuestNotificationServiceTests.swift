@@ -207,6 +207,31 @@ struct QuestNotificationServiceTests {
         #expect(center.events.contains("requestAuthorization") == false)
     }
 
+    @Test("permission recovery action distinguishes request and settings paths")
+    func permissionRecoveryActionMatchesAuthorization() {
+        #expect(QuestNotificationPermissionAction.make(authorization: nil) == nil)
+        #expect(QuestNotificationPermissionAction.make(authorization: .notDetermined) == .requestAuthorization)
+        #expect(QuestNotificationPermissionAction.make(authorization: .denied) == .openSettings)
+        #expect(QuestNotificationPermissionAction.make(authorization: .allowed) == nil)
+        #expect(QuestNotificationPermissionAction.make(authorization: .unavailable) == nil)
+    }
+
+    @Test("explicit permission recovery requests authorization and reconciles existing quests")
+    func permissionRecoveryRequestsAndReconciles() async {
+        let center = FakeQuestNotificationCenter(status: .notDetermined)
+        let service = makeService(center: center)
+        let questID = UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!
+
+        let authorization = await service.requestAuthorizationAndReconcile(
+            quests: [quest(id: questID, deadlineOffset: 3 * hour)],
+            now: now
+        )
+
+        #expect(authorization == .allowed)
+        #expect(center.events.filter { $0 == "requestAuthorization" }.count == 1)
+        #expect(center.addedRequests.map(\.identifier) == QuestNotificationPlanner.identifiers(for: questID))
+    }
+
     @Test("shortcut sync never requests undetermined notification permission")
     func shortcutSyncDoesNotPrompt() async {
         let center = FakeQuestNotificationCenter(status: .notDetermined)

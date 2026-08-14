@@ -153,6 +153,10 @@ nonisolated extension AppStrings {
         "notification.permissionBanner.body",
         defaultValue: "마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요."
     )
+    static let notificationPermissionRequestBody = LocalizedStringResource(
+        "notification.permissionBanner.requestBody",
+        defaultValue: "마감 알림을 받으려면 알림을 허용하세요."
+    )
 }
 
 nonisolated extension AppStrings {

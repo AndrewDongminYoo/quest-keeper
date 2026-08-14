@@ -23,6 +23,24 @@ nonisolated enum QuestNotificationAuthorization: Equatable, Sendable {
     var canSchedule: Bool { self == .allowed }
 }
 
+nonisolated enum QuestNotificationPermissionAction: Equatable, Sendable {
+    case requestAuthorization
+    case openSettings
+
+    static func make(
+        authorization: QuestNotificationAuthorization?
+    ) -> QuestNotificationPermissionAction? {
+        switch authorization {
+        case .notDetermined:
+            return .requestAuthorization
+        case .denied:
+            return .openSettings
+        case .allowed, .unavailable, nil:
+            return nil
+        }
+    }
+}
+
 @MainActor
 protocol QuestNotificationCenter: AnyObject {
     func authorizationStatus() async -> UNAuthorizationStatus
@@ -161,6 +179,34 @@ final class QuestNotificationService {
 
     @discardableResult
     func reconcile(quests: [Quest], now: Date, locale: Locale = .current) async -> QuestNotificationAuthorization {
+        await reconcile(
+            quests: quests,
+            now: now,
+            locale: locale,
+            authorizationRequestPolicy: .never
+        )
+    }
+
+    @discardableResult
+    func requestAuthorizationAndReconcile(
+        quests: [Quest],
+        now: Date,
+        locale: Locale = .current
+    ) async -> QuestNotificationAuthorization {
+        await reconcile(
+            quests: quests,
+            now: now,
+            locale: locale,
+            authorizationRequestPolicy: .ifNeeded
+        )
+    }
+
+    private func reconcile(
+        quests: [Quest],
+        now: Date,
+        locale: Locale,
+        authorizationRequestPolicy: AuthorizationRequestPolicy
+    ) async -> QuestNotificationAuthorization {
         let plans = quests.flatMap { quest in
             QuestNotificationPlanner.plans(for: quest.snapshot, now: now, locale: locale)
         }
@@ -171,7 +217,8 @@ final class QuestNotificationService {
         return await enqueue {
             await self.performReconcile(
                 plans: plans,
-                deliveredIdentifiersToRemove: deliveredIdentifiersToRemove
+                deliveredIdentifiersToRemove: deliveredIdentifiersToRemove,
+                authorizationRequestPolicy: authorizationRequestPolicy
             )
         }
     }
@@ -236,7 +283,8 @@ final class QuestNotificationService {
 
     private func performReconcile(
         plans: [QuestNotificationPlan],
-        deliveredIdentifiersToRemove: [String]
+        deliveredIdentifiersToRemove: [String],
+        authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
         let pendingIdentifiers = await center.pendingNotificationIdentifiers()
         let questKeeperIdentifiers = pendingIdentifiers
@@ -249,7 +297,12 @@ final class QuestNotificationService {
             center.removeDeliveredNotifications(withIdentifiers: deliveredIdentifiersToRemove)
         }
 
-        let authorization = await authorizationStatus()
+        let authorization = switch authorizationRequestPolicy {
+        case .ifNeeded:
+            await requestAuthorizationIfNeeded()
+        case .never:
+            await authorizationStatus()
+        }
         guard !plans.isEmpty else { return authorization }
         guard authorization.canSchedule else { return authorization }
 

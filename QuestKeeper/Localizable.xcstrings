@@ -1668,6 +1668,22 @@
         }
       }
     },
+    "notification.permissionBanner.requestBody" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow notifications to receive deadline reminders."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마감 알림을 받으려면 알림을 허용하세요."
+          }
+        }
+      }
+    },
     "onboarding.guidedQuest.title" : {
       "localizations" : {
         "en" : {
