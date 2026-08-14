@@ -73,6 +73,42 @@ struct QuestShortcutCreationCoordinatorTests {
         #expect(outcome.followUpFailures == [.notifications, .widgetSnapshot])
     }
 
+    @Test("widget snapshot is timestamped after notification work")
+    func widgetSnapshotUsesPostNotificationTimestamp() async throws {
+        let container = try makeContainer()
+        let invocationDate = Date(timeIntervalSinceReferenceDate: 1)
+        let competingPayload = WidgetDungeonPayload(
+            schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
+            generatedAt: invocationDate.addingTimeInterval(1),
+            quests: []
+        )
+        let probe = QuestShortcutWidgetSnapshotProbe()
+        let writer = WidgetDungeonSnapshotWriter(save: { payload in
+            await probe.record(payload)
+        })
+        var competingSubmissionAccepted = false
+        let coordinator = QuestShortcutCreationCoordinator(
+            modelContainer: container,
+            scheduleNotifications: { _, _, _ in
+                competingSubmissionAccepted = await writer.submit(competingPayload)
+                return .allowed
+            },
+            updateWidgetSnapshot: { payload in
+                await writer.submit(payload)
+            }
+        )
+
+        let outcome = try await coordinator.create(
+            input: try shortcutInput(now: invocationDate),
+            now: invocationDate
+        )
+
+        let savedPayloads = await probe.snapshot()
+        #expect(competingSubmissionAccepted)
+        #expect(outcome.didUpdateWidgetSnapshot)
+        #expect(savedPayloads.last?.quests.contains { $0.id == outcome.questID } == true)
+    }
+
     @Test("container refresh sends the next shortcut write only to the refreshed store")
     func usesRefreshedContainer() async throws {
         let oldContainer = try makeContainer()
@@ -142,5 +178,17 @@ struct QuestShortcutCreationCoordinatorTests {
             deadline: now.addingTimeInterval(3_600),
             importance: .high
         )
+    }
+}
+
+private actor QuestShortcutWidgetSnapshotProbe {
+    private var savedPayloads: [WidgetDungeonPayload] = []
+
+    func record(_ payload: WidgetDungeonPayload) {
+        savedPayloads.append(payload)
+    }
+
+    func snapshot() -> [WidgetDungeonPayload] {
+        savedPayloads
     }
 }

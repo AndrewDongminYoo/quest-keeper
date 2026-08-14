@@ -93,7 +93,7 @@ final class QuestShortcutCreationCoordinator: Sendable {
         let authorization = await scheduleNotifications(snapshot, now, locale)
         let didUpdateWidget: Bool
         do {
-            let payload = try await store.snapshotPayload(generatedAt: now)
+            let payload = try await store.snapshotPayload(generatedAt: .now)
             didUpdateWidget = await updateWidgetSnapshot(payload)
         } catch {
             didUpdateWidget = false
