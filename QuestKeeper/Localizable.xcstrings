@@ -1657,13 +1657,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn on QuestKeeper notifications in Settings to get deadline alerts."
+            "value" : "Turn on Quest Keeper notifications in Settings to get deadline alerts."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요."
+            "value" : "마감 알림을 받으려면 설정에서 Quest Keeper 알림을 켜세요."
           }
         }
       }

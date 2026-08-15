@@ -70,7 +70,7 @@ struct WidgetDungeonView: View {
 
     private var mediumHeader: some View {
         HStack(spacing: 8) {
-            Text(verbatim: "QUEST KEEPER")
+            Text(verbatim: Brand.displayName)
                 .font(.system(size: 15, weight: .black, design: .monospaced))
                 .foregroundStyle(DungeonPalette.ink)
                 .lineLimit(1)
@@ -119,7 +119,7 @@ struct WidgetDungeonView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(verbatim: "QUEST")
+            Text(verbatim: Brand.shortName)
                 .font(.system(size: 16, weight: .black, design: .monospaced))
                 .foregroundStyle(DungeonPalette.ink)
                 .lineLimit(1)

@@ -43,11 +43,11 @@ struct AppStringsTests {
         )
         #expect(
             AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: ko)
-                == "마감 알림을 받으려면 설정에서 QuestKeeper 알림을 켜세요."
+                == "마감 알림을 받으려면 설정에서 Quest Keeper 알림을 켜세요."
         )
         #expect(
             AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: en)
-                == "Turn on QuestKeeper notifications in Settings to get deadline alerts."
+                == "Turn on Quest Keeper notifications in Settings to get deadline alerts."
         )
     }
 

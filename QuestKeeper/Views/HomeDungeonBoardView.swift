@@ -275,7 +275,7 @@ private struct BoardHUD: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text(verbatim: "QUEST KEEPER")
+                Text(verbatim: Brand.displayName)
                     .font(.title3.weight(.black).monospaced())
                     .foregroundStyle(DungeonPalette.ink)
                 Spacer(minLength: 8)
