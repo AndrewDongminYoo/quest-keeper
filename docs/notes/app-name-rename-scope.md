@@ -80,8 +80,9 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
   These are the reason the spaced sweep is not enough on its own — see the second command in Verification. Their other hits are directory paths and `-scheme` arguments, which do not change.
 - `docs/store/app-store-listing.md` — title, name field, and description prose.
 - `docs/legal/privacy-policy.md` and `docs/legal/terms-of-service.md` — re-copied into the landing repo's `content/legal/*.ko.md`, so the rename lands in `quest-keeper-landing` too.
-- `LINEAR.md` — names the Linear project in prose and in a field. **Rename the Linear project itself in the same pass**, then update both lines.
-  This is the one item requiring an action outside the repository. Leaving it optional would be worse than the extra step: the file is inventoried here rather than under "Deliberately unchanged", so an unrenamed `LINEAR.md` is an inventoried site left stale — and a repo doc naming a Linear project that no longer goes by that name is its own small trap. Linear keeps the project's URL slug across a rename, so the link in that file stays valid either way.
+- `LINEAR.md` — names the Linear project in prose and in a field. **Follows the Korean listing, and only it.**
+  Operator decision, 2026-08-15: renaming the Linear project is premature until the Korean app name actually becomes `TODO Slayer`. If this plan is executed, rename the project and update both lines in the same pass; if the Korean listing keeps `Quest Keeper` for any reason, `LINEAR.md` keeps it too and both hits classify as unchanged.
+  Linear keeps the project's URL slug across a rename, so the link in that file stays valid either way.
 
 ### Deliberately unchanged
 
