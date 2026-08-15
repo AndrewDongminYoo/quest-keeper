@@ -106,19 +106,18 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
    The displayed brand always contains a space, while identifiers, paths, bundle IDs, and module names never do, so matching on the space is what separates copy from code:
 
    ```bash
-   rg -n --glob '!.git' -e 'Quest Keeper' -e 'QUEST KEEPER' . \
-     | grep -vE '^\./(docs/(specs|plans|releases)/|docs/notes/app-name-rename-scope\.md|fastlane/metadata/[^/]+/release_notes\.txt)'
+   rg -n --glob '!.git' -e 'Quest Keeper' -e 'QUEST KEEPER' .
    ```
 
-   As of this note it returns **38 hits**, and every one of them is in the inventory above.
-   After the rename the sweep must return nothing.
+   **The pass condition is that every remaining hit falls under "Deliberately unchanged" — not that the output is empty.**
+   Against 1.2.0 it returns 70 hits: the 38 sites in the inventory above, plus 32 that legitimately keep the old name — `docs/specs/`, `docs/plans/`, `docs/releases/`, the generated `fastlane/metadata/<locale>/release_notes.txt` copies, and this file's own 10.
 
-   Everything excluded is copy that keeps the old name legitimately, in one of three ways:
-   - **Historical records** — `docs/specs/`, `docs/plans/`, `docs/releases/`. Written once, never revised.
-   - **Generated copies of a shipped release** — `fastlane/metadata/<locale>/release_notes.txt`, produced by `scripts/prepare-release-notes.sh` from `docs/releases/<version>/`. They still hold the shipped version's text until the next release is cut, and the script cannot regenerate them before a source file for the new marketing version exists.
-   - **This file**, which describes the name rather than displaying it.
+   An earlier draft of this note demanded an empty result and carried a `grep -v` denylist to get there.
+   Three review rounds in a row found another file the denylist had not anticipated — the shipped 1.2.0 release notes, then the generated `fastlane/metadata/<locale>/release_notes.txt` copies, then `LINEAR.md`.
+   Each fix widened the denylist and exposed the next gap in it, because the product name appears across the whole repository and a hand-maintained exclusion list cannot stay exhaustive.
+   Classifying the hits is the check; an empty result was never achievable.
 
-   The **next** version's release notes are not covered by this sweep — they do not exist yet when the rename lands. Their `<Name> X.Y.Z` first line is the Store metadata bullet's job, at cut time.
+   The **next** version's release notes are not covered here — they do not exist yet when the rename lands. Their `<Name> X.Y.Z` first line is the Store metadata bullet's job, at cut time.
 
    Then check the one site it structurally cannot see:
 
