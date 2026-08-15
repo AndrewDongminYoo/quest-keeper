@@ -21,7 +21,7 @@ The target name is `TODO Slayer` in both locales.
 `QuestKeeperShared/Brand.swift` owns both forms, and the rename edits them there:
 
 - `Brand.displayName` (`"QUEST KEEPER"`) — the dungeon header in `HomeDungeonBoardView` and in the widget.
-- `Brand.shortName` (`"QUEST"`) — the `systemSmall` widget header, where the full name does not fit. **This needs its own short form chosen for the new name, not a truncation of it**, and it is the one site the sweep below cannot see, because it has no space to match on.
+- `Brand.shortName` (`"QUEST"`) — the `systemSmall` widget header, where the full name does not fit. **This needs its own short form chosen for the new name, not a truncation of it**, and it is the one site **neither** sweep in Verification can see — `"QUEST"` matches no spelling of the full name.
 
 These were three separate `Text(verbatim:)` literals until they were consolidated here.
 That mattered because no gate covers them: `scripts/test-localization.sh` flags stray **Korean** literals, and Latin text inside `Text(verbatim:)` passes every check while rendering the name on screen.
@@ -71,23 +71,27 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
 - `fastlane/metadata/ko/name.txt` — plus the Korean localization in App Store Connect.
 - `fastlane/metadata/ko/description.txt` and `fastlane/metadata/en-US/description.txt` — both open with the name.
 - The `<Name> X.Y.Z` first line of each new `docs/releases/<version>/<locale>.txt`.
-  `fastlane/metadata/<locale>/release_notes.txt` is generated from those sources by `scripts/prepare-release-notes.sh` and needs no separate edit — until the next release is cut it still holds the shipped version's text, which is why the sweep excludes it.
+  `fastlane/metadata/<locale>/release_notes.txt` is generated from those sources by `scripts/prepare-release-notes.sh` and needs no separate edit — until the next release is cut it still holds the shipped version's text, which is why it sits under "Deliberately unchanged".
 
 ### Docs
 
-- `DESIGN.md:29` — the Screen Model's literal header. `DESIGN.md` declares itself the owner of the current visual direction, so leaving it stale would steer later UI work back to the old brand.
+- `DESIGN.md` — the Screen Model's literal header at `:29`, plus the title and the prose at `:11`. `DESIGN.md` declares itself the owner of the current visual direction, so leaving it stale would steer later UI work back to the old brand.
+- **`README.md`, `CHANGELOG.md`, `BLUEPRINT.md` — product prose written in the unspaced form.** `README.md:1,3` is the title and the one-line description; `:128` tells a tester to "Add the QuestKeeper widget"; `:130` names the foregrounded app. `CHANGELOG.md:3` and `BLUEPRINT.md:1` name the project the same way.
+  These are the reason the spaced sweep is not enough on its own — see the second command in Verification. Their other hits are directory paths and `-scheme` arguments, which do not change.
 - `docs/store/app-store-listing.md` — title, name field, and description prose.
 - `docs/legal/privacy-policy.md` and `docs/legal/terms-of-service.md` — re-copied into the landing repo's `content/legal/*.ko.md`, so the rename lands in `quest-keeper-landing` too.
 - `LINEAR.md` — names the Linear project in prose and in a field. **Rename the Linear project itself in the same pass**, then update both lines.
-  This is the one item requiring an action outside the repository. Leaving it optional would be worse than the extra step: the sweep below demands no remaining hits, so an unrenamed `LINEAR.md` makes the rename unable to pass its own verification. Linear keeps the project's URL slug across a rename, so the link in that file stays valid either way.
+  This is the one item requiring an action outside the repository. Leaving it optional would be worse than the extra step: the file is inventoried here rather than under "Deliberately unchanged", so an unrenamed `LINEAR.md` is an inventoried site left stale — and a repo doc naming a Linear project that no longer goes by that name is its own small trap. Linear keeps the project's URL slug across a rename, so the link in that file stays valid either way.
 
 ### Deliberately unchanged
 
 - Bundle identifiers `kr.donminzzi.QuestKeeper` and `kr.donminzzi.QuestKeeper.Widget`, and the App Group — an App Store bundle ID cannot be changed after release.
 - The repository, Xcode project, scheme, target names, and `PRODUCT_NAME`.
 - `Logger(subsystem:)` values, which follow the bundle identifier.
-- `docs/specs/`, `docs/plans/`, and everything under `docs/releases/` — these record decisions and shipped copy as they stood at the time, so they keep the old name.
+- `docs/specs/`, `docs/plans/`, `docs/notes/`, and everything under `docs/releases/` — these record decisions, verification runs, and shipped copy as they stood at the time, so they keep the old name.
   The whole `docs/releases/` tree is historical by construction: a version's notes are written once at cut time and never revised, so any directory that exists is already shipped. Naming individual versions here would go stale at every release.
+- `fastlane/metadata/<locale>/release_notes.txt` — generated by `scripts/prepare-release-notes.sh` from `docs/releases/<version>/`, and holding the shipped version's text until the next release is cut.
+- **This file.** It describes the name rather than displaying it, and quotes the old one throughout so the record still reads after the rename.
 
 ## Traps
 
@@ -119,12 +123,25 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
 
    The **next** version's release notes are not covered here — they do not exist yet when the rename lands. Their `<Name> X.Y.Z` first line is the Store metadata bullet's job, at cut time.
 
+5. Sweep for the **unspaced** form, which the search above cannot see:
+
+   ```bash
+   rg -n '\bQuestKeeper\b' --glob '*.md' . \
+     | grep -vE '^\./docs/(specs|plans|notes)/'
+   ```
+
+   Same pass condition: classify, do not expect empty.
+   Against 1.2.0 this returns 28 hits across `README.md`, `CHANGELOG.md`, `BLUEPRINT.md`, `DESIGN.md`, `CLAUDE.md`, `LINEAR.md` and this file — most of them directory paths and `-scheme` arguments that do not change, and a handful of product prose that does.
+   Restricting to `*.md` is what makes this usable: in Swift the same token is the module name on almost every line, while in prose it is the product.
+
+   The premise that a space separates copy from code was wrong, and the README instructions are why. An earlier draft leaned on it alone and would have left a tester being told to add a widget under a name that no longer exists.
+
    Then check the one site it structurally cannot see:
 
    ```bash
    rg -n 'static let shortName' QuestKeeperShared/Brand.swift
    ```
 
-5. Re-run `bundle exec fastlane screenshots` and look at the regenerated PNGs — the header is pixels, so no gate can read it.
-6. Launch in both locales and read the dungeon header, the home screen icon label, the widget gallery entry, and the notification permission banner.
+6. Re-run `bundle exec fastlane screenshots` and look at the regenerated PNGs — the header is pixels, so no gate can read it.
+7. Launch in both locales and read the dungeon header, the home screen icon label, the widget gallery entry, and the notification permission banner.
    The gate cannot judge any of these — see the reasoning in `docs/specs/018-english-localization.md`.
