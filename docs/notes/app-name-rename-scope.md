@@ -1,6 +1,6 @@
 # App Name Rename Scope
 
-Working note inventorying every place the app name is user-visible, so a rename can be executed in one pass.
+Working note inventorying every place the app name is user-visible or asserted, so a rename can be executed in one pass.
 Written 2026-08-15 while shipping 1.2.0.
 
 ## Why this exists
@@ -16,34 +16,55 @@ The target name is `TODO Slayer` in both locales.
 
 ## Inventory
 
-### App code — rendered brand text
+### Rendered brand text
 
 `QuestKeeperShared/Brand.swift` owns both forms, and the rename edits them there:
 
 - `Brand.displayName` (`"QUEST KEEPER"`) — the dungeon header in `HomeDungeonBoardView` and in the widget.
-- `Brand.shortName` (`"QUEST"`) — the `systemSmall` widget header, where the full name does not fit. **This needs its own short form chosen for the new name, not a truncation of it.**
+- `Brand.shortName` (`"QUEST"`) — the `systemSmall` widget header, where the full name does not fit. **This needs its own short form chosen for the new name, not a truncation of it**, and it is the one site the sweep below cannot see, because it has no space to match on.
 
 These were three separate `Text(verbatim:)` literals until they were consolidated here.
 That mattered because no gate covers them: `scripts/test-localization.sh` flags stray **Korean** literals, and Latin text inside `Text(verbatim:)` passes every check while rendering the name on screen.
 They are constants rather than catalog keys because the product name is not localized — a catalog would spread each one across a Swift `defaultValue:` plus `ko` plus `en` for no benefit.
 `WidgetStrings.configurationDisplayName` is the one forced exception, since WidgetKit's configuration takes a `LocalizedStringResource`.
 
-- `QuestKeeper.xcodeproj/project.pbxproj:518` and `:565` — `INFOPLIST_KEY_CFBundleDisplayName`, the home screen label, one per configuration.
+### Bundle display names — two independent declarations
 
-### App code — catalog strings
+The app and the widget extension each carry their own, and neither derives from the other:
 
-Every one of these lives in **two** places: the Korean `defaultValue:` at the Swift call site, and the `ko` plus `en` values in the catalog.
-Changing only the catalog leaves the source literal behind, and vice versa.
+- `QuestKeeper.xcodeproj/project.pbxproj:518` and `:565` — `INFOPLIST_KEY_CFBundleDisplayName`, one per configuration.
+- `QuestKeeperWidget/Info.plist:8` — the widget extension's `CFBundleDisplayName`, a plain plist string.
 
-| Key                                               | Swift `defaultValue:`                             | Catalog                                   |
-| ------------------------------------------------- | ------------------------------------------------- | ----------------------------------------- |
-| `widget.configuration.displayName`                | `QuestKeeperWidget/WidgetStrings.swift:123`       | `QuestKeeperWidget/Localizable.xcstrings` |
-| `appIntent.createQuest.description`               | `QuestKeeper/Intents/CreateQuestIntent.swift:125` | `QuestKeeper/Localizable.xcstrings`       |
-| `appIntent.createQuest.result.permissionRequired` | `QuestKeeper/Intents/CreateQuestIntent.swift:66`  | `QuestKeeper/Localizable.xcstrings`       |
-| `notification.permissionBanner.body`              | `QuestKeeper/Views/AppStrings.swift:154`          | `QuestKeeper/Localizable.xcstrings`       |
+Renaming only the build setting leaves the widget extension showing the old name in the system UI.
+
+### Catalog strings
+
+Each of these lives in **three** places: the Korean `defaultValue:` at the Swift call site, the `ko` and `en` values in the catalog, and — for two of them — a literal assertion in `QuestKeeperTests`.
+Changing only one leaves the others behind.
+
+| Key                                               | Swift `defaultValue:`                             | Catalog                                   | Test                          |
+| ------------------------------------------------- | ------------------------------------------------- | ----------------------------------------- | ----------------------------- |
+| `widget.configuration.displayName`                | `QuestKeeperWidget/WidgetStrings.swift:123`       | `QuestKeeperWidget/Localizable.xcstrings` | —                             |
+| `appIntent.createQuest.description`               | `QuestKeeper/Intents/CreateQuestIntent.swift:125` | `QuestKeeper/Localizable.xcstrings`       | —                             |
+| `appIntent.createQuest.result.permissionRequired` | `QuestKeeper/Intents/CreateQuestIntent.swift:66`  | `QuestKeeper/Localizable.xcstrings`       | `AppStringsTests.swift:95-96` |
+| `notification.permissionBanner.body`              | `QuestKeeper/Views/AppStrings.swift:154`          | `QuestKeeper/Localizable.xcstrings`       | `AppStringsTests.swift:46,50` |
+
+That test coverage is a feature, not an obstacle: `AppStringsTests` is what refuses a half-applied edit.
+It caught exactly that during the banner fix below.
 
 `notification.permissionBanner.body` used to say `QuestKeeper` with no space in both locales, while Settings lists the app under `CFBundleDisplayName` as `Quest Keeper` — it pointed users at a name that was not on the screen it sent them to.
 That was a defect independent of the rename and is already fixed; every user-facing string now uses the spaced form.
+
+### Gates that pin the current name
+
+- `scripts/test-release-display-names.sh:16-25` — asserts the widget plist value equals `Quest Keeper` **and** that the pbxproj contains exactly two `INFOPLIST_KEY_CFBundleDisplayName = "Quest Keeper";` lines.
+  This script fails by construction the moment the rename lands, so its expected value changes in the same commit.
+
+### Store screenshots — regenerate, do not edit
+
+`fastlane/screenshots/generated/{ko,en-US}/` holds 16 tracked PNGs, and the dungeon header is rendered into the image — `iPhone 17 Pro Max-01-dungeon.png` shows `QUEST KEEPER` in pixels.
+No text search can find it, and changing `Brand.displayName` does not update an existing PNG.
+Re-run `bundle exec fastlane screenshots` after the code change, or the new listing ships advertising the old name.
 
 ### Store metadata
 
@@ -53,15 +74,17 @@ That was a defect independent of the rename and is already fixed; every user-fac
 
 ### Docs
 
-- `docs/store/app-store-listing.md` — title and description prose.
-- `docs/legal/privacy-policy.md` and `docs/legal/terms-of-service.md` — these are re-copied into the landing repo's `content/legal/*.ko.md`, so the rename lands in `quest-keeper-landing` too.
+- `DESIGN.md:29` — the Screen Model's literal header. `DESIGN.md` declares itself the owner of the current visual direction, so leaving it stale would steer later UI work back to the old brand.
+- `docs/store/app-store-listing.md` — title, name field, and description prose.
+- `docs/legal/privacy-policy.md` and `docs/legal/terms-of-service.md` — re-copied into the landing repo's `content/legal/*.ko.md`, so the rename lands in `quest-keeper-landing` too.
+- `LINEAR.md` — names the Linear project, which is a workspace label rather than product copy; change it only if the Linear project is renamed too.
 
 ### Deliberately unchanged
 
 - Bundle identifiers `kr.donminzzi.QuestKeeper` and `kr.donminzzi.QuestKeeper.Widget`, and the App Group — an App Store bundle ID cannot be changed after release.
 - The repository, Xcode project, scheme, target names, and `PRODUCT_NAME`.
 - `Logger(subsystem:)` values, which follow the bundle identifier.
-- Shipped release notes under `docs/releases/1.0.x/` and `1.1.0/` — they record what the store showed at the time.
+- `docs/specs/`, `docs/plans/`, and shipped release notes under `docs/releases/1.0.x/` and `1.1.0/` — these record decisions and copy as they stood at the time, so they keep the old name.
 
 ## Traps
 
@@ -73,19 +96,26 @@ That was a defect independent of the rename and is already fixed; every user-fac
 ## Verification
 
 1. `bash scripts/test-localization.sh` → catalogs complete in `ko` and `en`.
-2. Sweep the three shapes a user-facing name can take.
-   Matching on the shapes rather than on the word avoids the type names, bundle identifiers, and file-header comments that keep the old spelling by design:
+2. `bash scripts/test-release-display-names.sh` → passes only once its own expected name is updated alongside the plist and the build settings.
+3. `xcodebuild test -only-testing:QuestKeeperTests -parallel-testing-enabled NO` → `AppStringsTests` is the gate that catches a half-applied string edit.
+4. Sweep the repository for the old name.
+   The displayed brand always contains a space, while identifiers, paths, bundle IDs, and module names never do, so matching on the space is what separates copy from code:
 
    ```bash
-   rg -n --glob '*.swift' --glob '*.xcstrings' \
-     -e 'static let (displayName|shortName) = "' \
-     -e 'defaultValue: "[^"]*[Qq]uest ?[Kk]eeper' \
-     -e '"value" : "[^"]*[Qq]uest ?[Kk]eeper' \
-     QuestKeeper/ QuestKeeperShared/ QuestKeeperWidget/
+   rg -n --glob '!.git' -e 'Quest Keeper' -e 'QUEST KEEPER' . \
+     | grep -vE '^\./(docs/(specs|plans)/|docs/releases/1\.[01]\.|docs/notes/app-name-rename-scope\.md)'
    ```
 
-   As of this note it returns **14 hits**, which is the full work list: 2 `Brand` constants, 4 `defaultValue:` literals, and 8 catalog values (4 keys × `ko` + `en`).
-   After the rename the last two patterns must return nothing, and the two `Brand` constants must hold the new name.
+   As of this note it returns **44 hits**, and every one of them is in the inventory above.
+   This file is excluded along with the historical paths — it describes the name rather than displaying it, and keeps the old one on purpose so the record still reads.
+   After the rename the sweep must return nothing.
 
-3. Launch in both locales and read the dungeon header, the home screen icon label, the widget gallery entry, and the notification permission banner.
+   Then check the one site it structurally cannot see:
+
+   ```bash
+   rg -n 'static let shortName' QuestKeeperShared/Brand.swift
+   ```
+
+5. Re-run `bundle exec fastlane screenshots` and look at the regenerated PNGs — the header is pixels, so no gate can read it.
+6. Launch in both locales and read the dungeon header, the home screen icon label, the widget gallery entry, and the notification permission banner.
    The gate cannot judge any of these — see the reasoning in `docs/specs/018-english-localization.md`.
