@@ -71,13 +71,15 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
 - `fastlane/metadata/ko/name.txt` — plus the Korean localization in App Store Connect.
 - `fastlane/metadata/ko/description.txt` and `fastlane/metadata/en-US/description.txt` — both open with the name.
 - The `<Name> X.Y.Z` first line of each new `docs/releases/<version>/<locale>.txt`.
+  `fastlane/metadata/<locale>/release_notes.txt` is generated from those sources by `scripts/prepare-release-notes.sh` and needs no separate edit — until the next release is cut it still holds the shipped version's text, which is why the sweep excludes it.
 
 ### Docs
 
 - `DESIGN.md:29` — the Screen Model's literal header. `DESIGN.md` declares itself the owner of the current visual direction, so leaving it stale would steer later UI work back to the old brand.
 - `docs/store/app-store-listing.md` — title, name field, and description prose.
 - `docs/legal/privacy-policy.md` and `docs/legal/terms-of-service.md` — re-copied into the landing repo's `content/legal/*.ko.md`, so the rename lands in `quest-keeper-landing` too.
-- `LINEAR.md` — names the Linear project, which is a workspace label rather than product copy; change it only if the Linear project is renamed too.
+- `LINEAR.md` — names the Linear project in prose and in a field. **Rename the Linear project itself in the same pass**, then update both lines.
+  This is the one item requiring an action outside the repository. Leaving it optional would be worse than the extra step: the sweep below demands no remaining hits, so an unrenamed `LINEAR.md` makes the rename unable to pass its own verification. Linear keeps the project's URL slug across a rename, so the link in that file stays valid either way.
 
 ### Deliberately unchanged
 
@@ -98,19 +100,24 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
 
 1. `bash scripts/test-localization.sh` → catalogs complete in `ko` and `en`.
 2. `bash scripts/test-release-display-names.sh` → passes only once its own expected name is updated alongside the plist and the build settings.
-3. `xcodebuild test -only-testing:QuestKeeperTests -parallel-testing-enabled NO` → `AppStringsTests` is the gate that catches a half-applied string edit.
+3. `xcodebuild test -scheme QuestKeeper -destination <sim> -only-testing:QuestKeeperTests -parallel-testing-enabled NO` → `AppStringsTests` is the gate that catches a half-applied string edit.
+   Take the destination from the canonical invocation in `CLAUDE.md`, which pins the simulator by UDID; the UDIDs are recreated periodically, so copying one into this note would rot.
 4. Sweep the repository for the old name.
    The displayed brand always contains a space, while identifiers, paths, bundle IDs, and module names never do, so matching on the space is what separates copy from code:
 
    ```bash
    rg -n --glob '!.git' -e 'Quest Keeper' -e 'QUEST KEEPER' . \
-     | grep -vE '^\./(docs/(specs|plans|releases)/|docs/notes/app-name-rename-scope\.md)'
+     | grep -vE '^\./(docs/(specs|plans|releases)/|docs/notes/app-name-rename-scope\.md|fastlane/metadata/[^/]+/release_notes\.txt)'
    ```
 
-   As of this note it returns **41 hits**, and every one of them is in the inventory above.
+   As of this note it returns **38 hits**, and every one of them is in the inventory above.
    After the rename the sweep must return nothing.
 
-   The exclusions are the paths that keep the old name on purpose: `docs/specs/`, `docs/plans/` and `docs/releases/` are historical records, and this file describes the name rather than displaying it.
+   Everything excluded is copy that keeps the old name legitimately, in one of three ways:
+   - **Historical records** — `docs/specs/`, `docs/plans/`, `docs/releases/`. Written once, never revised.
+   - **Generated copies of a shipped release** — `fastlane/metadata/<locale>/release_notes.txt`, produced by `scripts/prepare-release-notes.sh` from `docs/releases/<version>/`. They still hold the shipped version's text until the next release is cut, and the script cannot regenerate them before a source file for the new marketing version exists.
+   - **This file**, which describes the name rather than displaying it.
+
    The **next** version's release notes are not covered by this sweep — they do not exist yet when the rename lands. Their `<Name> X.Y.Z` first line is the Store metadata bullet's job, at cut time.
 
    Then check the one site it structurally cannot see:
