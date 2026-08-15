@@ -1,6 +1,14 @@
 metadata_path("./fastlane/metadata")
 screenshots_path("./fastlane/screenshots/generated")
 
+# deliver adds to whatever App Store Connect already holds unless told otherwise,
+# and silently drops the overflow once a device size reaches ten
+# (upload_screenshots.rb: `if number_of_screenshots_per_set[set] >= 10`).
+# On 1.2.0 that left the ko listing showing six light-mode 1.0.x screenshots --
+# including the HUD battle counter this release removed -- while four regenerated
+# ones never uploaded. Replace the set every time so the listing matches the build.
+overwrite_screenshots(true)
+
 # precheck cannot read in-app purchases over an App Store Connect API key, and
 # the app ships none, so skip that check rather than fall back to Apple ID login.
 precheck_include_in_app_purchases(false)
