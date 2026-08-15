@@ -19,6 +19,7 @@ uncomplete
 uturn
 xcodeproj
 xcrun
+xcstrings
 xctest
 xmark
 xros

@@ -16,16 +16,17 @@ The target name is `TODO Slayer` in both locales.
 
 ## Inventory
 
-### App code — literals outside the String Catalogs
+### App code — rendered brand text
 
-No gate covers these.
-`scripts/test-localization.sh` flags stray **Korean** literals, and all three of these are Latin text inside `Text(verbatim:)`, so they pass every check while displaying the name.
+`QuestKeeperShared/Brand.swift` owns both forms, and the rename edits them there:
 
-- `QuestKeeper/Views/HomeDungeonBoardView.swift:278` — the app's dungeon header, `"QUEST KEEPER"`.
-- `QuestKeeperWidget/WidgetDungeonView.swift:73` — the widget's header, a separate copy of the same literal.
-- `QuestKeeperWidget/WidgetDungeonView.swift:122` — `"QUEST"`, the `systemSmall` header, a shortened form of the same brand for the narrower layout. A new name needs its own short form here, not a mechanical substitution.
+- `Brand.displayName` (`"QUEST KEEPER"`) — the dungeon header in `HomeDungeonBoardView` and in the widget.
+- `Brand.shortName` (`"QUEST"`) — the `systemSmall` widget header, where the full name does not fit. **This needs its own short form chosen for the new name, not a truncation of it.**
 
-Moving all three into catalog keys is worth doing on its own, independently of the rename — it closes the blind spot and makes the eventual rename a one-place edit per target.
+These were three separate `Text(verbatim:)` literals until they were consolidated here.
+That mattered because no gate covers them: `scripts/test-localization.sh` flags stray **Korean** literals, and Latin text inside `Text(verbatim:)` passes every check while rendering the name on screen.
+They are constants rather than catalog keys because the product name is not localized — a catalog would spread each one across a Swift `defaultValue:` plus `ko` plus `en` for no benefit.
+`WidgetStrings.configurationDisplayName` is the one forced exception, since WidgetKit's configuration takes a `LocalizedStringResource`.
 
 - `QuestKeeper.xcodeproj/project.pbxproj:518` and `:565` — `INFOPLIST_KEY_CFBundleDisplayName`, the home screen label, one per configuration.
 
@@ -41,8 +42,8 @@ Changing only the catalog leaves the source literal behind, and vice versa.
 | `appIntent.createQuest.result.permissionRequired` | `QuestKeeper/Intents/CreateQuestIntent.swift:66`  | `QuestKeeper/Localizable.xcstrings`       |
 | `notification.permissionBanner.body`              | `QuestKeeper/Views/AppStrings.swift:154`          | `QuestKeeper/Localizable.xcstrings`       |
 
-`notification.permissionBanner.body` carries a separate pre-existing defect worth fixing whether or not the rename happens.
-It says `QuestKeeper` with no space, in both locales, while Settings lists the app under `CFBundleDisplayName` as `Quest Keeper` — it tells users to look for a name that is not there.
+`notification.permissionBanner.body` used to say `QuestKeeper` with no space in both locales, while Settings lists the app under `CFBundleDisplayName` as `Quest Keeper` — it pointed users at a name that was not on the screen it sent them to.
+That was a defect independent of the rename and is already fixed; every user-facing string now uses the spaced form.
 
 ### Store metadata
 
@@ -77,14 +78,14 @@ It says `QuestKeeper` with no space, in both locales, while Settings lists the a
 
    ```bash
    rg -n --glob '*.swift' --glob '*.xcstrings' \
-     -e 'verbatim: "[^"]*QUEST' \
+     -e 'static let (displayName|shortName) = "' \
      -e 'defaultValue: "[^"]*[Qq]uest ?[Kk]eeper' \
      -e '"value" : "[^"]*[Qq]uest ?[Kk]eeper' \
      QuestKeeper/ QuestKeeperShared/ QuestKeeperWidget/
    ```
 
-   Run against 1.2.0 this returns **15 hits**, which is the full work list: 3 `verbatim` literals, 4 `defaultValue:` literals, and 8 catalog values (4 keys × `ko` + `en`).
-   After the rename it must return nothing.
+   As of this note it returns **14 hits**, which is the full work list: 2 `Brand` constants, 4 `defaultValue:` literals, and 8 catalog values (4 keys × `ko` + `en`).
+   After the rename the last two patterns must return nothing, and the two `Brand` constants must hold the new name.
 
 3. Launch in both locales and read the dungeon header, the home screen icon label, the widget gallery entry, and the notification permission banner.
    The gate cannot judge any of these — see the reasoning in `docs/specs/018-english-localization.md`.
