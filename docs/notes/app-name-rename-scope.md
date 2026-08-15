@@ -84,7 +84,8 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
 - Bundle identifiers `kr.donminzzi.QuestKeeper` and `kr.donminzzi.QuestKeeper.Widget`, and the App Group — an App Store bundle ID cannot be changed after release.
 - The repository, Xcode project, scheme, target names, and `PRODUCT_NAME`.
 - `Logger(subsystem:)` values, which follow the bundle identifier.
-- `docs/specs/`, `docs/plans/`, and shipped release notes under `docs/releases/1.0.x/` and `1.1.0/` — these record decisions and copy as they stood at the time, so they keep the old name.
+- `docs/specs/`, `docs/plans/`, and everything under `docs/releases/` — these record decisions and shipped copy as they stood at the time, so they keep the old name.
+  The whole `docs/releases/` tree is historical by construction: a version's notes are written once at cut time and never revised, so any directory that exists is already shipped. Naming individual versions here would go stale at every release.
 
 ## Traps
 
@@ -103,12 +104,14 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
 
    ```bash
    rg -n --glob '!.git' -e 'Quest Keeper' -e 'QUEST KEEPER' . \
-     | grep -vE '^\./(docs/(specs|plans)/|docs/releases/1\.[01]\.|docs/notes/app-name-rename-scope\.md)'
+     | grep -vE '^\./(docs/(specs|plans|releases)/|docs/notes/app-name-rename-scope\.md)'
    ```
 
-   As of this note it returns **44 hits**, and every one of them is in the inventory above.
-   This file is excluded along with the historical paths — it describes the name rather than displaying it, and keeps the old one on purpose so the record still reads.
+   As of this note it returns **41 hits**, and every one of them is in the inventory above.
    After the rename the sweep must return nothing.
+
+   The exclusions are the paths that keep the old name on purpose: `docs/specs/`, `docs/plans/` and `docs/releases/` are historical records, and this file describes the name rather than displaying it.
+   The **next** version's release notes are not covered by this sweep — they do not exist yet when the rename lands. Their `<Name> X.Y.Z` first line is the Store metadata bullet's job, at cut time.
 
    Then check the one site it structurally cannot see:
 
