@@ -396,6 +396,9 @@ struct ContentView: View {
             source: .app,
             in: modelContext
         )
+        // Commit before publishing: the widget snapshot must never claim a fact the store has not
+        // taken. Autosave would get here on its own, but not before the snapshot is already on disk.
+        try? modelContext.save()
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
@@ -411,6 +414,7 @@ struct ContentView: View {
             at: now,
             in: modelContext
         )
+        try? modelContext.save()
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             let authorization = await notificationService.sync(quest: quest, now: now)
@@ -421,8 +425,13 @@ struct ContentView: View {
     private func delete(_ quest: Quest) {
         guard QuestActions.canDelete(quest.snapshot, at: .now) else { return }
         let questID = quest.id
+        // Payload first, unlike the other two: `make(from:excluding:)` reads `id` off every element
+        // of `quests`, and a committed delete invalidates this instance. Build the value while the
+        // object is still alive, then commit, then publish.
+        let payload = WidgetDungeonPayload.make(from: quests, excluding: questID)
         modelContext.delete(quest)
-        writeWidgetSnapshot(excluding: questID)
+        try? modelContext.save()
+        persistWidgetSnapshot(payload)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
         }
@@ -430,11 +439,6 @@ struct ContentView: View {
 
     private func writeWidgetSnapshot(including quest: Quest) {
         let payload = WidgetDungeonPayload.make(from: quests, including: quest)
-        persistWidgetSnapshot(payload)
-    }
-
-    private func writeWidgetSnapshot(excluding questID: UUID) {
-        let payload = WidgetDungeonPayload.make(from: quests, excluding: questID)
         persistWidgetSnapshot(payload)
     }
 
