@@ -12,6 +12,20 @@ struct DungeonArtworkTests {
         #expect(DungeonArtwork.monster(level: 4, questID: id) == .golem)
     }
 
+    @Test("every monster kind has app artwork to render")
+    func everyMonsterKindHasArtwork() {
+        // `DungeonArtwork.monster` traps on an unmapped name, so adding a `MonsterKind` case without
+        // its sprite crashes the app at render time. The widget deleted its copy of this list
+        // outright; `DungeonArtwork` also carries non-monster cases, so it keeps the list and this
+        // guard instead.
+        for kind in MonsterKind.allCases {
+            #expect(
+                DungeonArtwork(rawValue: kind.assetName) != nil,
+                "\(kind.assetName) has no DungeonArtwork case"
+            )
+        }
+    }
+
     @Test("every artwork case has a unique asset name")
     func assetNamesAreUnique() {
         let names = DungeonArtwork.allCases.map(\.rawValue)

@@ -225,7 +225,7 @@ private struct MobBadge: View {
 
         HStack(spacing: 8) {
             WidgetArtworkView(
-                artwork: .monster(level: mob.mobLevel, questID: mob.id),
+                artwork: .monster(monster),
                 size: compact ? 28 : dense ? 18 : 22
             )
             .frame(
@@ -302,34 +302,28 @@ private struct MobBadge: View {
     }
 }
 
-private enum WidgetArtwork: String {
-    case slime = "sprite-slime"
-    case bat = "sprite-bat"
-    case mushroom = "sprite-mushroom"
-    case skeleton = "sprite-skeleton"
-    case orc = "sprite-orc"
-    case mimic = "sprite-mimic"
-    case dragon = "sprite-dragon"
-    case golem = "sprite-golem"
-    case lich = "sprite-lich"
-    case staleWarning = "icon-stale-warning"
-    case protectionShield = "icon-protection-shield"
+/// Monsters carry their `MonsterKind` rather than re-listing the sprites: this enum used to name all
+/// nine again and `preconditionFailure` when a name did not map, which made adding a `MonsterKind`
+/// case a widget-process crash — "Unable to Load" on the Home Screen, with no user recovery. Reading
+/// `MonsterKind.assetName` deletes the second list, so there is nothing left to fall out of sync.
+private enum WidgetArtwork {
+    case monster(MonsterKind)
+    case staleWarning
+    case protectionShield
 
-    var contentScale: CGFloat {
+    var assetName: String {
         switch self {
-        case .staleWarning, .protectionShield:
-            1.5
-        case .slime, .bat, .mushroom, .skeleton, .orc, .mimic, .dragon, .golem, .lich:
-            1
+        case .monster(let kind): kind.assetName
+        case .staleWarning: "icon-stale-warning"
+        case .protectionShield: "icon-protection-shield"
         }
     }
 
-    static func monster(level: Int, questID: UUID) -> WidgetArtwork {
-        let assetName = MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).assetName
-        guard let artwork = WidgetArtwork(rawValue: assetName) else {
-            preconditionFailure("Missing widget monster artwork for \(assetName)")
+    var contentScale: CGFloat {
+        switch self {
+        case .staleWarning, .protectionShield: 1.5
+        case .monster: 1
         }
-        return artwork
     }
 }
 
@@ -338,7 +332,7 @@ private struct WidgetArtworkView: View {
     let size: CGFloat
 
     var body: some View {
-        Image(decorative: artwork.rawValue)
+        Image(decorative: artwork.assetName)
             .resizable()
             .interpolation(.none)
             .scaledToFit()
