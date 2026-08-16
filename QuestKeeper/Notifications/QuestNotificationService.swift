@@ -266,17 +266,27 @@ final class QuestNotificationService {
         }
         guard authorization.canSchedule else { return authorization }
 
-        let admitted = await admit(plans)
+        let (admitted, evicted) = await admit(plans, locale: locale)
         for plan in admitted {
             do {
                 try await center.add(request(for: plan))
             } catch {
+                // The eviction above was payment for an add that then did not happen, and it was
+                // taken from *other* quests — leaving it would silently drop their reminders until
+                // the next full reconcile. Put them back before reporting the failure.
                 performCancel(questID: questID)
+                await restore(evicted)
                 return .unavailable
             }
         }
 
         return authorization
+    }
+
+    private func restore(_ plans: [QuestNotificationPlan]) async {
+        for plan in plans {
+            try? await center.add(request(for: plan))
+        }
     }
 
     /// `performReconcile` bounds the set it writes, but a single-quest sync adds on top of whatever
@@ -294,11 +304,14 @@ final class QuestNotificationService {
     /// month evict reminders due tomorrow — soonest-first has to decide between the incoming and the
     /// incumbent, not assume the newcomer wins. Returns the plans that earned a slot; the rest are
     /// simply not scheduled, and the next reconcile reconsiders them once they are near enough.
-    private func admit(_ plans: [QuestNotificationPlan]) async -> [QuestNotificationPlan] {
+    private func admit(
+        _ plans: [QuestNotificationPlan],
+        locale: Locale
+    ) async -> (admitted: [QuestNotificationPlan], evicted: [QuestNotificationPlan]) {
         let cap = QuestNotificationPlanner.maximumScheduledNotifications
         let pending = await center.pendingQuestNotifications()
             .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0.identifier) }
-        guard pending.count + plans.count > cap else { return plans }
+        guard pending.count + plans.count > cap else { return (plans, []) }
 
         let candidates = pending + plans.map {
             PendingQuestNotification(identifier: $0.identifier, fireDate: $0.fireDate)
@@ -310,11 +323,14 @@ final class QuestNotificationService {
                 .map(\.identifier)
         )
 
-        let evicted = pending.map(\.identifier).filter { !survivors.contains($0) }
+        let evicted = pending.filter { !survivors.contains($0.identifier) }
         if !evicted.isEmpty {
-            center.removePendingNotificationRequests(withIdentifiers: evicted)
+            center.removePendingNotificationRequests(withIdentifiers: evicted.map(\.identifier))
         }
-        return plans.filter { survivors.contains($0.identifier) }
+        return (
+            plans.filter { survivors.contains($0.identifier) },
+            evicted.compactMap { QuestNotificationPlanner.plan(restoring: $0, locale: locale) }
+        )
     }
 
     /// The planner's order, with the same identifier tiebreak so the survivor set is deterministic.

@@ -58,29 +58,50 @@ nonisolated enum QuestNotificationPlanner {
         var plans: [QuestNotificationPlan] = []
 
         if dueSoonDate > now {
-            plans.append(
-                QuestNotificationPlan(
-                    identifier: QuestNotificationKind.dueSoon.identifier(for: snapshot.id),
-                    questID: snapshot.id,
-                    kind: .dueSoon,
-                    fireDate: dueSoonDate,
-                    title: AppStrings.resolve(AppStrings.notificationDueSoonTitle, locale: locale),
-                    body: AppStrings.resolve(AppStrings.notificationDueSoonBody, locale: locale)
-                )
-            )
+            plans.append(plan(kind: .dueSoon, questID: snapshot.id, fireDate: dueSoonDate, locale: locale))
         }
-
-        plans.append(
-            QuestNotificationPlan(
-                identifier: QuestNotificationKind.deadline.identifier(for: snapshot.id),
-                questID: snapshot.id,
-                kind: .deadline,
-                fireDate: snapshot.deadline,
-                title: AppStrings.resolve(AppStrings.notificationDeadlineTitle, locale: locale),
-                body: AppStrings.resolve(AppStrings.notificationDeadlineBody, locale: locale)
-            )
-        )
+        plans.append(plan(kind: .deadline, questID: snapshot.id, fireDate: snapshot.deadline, locale: locale))
 
         return plans
+    }
+
+    /// The one place a plan's copy is chosen, so a rebuilt plan cannot drift from a planned one.
+    static func plan(
+        kind: QuestNotificationKind,
+        questID: UUID,
+        fireDate: Date,
+        locale: Locale = .current
+    ) -> QuestNotificationPlan {
+        let title: LocalizedStringResource
+        let body: LocalizedStringResource
+        switch kind {
+        case .dueSoon:
+            title = AppStrings.notificationDueSoonTitle
+            body = AppStrings.notificationDueSoonBody
+        case .deadline:
+            title = AppStrings.notificationDeadlineTitle
+            body = AppStrings.notificationDeadlineBody
+        }
+        return QuestNotificationPlan(
+            identifier: kind.identifier(for: questID),
+            questID: questID,
+            kind: kind,
+            fireDate: fireDate,
+            title: AppStrings.resolve(title, locale: locale),
+            body: AppStrings.resolve(body, locale: locale)
+        )
+    }
+
+    /// Rebuilds a plan for a request the cap evicted, so a failed add can put it back. The copy is
+    /// a fixed constant per kind, so nothing about the original request needs to have been kept
+    /// beyond its identifier and fire date.
+    static func plan(
+        restoring pending: PendingQuestNotification,
+        locale: Locale = .current
+    ) -> QuestNotificationPlan? {
+        guard let parsed = QuestNotificationKind.parse(identifier: pending.identifier) else {
+            return nil
+        }
+        return plan(kind: parsed.kind, questID: parsed.questID, fireDate: pending.fireDate, locale: locale)
     }
 }

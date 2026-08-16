@@ -402,6 +402,38 @@ struct QuestNotificationServiceTests {
         #expect(!remaining.contains(QuestNotificationKind.deadline.identifier(for: questID)))
     }
 
+    @Test("a failed add puts back the reminders the cap evicted for it")
+    func failedAddRestoresEvictedReminders() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let cap = QuestNotificationPlanner.maximumScheduledNotifications
+        let base = Date.now
+
+        let seeded = (0..<cap).map { index in
+            makeScheduledRequest(
+                identifier: QuestNotificationKind.deadline.identifier(for: UUID()),
+                fireDate: base.addingTimeInterval(Double(100 + index) * hour)
+            )
+        }
+        center.pendingRequestsList = seeded
+        // Fails the first add, which is the one the eviction was payment for.
+        center.addErrorOnAttempt = 1
+
+        let nearQuest = Quest(
+            id: UUID(),
+            title: "빨래",
+            deadline: base.addingTimeInterval(3 * hour),
+            importance: .medium
+        )
+        await service.sync(quest: nearQuest, now: base)
+
+        // The two furthest were evicted to make room; the add never landed, so they must be back.
+        let remaining = Set(center.pendingRequestsList.map(\.identifier))
+        #expect(remaining.contains(seeded[cap - 1].identifier))
+        #expect(remaining.contains(seeded[cap - 2].identifier))
+        #expect(remaining.count == cap)
+    }
+
     @Test("a sync that stays under the cap evicts nothing")
     func syncUnderTheCapEvictsNothing() async {
         let center = FakeQuestNotificationCenter()
