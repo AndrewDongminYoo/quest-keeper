@@ -368,6 +368,40 @@ struct QuestNotificationServiceTests {
         #expect(remaining.contains(seeded[0].identifier))
     }
 
+    @Test("a later-firing quest loses to the incumbents instead of displacing them")
+    func syncDoesNotEvictNearerRemindersForAFartherQuest() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let cap = QuestNotificationPlanner.maximumScheduledNotifications
+        let base = Date.now
+
+        // Every slot taken by reminders that all fire sooner than the quest being synced.
+        let seeded = (0..<cap).map { index in
+            makeScheduledRequest(
+                identifier: QuestNotificationKind.deadline.identifier(for: UUID()),
+                fireDate: base.addingTimeInterval(Double(1 + index) * hour)
+            )
+        }
+        center.pendingRequestsList = seeded
+
+        let questID = UUID(uuidString: "88888888-8888-8888-8888-888888888888")!
+        let farQuest = Quest(
+            id: questID,
+            title: "빨래",
+            deadline: base.addingTimeInterval(500 * hour),
+            importance: .medium
+        )
+        await service.sync(quest: farQuest, now: base)
+
+        let remaining = center.pendingRequestsList.map(\.identifier)
+        // Freeing a slot per incoming plan would have dropped the two nearest-to-the-limit
+        // incumbents for a quest due three weeks later. Soonest-first means the newcomer waits.
+        #expect(remaining.count == cap)
+        #expect(remaining == seeded.map(\.identifier))
+        #expect(!remaining.contains(QuestNotificationKind.dueSoon.identifier(for: questID)))
+        #expect(!remaining.contains(QuestNotificationKind.deadline.identifier(for: questID)))
+    }
+
     @Test("a sync that stays under the cap evicts nothing")
     func syncUnderTheCapEvictsNothing() async {
         let center = FakeQuestNotificationCenter()

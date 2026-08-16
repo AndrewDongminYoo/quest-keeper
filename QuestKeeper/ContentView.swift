@@ -402,10 +402,28 @@ struct ContentView: View {
         )
         // Commit before publishing: the widget snapshot must never claim a fact the store has not
         // taken. Autosave would get here on its own, but not before the snapshot is already on disk.
-        try? modelContext.save()
+        guard commitPendingChanges() else { return }
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)
+        }
+    }
+
+    /// Commits the mutation and reports whether the store took it.
+    ///
+    /// The side effects downstream of a fact change are not corrections a later pass will notice —
+    /// cancelling a reminder for a completion the store rejected leaves the quest pending on disk
+    /// with nothing left to remind about it. So a failed save rolls the change back and the caller
+    /// publishes nothing; the board re-renders from the rolled-back model, which is the honest
+    /// outcome rather than a screen that disagrees with disk.
+    private func commitPendingChanges() -> Bool {
+        guard modelContext.hasChanges else { return true }
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            modelContext.rollback()
+            return false
         }
     }
 
@@ -418,7 +436,7 @@ struct ContentView: View {
             at: now,
             in: modelContext
         )
-        try? modelContext.save()
+        guard commitPendingChanges() else { return }
         writeWidgetSnapshot(including: quest)
         Task { @MainActor in
             let authorization = await notificationService.sync(quest: quest, now: now)
@@ -434,7 +452,7 @@ struct ContentView: View {
         // object is still alive, then commit, then publish.
         let payload = WidgetDungeonPayload.make(from: quests, excluding: questID)
         modelContext.delete(quest)
-        try? modelContext.save()
+        guard commitPendingChanges() else { return }
         persistWidgetSnapshot(payload)
         Task { @MainActor in
             await notificationService.cancel(questID: questID)

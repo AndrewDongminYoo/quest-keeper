@@ -266,8 +266,8 @@ final class QuestNotificationService {
         }
         guard authorization.canSchedule else { return authorization }
 
-        await makeRoom(for: plans.count)
-        for plan in plans {
+        let admitted = await admit(plans)
+        for plan in admitted {
             do {
                 try await center.add(request(for: plan))
             } catch {
@@ -289,25 +289,40 @@ final class QuestNotificationService {
     /// made and a later query just reports a set that is back at the limit — nothing left to evict
     /// and the wrong requests already gone. Freeing the slots first is what makes "soonest wins"
     /// hold regardless of how the platform resolves an overflow, because it never sees one.
-    private func makeRoom(for incoming: Int) async {
+    ///
+    /// Both sides go into one ordering. Freeing a slot per incoming plan would let a quest due next
+    /// month evict reminders due tomorrow — soonest-first has to decide between the incoming and the
+    /// incumbent, not assume the newcomer wins. Returns the plans that earned a slot; the rest are
+    /// simply not scheduled, and the next reconcile reconsiders them once they are near enough.
+    private func admit(_ plans: [QuestNotificationPlan]) async -> [QuestNotificationPlan] {
+        let cap = QuestNotificationPlanner.maximumScheduledNotifications
         let pending = await center.pendingQuestNotifications()
             .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0.identifier) }
-        let surplus = pending.count + incoming - QuestNotificationPlanner.maximumScheduledNotifications
-        guard surplus > 0 else { return }
+        guard pending.count + plans.count > cap else { return plans }
 
-        let evicted = pending
-            .sorted { firesLater($0, $1) }
-            .prefix(surplus)
-            .map(\.identifier)
-        center.removePendingNotificationRequests(withIdentifiers: evicted)
+        let candidates = pending + plans.map {
+            PendingQuestNotification(identifier: $0.identifier, fireDate: $0.fireDate)
+        }
+        let survivors = Set(
+            candidates
+                .sorted { firesEarlier($0, $1) }
+                .prefix(cap)
+                .map(\.identifier)
+        )
+
+        let evicted = pending.map(\.identifier).filter { !survivors.contains($0) }
+        if !evicted.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: evicted)
+        }
+        return plans.filter { survivors.contains($0.identifier) }
     }
 
-    /// Reverse of the planner's order, with the same identifier tiebreak so eviction is deterministic.
-    private func firesLater(_ lhs: PendingQuestNotification, _ rhs: PendingQuestNotification) -> Bool {
+    /// The planner's order, with the same identifier tiebreak so the survivor set is deterministic.
+    private func firesEarlier(_ lhs: PendingQuestNotification, _ rhs: PendingQuestNotification) -> Bool {
         if lhs.fireDate != rhs.fireDate {
-            return lhs.fireDate > rhs.fireDate
+            return lhs.fireDate < rhs.fireDate
         }
-        return lhs.identifier > rhs.identifier
+        return lhs.identifier < rhs.identifier
     }
 
     private func sync(
