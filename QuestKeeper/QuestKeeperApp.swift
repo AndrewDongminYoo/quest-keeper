@@ -39,6 +39,10 @@ struct QuestKeeperApp: App {
     private let uiTestingStoreURL: URL?
     private let isDailyFocusLoopEnabled: Bool
     private let recoveryLoopVariant: RecoveryLoopVariant?
+    /// True when the on-disk store could not be opened at launch and the app is running on an
+    /// in-memory fallback, so nothing written survives the process. Drives the board's warning
+    /// banner, and pins the run to that container — see the `.active` branch below.
+    private let storeFailedToOpen: Bool
 
     init() {
 #if DEBUG
@@ -82,62 +86,75 @@ struct QuestKeeperApp: App {
         recoveryLoopVariant = nil
 #endif
         UNUserNotificationCenter.current().delegate = delegate
+        // A store that cannot be opened used to `fatalError` here, which turns a corrupt or
+        // unmigratable App Group store into a permanent launch-crash loop whose only user recovery
+        // is deleting the app — destroying the facts still sitting on disk. Fall back to memory so
+        // the app launches, and surface `storeFailedToOpen` so the user is told nothing will persist.
+        let container: ModelContainer
         do {
-            let container = try QuestModelContainer.make(
+            container = try QuestModelContainer.make(
                 storeURL: uiTestingStoreURL,
                 isStoredInMemoryOnly: usesInMemoryStore
             )
-            _sharedModelContainer = State(initialValue: container)
-            let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
-                modelContainer: container,
-                notificationService: notificationService,
-                widgetSnapshotWriter: snapshotWriter
-            )
-            self.shortcutCreationCoordinator = shortcutCreationCoordinator
-            AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)
+            storeFailedToOpen = false
+        } catch {
+            container = QuestModelContainer.makeEphemeralFallback()
+            storeFailedToOpen = true
+        }
+        _sharedModelContainer = State(initialValue: container)
+        let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
+            modelContainer: container,
+            notificationService: notificationService,
+            widgetSnapshotWriter: snapshotWriter
+        )
+        self.shortcutCreationCoordinator = shortcutCreationCoordinator
+        AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)
 #if DEBUG
+        // Kept fatal: a fixture that fails to seed would make the UI test that depends on it fail
+        // for an unrelated-looking reason. `#if DEBUG`, so it cannot ship.
+        do {
             try DebugFixtureSeeder.seed(
                 into: container,
                 arguments: arguments,
                 usesUITestingStore: usesUITestingStore,
                 usesInMemoryStore: usesInMemoryStore
             )
+        } catch {
+            fatalError("Could not seed debug fixtures: \(error)")
+        }
 #endif
 
-            let enrollment: ExperimentEnrollmentResult
-            if !ActivationPolicy.shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
-                enrollment = .ineligible
-            } else {
+        let enrollment: ExperimentEnrollmentResult
+        if !ActivationPolicy.shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
+            enrollment = .ineligible
+        } else {
 #if DEBUG
-                let installationIDProvider: () throws -> UUID = usesUITestingStore
-                    ? { UUID() }
-                    : { try RetentionInstallationIdentityStore.appGroup().loadOrCreate() }
-                if let variant = LaunchArguments.onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
-                    enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
-                        at: .now,
-                        in: container.mainContext,
-                        installationIDProvider: installationIDProvider,
-                        variantSelector: { variant }
-                    )
-                } else {
-                    enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
-                        at: .now,
-                        in: container.mainContext,
-                        installationIDProvider: installationIDProvider
-                    )
-                }
-#else
+            let installationIDProvider: () throws -> UUID = usesUITestingStore
+                ? { UUID() }
+                : { try RetentionInstallationIdentityStore.appGroup().loadOrCreate() }
+            if let variant = LaunchArguments.onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
                 enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
                     at: .now,
-                    in: container.mainContext
+                    in: container.mainContext,
+                    installationIDProvider: installationIDProvider,
+                    variantSelector: { variant }
                 )
-#endif
+            } else {
+                enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                    at: .now,
+                    in: container.mainContext,
+                    installationIDProvider: installationIDProvider
+                )
             }
-
-            onboardingAssignment = enrollment.assignment
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+#else
+            enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                at: .now,
+                in: container.mainContext
+            )
+#endif
         }
+
+        onboardingAssignment = enrollment.assignment
     }
 
     var body: some Scene {
@@ -152,7 +169,8 @@ struct QuestKeeperApp: App {
                 recoveryOffer: $recoveryOffer,
                 activationReplay: activationReplay,
                 onboardingSessionID: onboardingSessionID,
-                dailyFocusLoopEnabled: isDailyFocusLoopEnabled
+                dailyFocusLoopEnabled: isDailyFocusLoopEnabled,
+                storeFailedToOpen: storeFailedToOpen
             )
         }
         .modelContainer(sharedModelContainer)
@@ -180,7 +198,12 @@ struct QuestKeeperApp: App {
                     container = sharedModelContainer
                     notificationRouteStore.resume(for: container)
                     canReplayActivation = true
-                } else if didBackground,
+                    // `!storeFailedToOpen` guards the swap: on a fallback run this branch would
+                    // reopen the on-disk store the moment its problem cleared and replace the
+                    // container, silently discarding every quest made this session — and the banner
+                    // warning about exactly that would vanish in the same frame. Stay on the
+                    // fallback for the run; the next cold launch picks the real store back up.
+                } else if didBackground, !storeFailedToOpen,
                           let refreshed = try? QuestModelContainer.make(
                               isStoredInMemoryOnly: usesInMemoryStore
                           ) {

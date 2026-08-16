@@ -149,6 +149,14 @@ nonisolated extension AppStrings {
 }
 
 nonisolated extension AppStrings {
+    static let storeFailureBannerTitle = LocalizedStringResource(
+        "store.failure.banner.title",
+        defaultValue: "저장소를 열지 못했습니다"
+    )
+    static let storeFailureBannerBody = LocalizedStringResource(
+        "store.failure.banner.body",
+        defaultValue: "지금 만든 퀘스트는 저장되지 않습니다. 앱을 다시 실행해보세요."
+    )
     static let notificationPermissionBannerBody = LocalizedStringResource(
         "notification.permissionBanner.body",
         defaultValue: "마감 알림을 받으려면 설정에서 Quest Keeper 알림을 켜세요."

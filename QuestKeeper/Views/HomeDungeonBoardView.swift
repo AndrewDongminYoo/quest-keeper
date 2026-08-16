@@ -13,6 +13,7 @@ struct HomeDungeonBoardView: View {
     let newlyMissedQuestIDs: Set<UUID>
     let escalatedQuestIDs: Set<UUID>
     let now: Date
+    let storeFailedToOpen: Bool
     let notificationPermissionAction: QuestNotificationPermissionAction?
     let onboardingPresentation: OnboardingFlowPresentation
     let dailyFocusPresentation: DailyFocusPresentationState
@@ -43,6 +44,9 @@ struct HomeDungeonBoardView: View {
                         onCreate: onCreate,
                         onEditAppearance: { presentedSheet = .appearance }
                     )
+                    if storeFailedToOpen {
+                        StoreFailureBanner()
+                    }
                     if let notificationPermissionAction {
                         NotificationPermissionBanner(action: notificationPermissionAction) {
                             onResolveNotificationPermission(notificationPermissionAction)
@@ -332,6 +336,31 @@ private struct EmptyDungeonState: View {
         .padding(.vertical, 34)
         .padding(.horizontal, 18)
         .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: 2))
+    }
+}
+
+/// Shown while the app is running on an in-memory fallback because the on-disk store would not open.
+/// Informational, not a control — there is no action the user can take from here beyond relaunching,
+/// so it is deliberately not a `Button` (which would replace the composed label for VoiceOver).
+private struct StoreFailureBanner: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label {
+                Text(AppStrings.storeFailureBannerTitle)
+            } icon: {
+                DungeonArtworkView(artwork: .notificationsDisabled, size: 16)
+            }
+            .font(.caption.weight(.black))
+            Text(AppStrings.storeFailureBannerBody)
+                .font(.caption2.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(DungeonPalette.danger, in: RoundedRectangle(cornerRadius: 2))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("storeFailureBanner")
     }
 }
 

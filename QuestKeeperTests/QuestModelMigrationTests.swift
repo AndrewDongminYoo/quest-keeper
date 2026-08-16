@@ -24,6 +24,18 @@ private enum LegacyQuestSchema {
 
 @MainActor
 struct QuestModelMigrationTests {
+    @Test("the in-memory fallback container actually accepts and returns facts")
+    func ephemeralFallbackIsUsable() throws {
+        // The fallback only earns its place if the app can keep running on it. A container that
+        // constructs but rejects writes would trade a launch crash for a dead board.
+        let container = QuestModelContainer.makeEphemeralFallback()
+        let context = ModelContext(container)
+        context.insert(Quest(title: "임시", deadline: .now, importance: .medium))
+        try context.save()
+
+        #expect(try context.fetch(FetchDescriptor<Quest>()).count == 1)
+    }
+
     @Test("the previous Quest schema opens with details nil and preserves every old fact")
     func migratesOptionalDetails() throws {
         let directory = FileManager.default.temporaryDirectory

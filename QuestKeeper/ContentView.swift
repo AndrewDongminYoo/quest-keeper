@@ -33,6 +33,7 @@ struct ContentView: View {
     private let onboardingSessionID: UUID
     private let dailyFocusLoopEnabled: Bool
     private let activationReplay: ActivationReplayResult?
+    private let storeFailedToOpen: Bool
 
     init(
         notificationService: QuestNotificationService = .shared,
@@ -45,7 +46,8 @@ struct ContentView: View {
         recoveryOffer: Binding<RecoveryActivationOffer?> = .constant(nil),
         activationReplay: ActivationReplayResult? = nil,
         onboardingSessionID: UUID = UUID(),
-        dailyFocusLoopEnabled: Bool = false
+        dailyFocusLoopEnabled: Bool = false,
+        storeFailedToOpen: Bool = false
     ) {
         self.notificationService = notificationService
         self.notificationRouteStore = notificationRouteStore
@@ -58,6 +60,7 @@ struct ContentView: View {
         self.activationReplay = activationReplay
         self.onboardingSessionID = onboardingSessionID
         self.dailyFocusLoopEnabled = dailyFocusLoopEnabled
+        self.storeFailedToOpen = storeFailedToOpen
     }
 
     var body: some View {
@@ -110,6 +113,7 @@ struct ContentView: View {
                     newlyMissedQuestIDs: pendingDeaths,
                     escalatedQuestIDs: escalatedQuestIDs,
                     now: now,
+                    storeFailedToOpen: storeFailedToOpen,
                     notificationPermissionAction: QuestNotificationPermissionAction.make(
                         authorization: notificationAuthorization
                     ),
