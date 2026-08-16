@@ -83,7 +83,14 @@ actor QuestStoreActor {
             source: .widget,
             in: modelContext
         )
-        try modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            // Match `create` above: leaving the context dirty would let a later save on this actor
+            // commit a half-written completion the caller already treated as failed.
+            modelContext.rollback()
+            throw error
+        }
         return true
     }
 

@@ -1,7 +1,14 @@
 import AppIntents
+import OSLog
 import SwiftData
 import UserNotifications
 import WidgetKit
+
+/// `nonisolated` because the widget module defaults to `@MainActor` while `perform()` runs off it.
+private nonisolated let logger = Logger(
+    subsystem: "kr.donminzzi.QuestKeeper.Widget",
+    category: "CompleteQuestIntent"
+)
 
 /// One-tap completion from the Home Screen widget. Runs in the widget extension: it opens the shared
 /// App Group store, writes only the raw `completedAt` fact, cancels the quest's notifications,
@@ -47,13 +54,20 @@ struct CompleteQuestIntent: AppIntent {
         let payload = try await store.snapshotPayload(generatedAt: .now)
         let snapshotStore = WidgetDungeonSnapshotStore()
         var saved = false
-        for _ in 0..<2 {
+        for attempt in 1...2 {
             do {
                 try snapshotStore.save(payload)
                 saved = true
                 break
             } catch {
-                continue
+                logger.error(
+                    "Failed to write widget snapshot after completion, attempt \(attempt): \(String(describing: error), privacy: .public)"
+                )
+                // Back off like the app-side writer does; an immediate retry re-hits whatever
+                // transient condition (a concurrent write, a busy volume) just failed.
+                if attempt < 2 {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
             }
         }
 
