@@ -315,8 +315,22 @@ struct QuestKeeperAppTests {
         expected: Bool
     ) {
         #expect(ActivationPolicy.shouldPersistMeasurementArtifacts(
-            usesInMemoryStore: usesInMemoryStore
+            usesInMemoryStore: usesInMemoryStore,
+            storeFailedToOpen: false
         ) == expected)
+    }
+
+    @Test("a fallback run exports no measurement artifacts and runs no activation side effects")
+    func fallbackRunSuppressesStoreDerivedWork() {
+        // The fallback container is empty, so anything derived from it and written outside the
+        // process — the baseline export, a notification reconcile, the widget snapshot, the replay
+        // clock — would overwrite the real store's version with a one-session blank.
+        #expect(!ActivationPolicy.shouldPersistMeasurementArtifacts(
+            usesInMemoryStore: false,
+            storeFailedToOpen: true
+        ))
+        #expect(!ActivationPolicy.shouldRunActivationSideEffects(storeFailedToOpen: true))
+        #expect(ActivationPolicy.shouldRunActivationSideEffects(storeFailedToOpen: false))
     }
 
     @Test(

@@ -41,12 +41,19 @@ nonisolated enum QuestNotificationPermissionAction: Equatable, Sendable {
     }
 }
 
+/// A scheduled request reduced to what the cap needs to choose survivors.
+nonisolated struct PendingQuestNotification: Equatable, Sendable {
+    let identifier: String
+    let fireDate: Date
+}
+
 @MainActor
 protocol QuestNotificationCenter: AnyObject {
     func authorizationStatus() async -> UNAuthorizationStatus
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
     func add(_ request: UNNotificationRequest) async throws
     func pendingNotificationIdentifiers() async -> [String]
+    func pendingQuestNotifications() async -> [PendingQuestNotification]
     func removePendingNotificationRequests(withIdentifiers identifiers: [String])
     func removeDeliveredNotifications(withIdentifiers identifiers: [String])
 }
@@ -95,6 +102,18 @@ final class SystemQuestNotificationCenter: QuestNotificationCenter {
         await withCheckedContinuation { continuation in
             center.getPendingNotificationRequests { requests in
                 continuation.resume(returning: requests.map(\.identifier))
+            }
+        }
+    }
+
+    func pendingQuestNotifications() async -> [PendingQuestNotification] {
+        await withCheckedContinuation { continuation in
+            center.getPendingNotificationRequests { requests in
+                continuation.resume(returning: requests.compactMap { request in
+                    guard let trigger = request.trigger as? UNCalendarNotificationTrigger,
+                          let fireDate = trigger.nextTriggerDate() else { return nil }
+                    return PendingQuestNotification(identifier: request.identifier, fireDate: fireDate)
+                })
             }
         }
     }
@@ -255,8 +274,35 @@ final class QuestNotificationService {
                 return .unavailable
             }
         }
+        await enforceGlobalCap()
 
         return authorization
+    }
+
+    /// `performReconcile` bounds the set it writes, but a single-quest sync adds on top of whatever
+    /// is already scheduled — so once a full board has filled the platform's slots, creating or
+    /// retrying one quest pushes the total past the limit and hands the choice of what to drop back
+    /// to the unspecified behaviour the cap exists to avoid. Evicting the furthest-firing surplus
+    /// here keeps "soonest wins" true however the request came to be scheduled.
+    private func enforceGlobalCap() async {
+        let pending = await center.pendingQuestNotifications()
+            .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0.identifier) }
+        let surplus = pending.count - QuestNotificationPlanner.maximumScheduledNotifications
+        guard surplus > 0 else { return }
+
+        let evicted = pending
+            .sorted { firesLater($0, $1) }
+            .prefix(surplus)
+            .map(\.identifier)
+        center.removePendingNotificationRequests(withIdentifiers: evicted)
+    }
+
+    /// Reverse of the planner's order, with the same identifier tiebreak so eviction is deterministic.
+    private func firesLater(_ lhs: PendingQuestNotification, _ rhs: PendingQuestNotification) -> Bool {
+        if lhs.fireDate != rhs.fireDate {
+            return lhs.fireDate > rhs.fireDate
+        }
+        return lhs.identifier > rhs.identifier
     }
 
     private func sync(

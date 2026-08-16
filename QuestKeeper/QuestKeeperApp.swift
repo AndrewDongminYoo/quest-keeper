@@ -72,9 +72,6 @@ struct QuestKeeperApp: App {
         notificationDelegate = delegate
         self.notificationService = notificationService
         widgetSnapshotWriter = snapshotWriter
-        retentionBaselineWriter = ActivationPolicy.shouldPersistMeasurementArtifacts(
-            usesInMemoryStore: usesUITestingStore
-        ) ? RetentionBaselineWriter() : nil
         self.usesInMemoryStore = usesInMemoryStore
         self.uiTestingStoreURL = uiTestingStoreURL
 #if DEBUG
@@ -109,6 +106,12 @@ struct QuestKeeperApp: App {
             container = QuestModelContainer.makeEphemeralFallback()
             storeFailedToOpen = true
         }
+        // Assigned after the container, not before: a fallback run must not export a baseline
+        // derived from an empty store over the one the real store produced.
+        retentionBaselineWriter = ActivationPolicy.shouldPersistMeasurementArtifacts(
+            usesInMemoryStore: usesUITestingStore,
+            storeFailedToOpen: storeFailedToOpen
+        ) ? RetentionBaselineWriter() : nil
         _sharedModelContainer = State(initialValue: container)
         let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
@@ -133,7 +136,11 @@ struct QuestKeeperApp: App {
 #endif
 
         let enrollment: ExperimentEnrollmentResult
-        if !ActivationPolicy.shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
+        // An empty fallback store looks exactly like a fresh install to the eligibility check, so
+        // enrolling here would assign a variant off a container that dies with the process — and
+        // the exposure it triggers would be written into the same nowhere.
+        if storeFailedToOpen
+            || !ActivationPolicy.shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
             enrollment = .ineligible
         } else {
 #if DEBUG
@@ -189,6 +196,25 @@ struct QuestKeeperApp: App {
                 didBackground = true
                 retentionActivationSessionID = UUID()
             case .active:
+                // A fallback run stops here. Its container holds none of the user's facts, and
+                // everything below treats the container as the truth — `syncActivation` would cancel
+                // every pending reminder the real quests still need and publish an empty widget
+                // payload, `replayActivation` would advance `lastOpened` past deaths that were never
+                // shown, and the baseline export would overwrite the real report. It also keeps the
+                // run on its fallback container: the refresh branch below would otherwise reopen the
+                // on-disk store the moment its problem cleared and discard everything made this
+                // session, in the same frame as the banner warning about that disappeared.
+                //
+                // The route store still needs resuming: `pause()` cleared it on the way out, and
+                // `ContentView`'s container-identity observer cannot fire because that identity
+                // never changes here.
+                guard ActivationPolicy.shouldRunActivationSideEffects(
+                    storeFailedToOpen: storeFailedToOpen
+                ) else {
+                    didBackground = false
+                    notificationRouteStore.resume(for: sharedModelContainer)
+                    break
+                }
                 // A warm foreground's `@Query` keeps its own SQLite snapshot and never sees writes the
                 // widget process committed while we were backgrounded — and `rollback()` reuses that
                 // same connection, so it doesn't help. Swapping in a fresh container opens a new
@@ -206,12 +232,7 @@ struct QuestKeeperApp: App {
                     container = sharedModelContainer
                     notificationRouteStore.resume(for: container)
                     canReplayActivation = true
-                    // `!storeFailedToOpen` guards the swap: on a fallback run this branch would
-                    // reopen the on-disk store the moment its problem cleared and replace the
-                    // container, silently discarding every quest made this session — and the banner
-                    // warning about exactly that would vanish in the same frame. Stay on the
-                    // fallback for the run; the next cold launch picks the real store back up.
-                } else if didBackground, !storeFailedToOpen,
+                } else if didBackground,
                           let refreshed = try? QuestModelContainer.make(
                               isStoredInMemoryOnly: usesInMemoryStore
                           ) {
@@ -351,6 +372,8 @@ private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
 
     func pendingNotificationIdentifiers() async -> [String] { [] }
 
+    func pendingQuestNotifications() async -> [PendingQuestNotification] { [] }
+
     func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {}
 
     func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {}
@@ -442,9 +465,19 @@ nonisolated enum ActivationPolicy {
     }
 
     static func shouldPersistMeasurementArtifacts(
-        usesInMemoryStore: Bool
+        usesInMemoryStore: Bool,
+        storeFailedToOpen: Bool
     ) -> Bool {
-        !usesInMemoryStore
+        !usesInMemoryStore && !storeFailedToOpen
+    }
+
+    /// A fallback run holds none of the user's facts, so every activation side effect below would
+    /// act on an empty store as if it were the truth: `reconcile` cancels reminders the real quests
+    /// still need, the snapshot writer blanks the widget, the baseline export overwrites the report
+    /// derived from the real store, and the replay clock advances past deaths that were never shown.
+    /// Render the board, run none of it.
+    static func shouldRunActivationSideEffects(storeFailedToOpen: Bool) -> Bool {
+        !storeFailedToOpen
     }
 
     static func shouldRecordRetentionActivation(

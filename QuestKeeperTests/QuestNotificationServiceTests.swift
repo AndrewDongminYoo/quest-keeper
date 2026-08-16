@@ -314,6 +314,84 @@ struct QuestNotificationServiceTests {
     private func makeRequest(identifier: String) -> UNNotificationRequest {
         UNNotificationRequest(identifier: identifier, content: UNMutableNotificationContent(), trigger: nil)
     }
+
+    private func makeScheduledRequest(identifier: String, fireDate: Date) -> UNNotificationRequest {
+        let calendar = Calendar(identifier: .gregorian)
+        let components = calendar.dateComponents(
+            [.timeZone, .year, .month, .day, .hour, .minute, .second],
+            from: fireDate
+        )
+        return UNNotificationRequest(
+            identifier: identifier,
+            content: UNMutableNotificationContent(),
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        )
+    }
+
+    // These two work off `Date.now`, not the suite's fixed `now`. A non-repeating
+    // `UNCalendarNotificationTrigger` whose date has passed returns nil from `nextTriggerDate()`,
+    // so against the 2023 fixture every seeded request vanishes from the pending set and the cap
+    // has nothing to act on — a green that proves nothing. Real future dates keep them visible.
+    @Test("a single-quest sync evicts the furthest requests rather than overflowing the platform cap")
+    func singleQuestSyncEnforcesTheGlobalCap() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let cap = QuestNotificationPlanner.maximumScheduledNotifications
+        let base = Date.now
+
+        // A board that has already filled every slot, all of them further out than the new quest.
+        let seeded = (0..<cap).map { index in
+            makeScheduledRequest(
+                identifier: QuestNotificationKind.deadline.identifier(for: UUID()),
+                fireDate: base.addingTimeInterval(Double(100 + index) * hour)
+            )
+        }
+        center.pendingRequestsList = seeded
+
+        let questID = UUID(uuidString: "99999999-9999-9999-9999-999999999999")!
+        let newQuest = Quest(
+            id: questID,
+            title: "빨래",
+            deadline: base.addingTimeInterval(3 * hour),
+            importance: .medium
+        )
+        await service.sync(quest: newQuest, now: base)
+
+        let remaining = center.pendingRequestsList.map(\.identifier)
+        #expect(remaining.count == cap)
+        // The two the sync just added fire soonest, so they are the ones that must survive.
+        #expect(remaining.contains(QuestNotificationKind.dueSoon.identifier(for: questID)))
+        #expect(remaining.contains(QuestNotificationKind.deadline.identifier(for: questID)))
+        // Eviction comes off the far end, not the near one.
+        #expect(!remaining.contains(seeded[cap - 1].identifier))
+        #expect(!remaining.contains(seeded[cap - 2].identifier))
+        #expect(remaining.contains(seeded[0].identifier))
+    }
+
+    @Test("a sync that stays under the cap evicts nothing")
+    func syncUnderTheCapEvictsNothing() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let base = Date.now
+        let existing = makeScheduledRequest(
+            identifier: QuestNotificationKind.deadline.identifier(for: UUID()),
+            fireDate: base.addingTimeInterval(500 * hour)
+        )
+        center.pendingRequestsList = [existing]
+        let newQuest = Quest(
+            id: UUID(),
+            title: "빨래",
+            deadline: base.addingTimeInterval(3 * hour),
+            importance: .medium
+        )
+
+        await service.sync(quest: newQuest, now: base)
+
+        // The far-future request is well past the cap boundary, so it must survive untouched.
+        #expect(center.pendingRequestsList.contains { $0.identifier == existing.identifier })
+        #expect(center.pendingRequestsList.count == 3)
+        #expect(center.removedPendingIdentifiers.allSatisfy { !$0.contains(existing.identifier) })
+    }
 }
 
 @MainActor
@@ -358,6 +436,14 @@ private final class FakeQuestNotificationCenter: QuestNotificationCenter {
 
     func pendingNotificationIdentifiers() async -> [String] {
         pendingRequestsList.map(\.identifier)
+    }
+
+    func pendingQuestNotifications() async -> [PendingQuestNotification] {
+        pendingRequestsList.compactMap { request in
+            guard let trigger = request.trigger as? UNCalendarNotificationTrigger,
+                  let fireDate = trigger.nextTriggerDate() else { return nil }
+            return PendingQuestNotification(identifier: request.identifier, fireDate: fireDate)
+        }
     }
 
     func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {

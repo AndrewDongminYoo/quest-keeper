@@ -154,8 +154,20 @@ struct WidgetDungeonView: View {
         } else if entry.state.activeMobs.isEmpty {
             StatusText(WidgetStrings.resolve(WidgetStrings.statusDungeonQuiet, locale: .current), tone: .muted)
         } else if let mob = entry.state.activeMobs.first {
-            StatusText(deadlineText(for: mob), tone: .color(urgencyTint(for: mob)))
-                .privacySensitive()
+            // `systemSmall` has no other deadline display — the badge's timer row was removed as a
+            // duplicate — so this one has to keep counting on its own. `deadlineText` is computed
+            // once per timeline entry, and entries are only re-requested at the urgency thresholds
+            // or the 15-minute fallback, so a plain string here would sit reading "in 44 min." long
+            // after that stopped being true. `style: .timer` is rendered by WidgetKit, not by us,
+            // and advances without a reload. Overdue keeps the static wording: there is nothing
+            // left to count down to.
+            if mob.deadline > entry.state.date {
+                StatusTimer(deadline: mob.deadline, tint: urgencyTint(for: mob))
+                    .privacySensitive()
+            } else {
+                StatusText(deadlineText(for: mob), tone: .color(urgencyTint(for: mob)))
+                    .privacySensitive()
+            }
         }
     }
 
@@ -374,6 +386,24 @@ private struct StatPill: View {
         .padding(.vertical, 3)
         .padding(.horizontal, 7)
         .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: PixelStyle.corner))
+    }
+}
+
+/// The status line's live variant: same type treatment as `StatusText`, but the time is a WidgetKit
+/// timer so it advances between timeline reloads instead of freezing at the entry's date.
+private struct StatusTimer: View {
+    let deadline: Date
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(WidgetStrings.mobDeadlineLabel)
+            Text(deadline, style: .timer)
+        }
+        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .minimumScaleFactor(0.78)
     }
 }
 
