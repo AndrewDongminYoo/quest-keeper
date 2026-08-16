@@ -81,5 +81,9 @@ struct QuestKeeperWidget: Widget {
         .configurationDisplayName(Text(WidgetStrings.configurationDisplayName))
         .description(Text(WidgetStrings.configurationDescription))
         .supportedFamilies([.systemSmall, .systemMedium])
+        // The layouts already set their own `.padding`, but iOS was adding its default content
+        // margins underneath, so every edge carried both. Owning the margin here is what the view
+        // code always assumed, and it is where the small widget's missing width went.
+        .contentMarginsDisabled()
     }
 }

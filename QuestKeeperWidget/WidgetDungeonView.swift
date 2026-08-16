@@ -223,22 +223,24 @@ private struct MobBadge: View {
     var body: some View {
         let monster = MonsterArtworkSelection.monster(forMobLevel: mob.mobLevel, questID: mob.id)
 
-        // `systemSmall` trims its own chrome: sprite, gaps and padding were taking ~88pt of a
-        // ~131pt row, leaving the title about three characters a line. Only the compact numbers
-        // move; `systemMedium` has room and keeps what it had.
+        // `systemSmall` shows the quest, not the bestiary: at that width the sprite and its gap
+        // were spending ~30pt of a ~131pt row on flavour while the title got three characters a
+        // line. The monster still leads every row in `systemMedium` and in the app.
         HStack(spacing: compact ? 5 : 8) {
-            WidgetArtworkView(
-                artwork: .monster(monster),
-                size: compact ? 22 : dense ? 18 : 22
-            )
-            .frame(
-                width: compact ? 22 : dense ? 20 : 24,
-                height: compact ? 22 : dense ? 20 : 24
-            )
-            .accessibilityLabel(WidgetStrings.resolve(
-                WidgetStrings.a11yMonsterLevel(monster.localizedName(), mob.mobLevel),
-                locale: .current
-            ))
+            if !compact {
+                WidgetArtworkView(
+                    artwork: .monster(monster),
+                    size: dense ? 18 : 22
+                )
+                .frame(
+                    width: dense ? 20 : 24,
+                    height: dense ? 20 : 24
+                )
+                .accessibilityLabel(WidgetStrings.resolve(
+                    WidgetStrings.a11yMonsterLevel(monster.localizedName(), mob.mobLevel),
+                    locale: .current
+                ))
+            }
 
             VStack(alignment: .leading, spacing: compact ? 2 : dense ? 0 : 1) {
                 Text(mob.title)
