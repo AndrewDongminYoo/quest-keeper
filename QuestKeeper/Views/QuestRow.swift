@@ -137,7 +137,9 @@ struct QuestRow: View {
             RoundedRectangle(cornerRadius: 2)
                 .stroke(tint.opacity(0.45), lineWidth: 2)  // chunky pixel border
         )
-        .accessibilityHint(guidanceText ?? "")
+        // No `accessibilityHint(guidanceText)` here: the guidance is already a visible `Text` child
+        // above, and the enclosing rows use `children: .contain`, so a hint would make VoiceOver
+        // read the same sentence twice — once as content, once as the row's hint.
         .accessibilityValue(isCompleted ? AppStrings.resolve(AppStrings.questStateCompleted, locale: .current) : "")
     }
 }
