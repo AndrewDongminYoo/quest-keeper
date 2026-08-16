@@ -223,14 +223,17 @@ private struct MobBadge: View {
     var body: some View {
         let monster = MonsterArtworkSelection.monster(forMobLevel: mob.mobLevel, questID: mob.id)
 
-        HStack(spacing: 8) {
+        // `systemSmall` trims its own chrome: sprite, gaps and padding were taking ~88pt of a
+        // ~131pt row, leaving the title about three characters a line. Only the compact numbers
+        // move; `systemMedium` has room and keeps what it had.
+        HStack(spacing: compact ? 5 : 8) {
             WidgetArtworkView(
                 artwork: .monster(monster),
-                size: compact ? 28 : dense ? 18 : 22
+                size: compact ? 22 : dense ? 18 : 22
             )
             .frame(
-                width: compact ? 28 : dense ? 20 : 24,
-                height: compact ? 28 : dense ? 20 : 24
+                width: compact ? 22 : dense ? 20 : 24,
+                height: compact ? 22 : dense ? 20 : 24
             )
             .accessibilityLabel(WidgetStrings.resolve(
                 WidgetStrings.a11yMonsterLevel(monster.localizedName(), mob.mobLevel),
@@ -245,17 +248,24 @@ private struct MobBadge: View {
                     .lineLimit(compact ? 2 : 1)
                     .minimumScaleFactor(0.74)
 
-                HStack(spacing: 6) {
-                    Text(WidgetStrings.mobDeadlineLabel)
-                        .foregroundStyle(DungeonPalette.ink.opacity(0.56))
+                // `systemSmall` omits this row: its status line already shows the same deadline,
+                // tinted by urgency, one line above. Drawing it twice cost the title its second
+                // line and left the row itself unreadable — rendered in English it collapsed to
+                // "- -" while the title showed "Re…". `systemMedium` has no per-mob status line,
+                // so there this is the only place the time appears and it stays.
+                if !compact {
+                    HStack(spacing: 6) {
+                        Text(WidgetStrings.mobDeadlineLabel)
+                            .foregroundStyle(DungeonPalette.ink.opacity(0.56))
 
-                    Text(mob.deadline, style: .timer)
-                        .privacySensitive()
-                        .foregroundStyle(DungeonPalette.ink.opacity(0.9))
+                        Text(mob.deadline, style: .timer)
+                            .privacySensitive()
+                            .foregroundStyle(DungeonPalette.ink.opacity(0.9))
+                    }
+                    .font(.system(size: dense ? 8 : 9, weight: .semibold, design: .monospaced))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
                 }
-                .font(.system(size: dense ? 8 : 9, weight: .semibold, design: .monospaced))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
             }
 
             Spacer(minLength: 0)
@@ -292,7 +302,7 @@ private struct MobBadge: View {
             .accessibilityLabel(WidgetStrings.resolve(WidgetStrings.questActionComplete, locale: .current))
         }
         .padding(.vertical, compact ? 7 : dense ? 0 : 2)
-        .padding(.horizontal, compact ? 8 : 7)
+        .padding(.horizontal, compact ? 6 : 7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
         .overlay {
