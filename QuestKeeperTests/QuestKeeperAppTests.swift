@@ -334,6 +334,29 @@ struct QuestKeeperAppTests {
     }
 
     @Test(
+        "inert dependencies come from the fallback itself, not only from a testing flag",
+        arguments: [
+            (false, false, false),
+            (true, false, true),
+            (false, true, true),
+            (true, true, true),
+        ]
+    )
+    func inertSideEffectGate(
+        usesUITestingStore: Bool,
+        storeFailedToOpen: Bool,
+        expected: Bool
+    ) {
+        // The `(false, true)` row is the one that matters: a shipped build reaching the fallback has
+        // no testing flag set, so if that row were false the editor would publish ephemeral quests
+        // over the real widget snapshot and schedule reminders that outlive their facts.
+        #expect(ActivationPolicy.shouldUseInertSideEffects(
+            usesUITestingStore: usesUITestingStore,
+            storeFailedToOpen: storeFailedToOpen
+        ) == expected)
+    }
+
+    @Test(
         "onboarding exposure waits for the first active scene",
         arguments: [
             (true, false, true, true),

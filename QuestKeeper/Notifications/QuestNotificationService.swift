@@ -266,6 +266,7 @@ final class QuestNotificationService {
         }
         guard authorization.canSchedule else { return authorization }
 
+        await makeRoom(for: plans.count)
         for plan in plans {
             do {
                 try await center.add(request(for: plan))
@@ -274,20 +275,24 @@ final class QuestNotificationService {
                 return .unavailable
             }
         }
-        await enforceGlobalCap()
 
         return authorization
     }
 
     /// `performReconcile` bounds the set it writes, but a single-quest sync adds on top of whatever
     /// is already scheduled — so once a full board has filled the platform's slots, creating or
-    /// retrying one quest pushes the total past the limit and hands the choice of what to drop back
-    /// to the unspecified behaviour the cap exists to avoid. Evicting the furthest-firing surplus
-    /// here keeps "soonest wins" true however the request came to be scheduled.
-    private func enforceGlobalCap() async {
+    /// retrying one quest would push past the limit and hand the choice of what to drop back to the
+    /// unspecified behaviour the cap exists to avoid.
+    ///
+    /// The eviction has to happen *before* the adds, not after. The platform applies its own limit
+    /// as each request is submitted, so by the time an add has overflowed, its choice is already
+    /// made and a later query just reports a set that is back at the limit — nothing left to evict
+    /// and the wrong requests already gone. Freeing the slots first is what makes "soonest wins"
+    /// hold regardless of how the platform resolves an overflow, because it never sees one.
+    private func makeRoom(for incoming: Int) async {
         let pending = await center.pendingQuestNotifications()
             .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0.identifier) }
-        let surplus = pending.count - QuestNotificationPlanner.maximumScheduledNotifications
+        let surplus = pending.count + incoming - QuestNotificationPlanner.maximumScheduledNotifications
         guard surplus > 0 else { return }
 
         let evicted = pending

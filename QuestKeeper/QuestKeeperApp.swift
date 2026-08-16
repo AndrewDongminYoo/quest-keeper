@@ -50,28 +50,20 @@ struct QuestKeeperApp: App {
         let usesInMemoryStore = arguments.contains("-uiTestingInMemoryStore")
         let uiTestingStoreURL = LaunchArguments.parsedUITestingStoreURL(arguments: arguments)
         let forcesStoreFailure = LaunchArguments.storeFailureFixtureEnabled(arguments: arguments)
-        // The failure fixture counts as a UI-testing store on its own, so the run gets the fake
-        // notification centre and the no-op snapshot writer without also asking for a real store.
-        let usesUITestingStore = usesInMemoryStore || uiTestingStoreURL != nil || forcesStoreFailure
-        let notificationService = usesUITestingStore
-            ? QuestNotificationService(center: UITestingQuestNotificationCenter())
-            : QuestNotificationService.shared
-        let snapshotWriter = usesUITestingStore
-            ? WidgetDungeonSnapshotWriter(save: { _ in })
-            : WidgetDungeonSnapshotWriter()
+        // Deliberately NOT folded into `usesUITestingStore`. The fixture's job is to reach the
+        // fallback the way production reaches it, so the inert dependencies it ends up with have to
+        // come from `storeFailedToOpen` — the condition that fires in a shipped build — rather than
+        // from a testing flag that would substitute them for a different reason and hide the real one.
+        let usesUITestingStore = usesInMemoryStore || uiTestingStoreURL != nil
 #else
         let usesInMemoryStore = false
         let uiTestingStoreURL: URL? = nil
         let usesUITestingStore = false
-        let notificationService = QuestNotificationService.shared
-        let snapshotWriter = WidgetDungeonSnapshotWriter()
 #endif
         let routeStore = NotificationRouteStore()
         let delegate = NotificationDelegate(routeStore: routeStore)
         _notificationRouteStore = State(initialValue: routeStore)
         notificationDelegate = delegate
-        self.notificationService = notificationService
-        widgetSnapshotWriter = snapshotWriter
         self.usesInMemoryStore = usesInMemoryStore
         self.uiTestingStoreURL = uiTestingStoreURL
 #if DEBUG
@@ -106,8 +98,24 @@ struct QuestKeeperApp: App {
             container = QuestModelContainer.makeEphemeralFallback()
             storeFailedToOpen = true
         }
-        // Assigned after the container, not before: a fallback run must not export a baseline
-        // derived from an empty store over the one the real store produced.
+        // Every dependency that writes outside this process is chosen here, after the store's fate
+        // is known — not before it. On a fallback run the quests in the container are ephemeral, so
+        // publishing them would overwrite the widget snapshot built from the surviving on-disk data
+        // and schedule reminders for facts that die at process exit. Gating each call site would
+        // mean finding all of them and keeping them found; making the dependency inert covers the
+        // ones nobody thought about, including whatever the editor grows next.
+        let usesInertSideEffects = ActivationPolicy.shouldUseInertSideEffects(
+            usesUITestingStore: usesUITestingStore,
+            storeFailedToOpen: storeFailedToOpen
+        )
+        let notificationService = usesInertSideEffects
+            ? QuestNotificationService(center: InertQuestNotificationCenter())
+            : QuestNotificationService.shared
+        let snapshotWriter = usesInertSideEffects
+            ? WidgetDungeonSnapshotWriter(save: { _ in })
+            : WidgetDungeonSnapshotWriter()
+        self.notificationService = notificationService
+        widgetSnapshotWriter = snapshotWriter
         retentionBaselineWriter = ActivationPolicy.shouldPersistMeasurementArtifacts(
             usesInMemoryStore: usesUITestingStore,
             storeFailedToOpen: storeFailedToOpen
@@ -361,9 +369,13 @@ struct QuestKeeperApp: App {
     }
 }
 
-#if DEBUG
+/// A notification centre that accepts everything and schedules nothing.
+///
+/// Used for UI-testing runs and — the reason it is no longer `#if DEBUG` — for a production
+/// fallback run, whose quests do not outlive the process and so must not leave reminders behind.
+/// It reports `.authorized` so the board does not also nag for a permission this run cannot use.
 @MainActor
-private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
+private final class InertQuestNotificationCenter: QuestNotificationCenter {
     func authorizationStatus() async -> UNAuthorizationStatus { .authorized }
 
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { true }
@@ -378,7 +390,6 @@ private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
 
     func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {}
 }
-#endif
 
 /// Launch-argument parsing. A namespace rather than file-scope functions so these never collide with
 /// the same-named stored properties on `QuestKeeperApp` (`recoveryLoopVariant` already did, which is
@@ -469,6 +480,17 @@ nonisolated enum ActivationPolicy {
         storeFailedToOpen: Bool
     ) -> Bool {
         !usesInMemoryStore && !storeFailedToOpen
+    }
+
+    /// Whether the run gets dependencies that write nowhere. A fallback qualifies for the same
+    /// reason a UI-testing store does: its quests are ephemeral, so publishing them would overwrite
+    /// the widget snapshot built from the surviving on-disk data and leave reminders for facts that
+    /// die with the process.
+    static func shouldUseInertSideEffects(
+        usesUITestingStore: Bool,
+        storeFailedToOpen: Bool
+    ) -> Bool {
+        usesUITestingStore || storeFailedToOpen
     }
 
     /// A fallback run holds none of the user's facts, so every activation side effect below would

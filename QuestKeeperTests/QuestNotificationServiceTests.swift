@@ -421,12 +421,20 @@ private final class FakeQuestNotificationCenter: QuestNotificationCenter {
         return requestAuthorizationResult
     }
 
+    /// Models the platform's own limit: `UNUserNotificationCenter` keeps a bounded number of pending
+    /// requests and resolves an overflow itself, silently and without erroring. Dropping the add is
+    /// the pessimistic reading of that, and it is what makes the difference between evicting before
+    /// and after the add observable — an unbounded fake reports success for both.
     func add(_ request: UNNotificationRequest) async throws {
         addAttemptCount += 1
         if addErrorOnAttempt == addAttemptCount { throw FakeNotificationError.addFailed }
         if let addError { throw addError }
         events.append("add:\(request.identifier)")
         addedRequests.append(request)
+        guard pendingRequestsList.count < QuestNotificationPlanner.maximumScheduledNotifications else {
+            events.append("droppedByPlatform:\(request.identifier)")
+            return
+        }
         pendingRequestsList.append(request)
     }
 
