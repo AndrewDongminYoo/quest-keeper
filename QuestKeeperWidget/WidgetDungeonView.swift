@@ -34,6 +34,10 @@ struct WidgetDungeonView: View {
             Spacer(minLength: 0)
             footer(fontSize: 9, iconSize: 12)
         }
+        // The two families do not share this number. Both widgets get the same absolute corner
+        // radius from the system, so on the smaller one the curve consumes a larger share of each
+        // edge and 12 already clears it — on `systemMedium` the same inset leaves full-width rows
+        // running into the corner. See `mediumLayout`.
         .padding(12)
     }
 
@@ -65,7 +69,7 @@ struct WidgetDungeonView: View {
                 footer(fontSize: 11, iconSize: 13)
             }
         }
-        .padding(12)
+        .padding(16)
     }
 
     private var mediumHeader: some View {
