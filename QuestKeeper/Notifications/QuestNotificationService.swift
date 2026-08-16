@@ -207,9 +207,11 @@ final class QuestNotificationService {
         locale: Locale,
         authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
-        let plans = quests.flatMap { quest in
-            QuestNotificationPlanner.plans(for: quest.snapshot, now: now, locale: locale)
-        }
+        let plans = QuestNotificationPlanner.plans(
+            for: quests.map(\.snapshot),
+            now: now,
+            locale: locale
+        )
         let deliveredIdentifiersToRemove = quests.flatMap { quest in
             QuestNotificationPlanner.identifiers(for: quest.id)
         }
