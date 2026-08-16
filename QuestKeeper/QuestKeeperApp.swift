@@ -49,7 +49,10 @@ struct QuestKeeperApp: App {
         let arguments = ProcessInfo.processInfo.arguments
         let usesInMemoryStore = arguments.contains("-uiTestingInMemoryStore")
         let uiTestingStoreURL = LaunchArguments.parsedUITestingStoreURL(arguments: arguments)
-        let usesUITestingStore = usesInMemoryStore || uiTestingStoreURL != nil
+        let forcesStoreFailure = LaunchArguments.storeFailureFixtureEnabled(arguments: arguments)
+        // The failure fixture counts as a UI-testing store on its own, so the run gets the fake
+        // notification centre and the no-op snapshot writer without also asking for a real store.
+        let usesUITestingStore = usesInMemoryStore || uiTestingStoreURL != nil || forcesStoreFailure
         let notificationService = usesUITestingStore
             ? QuestNotificationService(center: UITestingQuestNotificationCenter())
             : QuestNotificationService.shared
@@ -92,6 +95,11 @@ struct QuestKeeperApp: App {
         // the app launches, and surface `storeFailedToOpen` so the user is told nothing will persist.
         let container: ModelContainer
         do {
+#if DEBUG
+            if forcesStoreFailure {
+                throw DebugStoreFailure.forcedByLaunchArgument
+            }
+#endif
             container = try QuestModelContainer.make(
                 storeURL: uiTestingStoreURL,
                 isStoredInMemoryOnly: usesInMemoryStore
@@ -385,8 +393,22 @@ nonisolated enum LaunchArguments {
               arguments.indices.contains(index + 1) else { return nil }
         return URL(fileURLWithPath: arguments[index + 1])
     }
+
+    /// Forces the store open to fail so a UI test can reach the in-memory fallback and its banner.
+    /// There is no way to corrupt a real App Group store from a test, and simulating the *result*
+    /// (setting the flag directly) would assert nothing about the path that actually runs.
+    static func storeFailureFixtureEnabled(arguments: [String]) -> Bool {
+        arguments.contains("-uiTestingStoreFailure")
+    }
 #endif
 }
+
+#if DEBUG
+/// The error `-uiTestingStoreFailure` throws in place of a real store-open failure.
+enum DebugStoreFailure: Error {
+    case forcedByLaunchArgument
+}
+#endif
 
 /// Pure predicates deciding what the `.active` scene-phase transition should do. Kept side-effect free
 /// so each rule is testable without a container, a scene, or a simulator.
