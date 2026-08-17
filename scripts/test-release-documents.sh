@@ -117,9 +117,23 @@ make_fixture duplicate-version-definition \
 	perl -pe "s|^(\\Q[${version}]: \\E.*)\$|${stale_line}\\n\$1|"
 run_case "two conflicting version link definitions" "${fixture_path}" fail
 
+# The single quotes are the point here: `$1`, `\Q`, `\E` and `\n` belong to
+# perl and must reach it unexpanded. Unlike the fixture above, this pattern
+# needs no shell variable, so nothing has to be interpolated.
+# shellcheck disable=SC2016
 make_fixture duplicate-unreleased-definition \
 	perl -pe 's|^(\Q[Unreleased]: \E.*)$|[Unreleased]: https://example.com/compare/v0.0.0+00000000...HEAD\n$1|'
 run_case "two conflicting unreleased definitions" "${fixture_path}" fail
+
+# A definition indented into a list item is not a reference definition at all,
+# so the heading stays unlinked while every substring search still finds it.
+make_fixture definition-inside-a-bullet sed "s|^\(\[${version}\]: \)|- \1|"
+run_case "definition demoted to a bullet" "${fixture_path}" fail
+
+# The endpoint can be right while the range starts somewhere invented.
+make_fixture fabricated-start-tag \
+	sed "s|/compare/[^/]*\.\.\.|/compare/v0.0.0+00000000...|"
+run_case "comparison starts at a tag that does not exist" "${fixture_path}" fail
 
 if [[ ${failed} -ne 0 ]]; then
 	exit 1

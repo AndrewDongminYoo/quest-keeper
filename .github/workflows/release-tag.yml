@@ -38,6 +38,15 @@ jobs:
       - name: Validate release documents
         run: bash scripts/validate-release-documents.sh
 
+      # A tag is effectively permanent: the check below refuses to move one that
+      # already points elsewhere, so tagging a commit that cannot be released
+      # costs either a manual tag deletion or a wasted version number. The
+      # release lane refuses to ship while a store locale disagrees with the
+      # build about the app name, and that is exactly the state this branch is
+      # in, so the tag has to wait on the same condition the release does.
+      - name: Require the release preconditions
+        run: bash scripts/test-store-locale-brand.sh
+
       - name: Check existing tag
         id: existing
         env:
