@@ -59,6 +59,8 @@ That was a defect independent of the rename and is already fixed; every user-fac
 
 - `scripts/test-release-display-names.sh:16-25` — asserts the widget plist value equals `Quest Keeper` **and** that the pbxproj contains exactly two `INFOPLIST_KEY_CFBundleDisplayName = "Quest Keeper";` lines.
   This script fails by construction the moment the rename lands, so its expected value changes in the same commit.
+- `scripts/test-store-locale-brand.sh` — the release precondition, run by the `release` lane before anything else. It asserts every `fastlane/metadata/<locale>/name.txt` matches `Brand.displayName` case-insensitively, and that each locale's description names its own store name.
+  Unlike the script above it is **red on purpose while the rename is half-applied**, because the Korean name claim is a manual irreversible step in App Store Connect that no commit can perform. Do not "fix" it by editing `name.txt` ahead of the claim — that is the failure it exists to prevent. It goes green on its own once the claim lands and both Korean files follow.
 
 ### Store screenshots — regenerate, do not edit
 
