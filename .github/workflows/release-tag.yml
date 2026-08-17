@@ -36,18 +36,7 @@ jobs:
         run: bash scripts/release-version.sh
 
       - name: Validate release documents
-        env:
-          VERSION: ${{ steps.version.outputs.marketing_version }}
-          TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          grep -Fq "## [$VERSION] - " CHANGELOG.md
-          # The heading is a bare bracket until its link definition exists, and
-          # markdownlint's MD052 leaves shortcut references alone by default, so
-          # nothing else notices. Without this the released version stays
-          # unlinked and Unreleased keeps comparing from the previous tag.
-          grep -Fq "[$VERSION]: http" CHANGELOG.md
-          grep -Fq "compare/$TAG...HEAD" CHANGELOG.md
-          test -s "docs/releases/$VERSION/ko.txt"
+        run: bash scripts/validate-release-documents.sh
 
       - name: Check existing tag
         id: existing
