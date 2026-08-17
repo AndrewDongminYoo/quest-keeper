@@ -70,6 +70,7 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
 
 - `fastlane/metadata/ko/name.txt` — plus the Korean localization in App Store Connect.
 - `fastlane/metadata/ko/description.txt` and `fastlane/metadata/en-US/description.txt` — both open with the name.
+  **The Korean one moves with `name.txt`, not ahead of it.** Deliver uploads the whole `metadata_path` tree and the `release` lane calls `upload_to_app_store` with no filter, so a release cut between the two edits would ship a Korean listing whose title and description name different apps — the same split identity this rename exists to close, reproduced in the other direction. The en-US pair has no such constraint: that locale has been titled `TODO Slayer` since 1.2.0, so its description is a correction rather than a lead.
 - The `<Name> X.Y.Z` first line of each new `docs/releases/<version>/<locale>.txt`.
   `fastlane/metadata/<locale>/release_notes.txt` is generated from those sources by `scripts/prepare-release-notes.sh` and needs no separate edit — until the next release is cut it still holds the shipped version's text, which is why it sits under "Deliberately unchanged".
 
