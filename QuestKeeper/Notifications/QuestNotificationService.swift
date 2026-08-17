@@ -41,12 +41,19 @@ nonisolated enum QuestNotificationPermissionAction: Equatable, Sendable {
     }
 }
 
+/// A scheduled request reduced to what the cap needs to choose survivors.
+nonisolated struct PendingQuestNotification: Equatable, Sendable {
+    let identifier: String
+    let fireDate: Date
+}
+
 @MainActor
 protocol QuestNotificationCenter: AnyObject {
     func authorizationStatus() async -> UNAuthorizationStatus
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
     func add(_ request: UNNotificationRequest) async throws
     func pendingNotificationIdentifiers() async -> [String]
+    func pendingQuestNotifications() async -> [PendingQuestNotification]
     func removePendingNotificationRequests(withIdentifiers identifiers: [String])
     func removeDeliveredNotifications(withIdentifiers identifiers: [String])
 }
@@ -95,6 +102,18 @@ final class SystemQuestNotificationCenter: QuestNotificationCenter {
         await withCheckedContinuation { continuation in
             center.getPendingNotificationRequests { requests in
                 continuation.resume(returning: requests.map(\.identifier))
+            }
+        }
+    }
+
+    func pendingQuestNotifications() async -> [PendingQuestNotification] {
+        await withCheckedContinuation { continuation in
+            center.getPendingNotificationRequests { requests in
+                continuation.resume(returning: requests.compactMap { request in
+                    guard let trigger = request.trigger as? UNCalendarNotificationTrigger,
+                          let fireDate = trigger.nextTriggerDate() else { return nil }
+                    return PendingQuestNotification(identifier: request.identifier, fireDate: fireDate)
+                })
             }
         }
     }
@@ -207,9 +226,11 @@ final class QuestNotificationService {
         locale: Locale,
         authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
-        let plans = quests.flatMap { quest in
-            QuestNotificationPlanner.plans(for: quest.snapshot, now: now, locale: locale)
-        }
+        let plans = QuestNotificationPlanner.plans(
+            for: quests.map(\.snapshot),
+            now: now,
+            locale: locale
+        )
         let deliveredIdentifiersToRemove = quests.flatMap { quest in
             QuestNotificationPlanner.identifiers(for: quest.id)
         }
@@ -245,16 +266,79 @@ final class QuestNotificationService {
         }
         guard authorization.canSchedule else { return authorization }
 
-        for plan in plans {
+        let (admitted, evicted) = await admit(plans, locale: locale)
+        for plan in admitted {
             do {
                 try await center.add(request(for: plan))
             } catch {
+                // The eviction above was payment for an add that then did not happen, and it was
+                // taken from *other* quests — leaving it would silently drop their reminders until
+                // the next full reconcile. Put them back before reporting the failure.
                 performCancel(questID: questID)
+                await restore(evicted)
                 return .unavailable
             }
         }
 
         return authorization
+    }
+
+    private func restore(_ plans: [QuestNotificationPlan]) async {
+        for plan in plans {
+            try? await center.add(request(for: plan))
+        }
+    }
+
+    /// `performReconcile` bounds the set it writes, but a single-quest sync adds on top of whatever
+    /// is already scheduled — so once a full board has filled the platform's slots, creating or
+    /// retrying one quest would push past the limit and hand the choice of what to drop back to the
+    /// unspecified behaviour the cap exists to avoid.
+    ///
+    /// The eviction has to happen *before* the adds, not after. The platform applies its own limit
+    /// as each request is submitted, so by the time an add has overflowed, its choice is already
+    /// made and a later query just reports a set that is back at the limit — nothing left to evict
+    /// and the wrong requests already gone. Freeing the slots first is what makes "soonest wins"
+    /// hold regardless of how the platform resolves an overflow, because it never sees one.
+    ///
+    /// Both sides go into one ordering. Freeing a slot per incoming plan would let a quest due next
+    /// month evict reminders due tomorrow — soonest-first has to decide between the incoming and the
+    /// incumbent, not assume the newcomer wins. Returns the plans that earned a slot; the rest are
+    /// simply not scheduled, and the next reconcile reconsiders them once they are near enough.
+    private func admit(
+        _ plans: [QuestNotificationPlan],
+        locale: Locale
+    ) async -> (admitted: [QuestNotificationPlan], evicted: [QuestNotificationPlan]) {
+        let cap = QuestNotificationPlanner.maximumScheduledNotifications
+        let pending = await center.pendingQuestNotifications()
+            .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0.identifier) }
+        guard pending.count + plans.count > cap else { return (plans, []) }
+
+        let candidates = pending + plans.map {
+            PendingQuestNotification(identifier: $0.identifier, fireDate: $0.fireDate)
+        }
+        let survivors = Set(
+            candidates
+                .sorted { firesEarlier($0, $1) }
+                .prefix(cap)
+                .map(\.identifier)
+        )
+
+        let evicted = pending.filter { !survivors.contains($0.identifier) }
+        if !evicted.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: evicted.map(\.identifier))
+        }
+        return (
+            plans.filter { survivors.contains($0.identifier) },
+            evicted.compactMap { QuestNotificationPlanner.plan(restoring: $0, locale: locale) }
+        )
+    }
+
+    /// The planner's order, with the same identifier tiebreak so the survivor set is deterministic.
+    private func firesEarlier(_ lhs: PendingQuestNotification, _ rhs: PendingQuestNotification) -> Bool {
+        if lhs.fireDate != rhs.fireDate {
+            return lhs.fireDate < rhs.fireDate
+        }
+        return lhs.identifier < rhs.identifier
     }
 
     private func sync(

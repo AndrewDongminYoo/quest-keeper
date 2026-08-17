@@ -315,7 +315,44 @@ struct QuestKeeperAppTests {
         expected: Bool
     ) {
         #expect(ActivationPolicy.shouldPersistMeasurementArtifacts(
-            usesInMemoryStore: usesInMemoryStore
+            usesInMemoryStore: usesInMemoryStore,
+            storeFailedToOpen: false
+        ) == expected)
+    }
+
+    @Test("a fallback run exports no measurement artifacts and runs no activation side effects")
+    func fallbackRunSuppressesStoreDerivedWork() {
+        // The fallback container is empty, so anything derived from it and written outside the
+        // process — the baseline export, a notification reconcile, the widget snapshot, the replay
+        // clock — would overwrite the real store's version with a one-session blank.
+        #expect(!ActivationPolicy.shouldPersistMeasurementArtifacts(
+            usesInMemoryStore: false,
+            storeFailedToOpen: true
+        ))
+        #expect(!ActivationPolicy.shouldRunActivationSideEffects(storeFailedToOpen: true))
+        #expect(ActivationPolicy.shouldRunActivationSideEffects(storeFailedToOpen: false))
+    }
+
+    @Test(
+        "inert dependencies come from the fallback itself, not only from a testing flag",
+        arguments: [
+            (false, false, false),
+            (true, false, true),
+            (false, true, true),
+            (true, true, true),
+        ]
+    )
+    func inertSideEffectGate(
+        usesUITestingStore: Bool,
+        storeFailedToOpen: Bool,
+        expected: Bool
+    ) {
+        // The `(false, true)` row is the one that matters: a shipped build reaching the fallback has
+        // no testing flag set, so if that row were false the editor would publish ephemeral quests
+        // over the real widget snapshot and schedule reminders that outlive their facts.
+        #expect(ActivationPolicy.shouldUseInertSideEffects(
+            usesUITestingStore: usesUITestingStore,
+            storeFailedToOpen: storeFailedToOpen
         ) == expected)
     }
 

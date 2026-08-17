@@ -8,6 +8,17 @@ struct WidgetDungeonPayloadTests {
     private let hour: TimeInterval = 60 * 60
     private let day: TimeInterval = 24 * 60 * 60
 
+    // `WidgetDungeonDerivation` re-declares the app's balance constants because it lives in
+    // QuestKeeperShared and cannot see `GameBalance` in the app target. The duplication is
+    // deliberate; the drift is not. Nothing else reads both sides, so tuning `GameBalance` would
+    // silently leave the widget showing a different monster tier than the app for the same quest.
+    // Same guard shape `MonsterExplanationTests` already uses against this drift class.
+    @Test("widget derivation keeps the app's balance constants")
+    func widgetBalanceConstantsMatchGameBalance() {
+        #expect(WidgetDungeonDerivation.maxMobLevel == GameBalance.maxMobLevel)
+        #expect(WidgetDungeonDerivation.urgencyHorizon == GameBalance.urgencyHorizon)
+    }
+
     @Test("payload round trips raw widget facts")
     func payloadRoundTripsRawFacts() throws {
         let questID = UUID()

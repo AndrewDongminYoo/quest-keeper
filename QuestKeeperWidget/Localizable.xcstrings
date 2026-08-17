@@ -278,7 +278,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add a new quest to fill the dungeon"
+            "value" : "Add a quest to start"
           }
         },
         "ko" : {
@@ -422,7 +422,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Victories"
+            "value" : "Wins"
           }
         },
         "ko" : {
@@ -438,7 +438,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The dungeon is quiet"
+            "value" : "Dungeon is quiet"
           }
         },
         "ko" : {

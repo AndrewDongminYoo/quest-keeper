@@ -80,6 +80,38 @@ struct QuestNotificationPlannerTests {
         #expect(plans[1].fireDate == now.addingTimeInterval(3 * hour))
     }
 
+    @Test("the desired set is ordered by fire date across quests, not by quest")
+    func desiredSetIsFireDateOrdered() {
+        // Concatenating per-quest plans interleaves them: the near quest's deadline (+2.5h) would
+        // land ahead of the far quest's due-soon (+2h) even though it fires later.
+        let near = snapshot(deadlineOffset: 2.5 * hour)
+        let far = snapshot(deadlineOffset: 3 * hour)
+
+        let plans = QuestNotificationPlanner.plans(for: [near, far], now: now)
+
+        #expect(plans.map(\.fireDate) == [
+            now.addingTimeInterval(1.5 * hour),
+            now.addingTimeInterval(2 * hour),
+            now.addingTimeInterval(2.5 * hour),
+            now.addingTimeInterval(3 * hour),
+        ])
+    }
+
+    @Test("the desired set is capped, dropping the furthest-firing requests")
+    func desiredSetIsCappedSoonestFirst() {
+        let cap = QuestNotificationPlanner.maximumScheduledNotifications
+        // Two plans per quest, so this deliberately overshoots the cap.
+        let snapshots = (0..<cap).map { snapshot(deadlineOffset: Double(2 + $0) * hour) }
+
+        let plans = QuestNotificationPlanner.plans(for: snapshots, now: now)
+
+        #expect(plans.count == cap)
+        #expect(plans.map(\.fireDate) == plans.map(\.fireDate).sorted())
+        // The uncapped set would reach the last quest's deadline; the cap must cut before it.
+        let furthest = now.addingTimeInterval(Double(1 + cap) * hour)
+        #expect(plans.allSatisfy { $0.fireDate < furthest })
+    }
+
     @Test(
         "notification previews do not disclose quest titles",
         arguments: [

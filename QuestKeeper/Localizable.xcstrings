@@ -1321,7 +1321,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Victories"
+            "value" : "Wins"
           }
         },
         "ko" : {
@@ -2370,6 +2370,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "선택을 다시 확인해주세요"
+          }
+        }
+      }
+    },
+    "store.failure.banner.body" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quests you add now won't be saved. Try relaunching the app."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금 만든 퀘스트는 저장되지 않습니다. 앱을 다시 실행해보세요."
+          }
+        }
+      }
+    },
+    "store.failure.banner.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open your data"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "저장소를 열지 못했습니다"
           }
         }
       }

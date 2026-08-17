@@ -39,35 +39,31 @@ struct QuestKeeperApp: App {
     private let uiTestingStoreURL: URL?
     private let isDailyFocusLoopEnabled: Bool
     private let recoveryLoopVariant: RecoveryLoopVariant?
+    /// True when the on-disk store could not be opened at launch and the app is running on an
+    /// in-memory fallback, so nothing written survives the process. Drives the board's warning
+    /// banner, and pins the run to that container — see the `.active` branch below.
+    private let storeFailedToOpen: Bool
 
     init() {
 #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         let usesInMemoryStore = arguments.contains("-uiTestingInMemoryStore")
         let uiTestingStoreURL = LaunchArguments.parsedUITestingStoreURL(arguments: arguments)
+        let forcesStoreFailure = LaunchArguments.storeFailureFixtureEnabled(arguments: arguments)
+        // Deliberately NOT folded into `usesUITestingStore`. The fixture's job is to reach the
+        // fallback the way production reaches it, so the inert dependencies it ends up with have to
+        // come from `storeFailedToOpen` — the condition that fires in a shipped build — rather than
+        // from a testing flag that would substitute them for a different reason and hide the real one.
         let usesUITestingStore = usesInMemoryStore || uiTestingStoreURL != nil
-        let notificationService = usesUITestingStore
-            ? QuestNotificationService(center: UITestingQuestNotificationCenter())
-            : QuestNotificationService.shared
-        let snapshotWriter = usesUITestingStore
-            ? WidgetDungeonSnapshotWriter(save: { _ in })
-            : WidgetDungeonSnapshotWriter()
 #else
         let usesInMemoryStore = false
         let uiTestingStoreURL: URL? = nil
         let usesUITestingStore = false
-        let notificationService = QuestNotificationService.shared
-        let snapshotWriter = WidgetDungeonSnapshotWriter()
 #endif
         let routeStore = NotificationRouteStore()
         let delegate = NotificationDelegate(routeStore: routeStore)
         _notificationRouteStore = State(initialValue: routeStore)
         notificationDelegate = delegate
-        self.notificationService = notificationService
-        widgetSnapshotWriter = snapshotWriter
-        retentionBaselineWriter = ActivationPolicy.shouldPersistMeasurementArtifacts(
-            usesInMemoryStore: usesUITestingStore
-        ) ? RetentionBaselineWriter() : nil
         self.usesInMemoryStore = usesInMemoryStore
         self.uiTestingStoreURL = uiTestingStoreURL
 #if DEBUG
@@ -82,62 +78,106 @@ struct QuestKeeperApp: App {
         recoveryLoopVariant = nil
 #endif
         UNUserNotificationCenter.current().delegate = delegate
+        // A store that cannot be opened used to `fatalError` here, which turns a corrupt or
+        // unmigratable App Group store into a permanent launch-crash loop whose only user recovery
+        // is deleting the app — destroying the facts still sitting on disk. Fall back to memory so
+        // the app launches, and surface `storeFailedToOpen` so the user is told nothing will persist.
+        let container: ModelContainer
         do {
-            let container = try QuestModelContainer.make(
+#if DEBUG
+            if forcesStoreFailure {
+                throw DebugStoreFailure.forcedByLaunchArgument
+            }
+#endif
+            container = try QuestModelContainer.make(
                 storeURL: uiTestingStoreURL,
                 isStoredInMemoryOnly: usesInMemoryStore
             )
-            _sharedModelContainer = State(initialValue: container)
-            let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
-                modelContainer: container,
-                notificationService: notificationService,
-                widgetSnapshotWriter: snapshotWriter
-            )
-            self.shortcutCreationCoordinator = shortcutCreationCoordinator
-            AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)
+            storeFailedToOpen = false
+        } catch {
+            container = QuestModelContainer.makeEphemeralFallback()
+            storeFailedToOpen = true
+        }
+        // Every dependency that writes outside this process is chosen here, after the store's fate
+        // is known — not before it. On a fallback run the quests in the container are ephemeral, so
+        // publishing them would overwrite the widget snapshot built from the surviving on-disk data
+        // and schedule reminders for facts that die at process exit. Gating each call site would
+        // mean finding all of them and keeping them found; making the dependency inert covers the
+        // ones nobody thought about, including whatever the editor grows next.
+        let usesInertSideEffects = ActivationPolicy.shouldUseInertSideEffects(
+            usesUITestingStore: usesUITestingStore,
+            storeFailedToOpen: storeFailedToOpen
+        )
+        let notificationService = usesInertSideEffects
+            ? QuestNotificationService(center: InertQuestNotificationCenter())
+            : QuestNotificationService.shared
+        let snapshotWriter = usesInertSideEffects
+            ? WidgetDungeonSnapshotWriter(save: { _ in })
+            : WidgetDungeonSnapshotWriter()
+        self.notificationService = notificationService
+        widgetSnapshotWriter = snapshotWriter
+        retentionBaselineWriter = ActivationPolicy.shouldPersistMeasurementArtifacts(
+            usesInMemoryStore: usesUITestingStore,
+            storeFailedToOpen: storeFailedToOpen
+        ) ? RetentionBaselineWriter() : nil
+        _sharedModelContainer = State(initialValue: container)
+        let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
+            modelContainer: container,
+            notificationService: notificationService,
+            widgetSnapshotWriter: snapshotWriter
+        )
+        self.shortcutCreationCoordinator = shortcutCreationCoordinator
+        AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)
 #if DEBUG
+        // Kept fatal: a fixture that fails to seed would make the UI test that depends on it fail
+        // for an unrelated-looking reason. `#if DEBUG`, so it cannot ship.
+        do {
             try DebugFixtureSeeder.seed(
                 into: container,
                 arguments: arguments,
                 usesUITestingStore: usesUITestingStore,
                 usesInMemoryStore: usesInMemoryStore
             )
+        } catch {
+            fatalError("Could not seed debug fixtures: \(error)")
+        }
 #endif
 
-            let enrollment: ExperimentEnrollmentResult
-            if !ActivationPolicy.shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
-                enrollment = .ineligible
-            } else {
+        let enrollment: ExperimentEnrollmentResult
+        // An empty fallback store looks exactly like a fresh install to the eligibility check, so
+        // enrolling here would assign a variant off a container that dies with the process — and
+        // the exposure it triggers would be written into the same nowhere.
+        if storeFailedToOpen
+            || !ActivationPolicy.shouldResolveOnboardingExperiment(environment: ProcessInfo.processInfo.environment) {
+            enrollment = .ineligible
+        } else {
 #if DEBUG
-                let installationIDProvider: () throws -> UUID = usesUITestingStore
-                    ? { UUID() }
-                    : { try RetentionInstallationIdentityStore.appGroup().loadOrCreate() }
-                if let variant = LaunchArguments.onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
-                    enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
-                        at: .now,
-                        in: container.mainContext,
-                        installationIDProvider: installationIDProvider,
-                        variantSelector: { variant }
-                    )
-                } else {
-                    enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
-                        at: .now,
-                        in: container.mainContext,
-                        installationIDProvider: installationIDProvider
-                    )
-                }
-#else
+            let installationIDProvider: () throws -> UUID = usesUITestingStore
+                ? { UUID() }
+                : { try RetentionInstallationIdentityStore.appGroup().loadOrCreate() }
+            if let variant = LaunchArguments.onboardingVariantOverride(arguments: ProcessInfo.processInfo.arguments) {
                 enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
                     at: .now,
-                    in: container.mainContext
+                    in: container.mainContext,
+                    installationIDProvider: installationIDProvider,
+                    variantSelector: { variant }
                 )
-#endif
+            } else {
+                enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                    at: .now,
+                    in: container.mainContext,
+                    installationIDProvider: installationIDProvider
+                )
             }
-
-            onboardingAssignment = enrollment.assignment
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+#else
+            enrollment = ExperimentAssignmentRecorder.enrollIfEligible(
+                at: .now,
+                in: container.mainContext
+            )
+#endif
         }
+
+        onboardingAssignment = enrollment.assignment
     }
 
     var body: some Scene {
@@ -152,7 +192,8 @@ struct QuestKeeperApp: App {
                 recoveryOffer: $recoveryOffer,
                 activationReplay: activationReplay,
                 onboardingSessionID: onboardingSessionID,
-                dailyFocusLoopEnabled: isDailyFocusLoopEnabled
+                dailyFocusLoopEnabled: isDailyFocusLoopEnabled,
+                storeFailedToOpen: storeFailedToOpen
             )
         }
         .modelContainer(sharedModelContainer)
@@ -163,6 +204,25 @@ struct QuestKeeperApp: App {
                 didBackground = true
                 retentionActivationSessionID = UUID()
             case .active:
+                // A fallback run stops here. Its container holds none of the user's facts, and
+                // everything below treats the container as the truth — `syncActivation` would cancel
+                // every pending reminder the real quests still need and publish an empty widget
+                // payload, `replayActivation` would advance `lastOpened` past deaths that were never
+                // shown, and the baseline export would overwrite the real report. It also keeps the
+                // run on its fallback container: the refresh branch below would otherwise reopen the
+                // on-disk store the moment its problem cleared and discard everything made this
+                // session, in the same frame as the banner warning about that disappeared.
+                //
+                // The route store still needs resuming: `pause()` cleared it on the way out, and
+                // `ContentView`'s container-identity observer cannot fire because that identity
+                // never changes here.
+                guard ActivationPolicy.shouldRunActivationSideEffects(
+                    storeFailedToOpen: storeFailedToOpen
+                ) else {
+                    didBackground = false
+                    notificationRouteStore.resume(for: sharedModelContainer)
+                    break
+                }
                 // A warm foreground's `@Query` keeps its own SQLite snapshot and never sees writes the
                 // widget process committed while we were backgrounded — and `rollback()` reuses that
                 // same connection, so it doesn't help. Swapping in a fresh container opens a new
@@ -309,9 +369,13 @@ struct QuestKeeperApp: App {
     }
 }
 
-#if DEBUG
+/// A notification centre that accepts everything and schedules nothing.
+///
+/// Used for UI-testing runs and — the reason it is no longer `#if DEBUG` — for a production
+/// fallback run, whose quests do not outlive the process and so must not leave reminders behind.
+/// It reports `.authorized` so the board does not also nag for a permission this run cannot use.
 @MainActor
-private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
+private final class InertQuestNotificationCenter: QuestNotificationCenter {
     func authorizationStatus() async -> UNAuthorizationStatus { .authorized }
 
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { true }
@@ -320,11 +384,12 @@ private final class UITestingQuestNotificationCenter: QuestNotificationCenter {
 
     func pendingNotificationIdentifiers() async -> [String] { [] }
 
+    func pendingQuestNotifications() async -> [PendingQuestNotification] { [] }
+
     func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {}
 
     func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {}
 }
-#endif
 
 /// Launch-argument parsing. A namespace rather than file-scope functions so these never collide with
 /// the same-named stored properties on `QuestKeeperApp` (`recoveryLoopVariant` already did, which is
@@ -362,8 +427,22 @@ nonisolated enum LaunchArguments {
               arguments.indices.contains(index + 1) else { return nil }
         return URL(fileURLWithPath: arguments[index + 1])
     }
+
+    /// Forces the store open to fail so a UI test can reach the in-memory fallback and its banner.
+    /// There is no way to corrupt a real App Group store from a test, and simulating the *result*
+    /// (setting the flag directly) would assert nothing about the path that actually runs.
+    static func storeFailureFixtureEnabled(arguments: [String]) -> Bool {
+        arguments.contains("-uiTestingStoreFailure")
+    }
 #endif
 }
+
+#if DEBUG
+/// The error `-uiTestingStoreFailure` throws in place of a real store-open failure.
+enum DebugStoreFailure: Error {
+    case forcedByLaunchArgument
+}
+#endif
 
 /// Pure predicates deciding what the `.active` scene-phase transition should do. Kept side-effect free
 /// so each rule is testable without a container, a scene, or a simulator.
@@ -397,9 +476,30 @@ nonisolated enum ActivationPolicy {
     }
 
     static func shouldPersistMeasurementArtifacts(
-        usesInMemoryStore: Bool
+        usesInMemoryStore: Bool,
+        storeFailedToOpen: Bool
     ) -> Bool {
-        !usesInMemoryStore
+        !usesInMemoryStore && !storeFailedToOpen
+    }
+
+    /// Whether the run gets dependencies that write nowhere. A fallback qualifies for the same
+    /// reason a UI-testing store does: its quests are ephemeral, so publishing them would overwrite
+    /// the widget snapshot built from the surviving on-disk data and leave reminders for facts that
+    /// die with the process.
+    static func shouldUseInertSideEffects(
+        usesUITestingStore: Bool,
+        storeFailedToOpen: Bool
+    ) -> Bool {
+        usesUITestingStore || storeFailedToOpen
+    }
+
+    /// A fallback run holds none of the user's facts, so every activation side effect below would
+    /// act on an empty store as if it were the truth: `reconcile` cancels reminders the real quests
+    /// still need, the snapshot writer blanks the widget, the baseline export overwrites the report
+    /// derived from the real store, and the replay clock advances past deaths that were never shown.
+    /// Render the board, run none of it.
+    static func shouldRunActivationSideEffects(storeFailedToOpen: Bool) -> Bool {
+        !storeFailedToOpen
     }
 
     static func shouldRecordRetentionActivation(

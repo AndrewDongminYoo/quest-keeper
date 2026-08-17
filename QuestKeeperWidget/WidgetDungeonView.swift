@@ -34,6 +34,10 @@ struct WidgetDungeonView: View {
             Spacer(minLength: 0)
             footer(fontSize: 9, iconSize: 12)
         }
+        // The two families do not share this number. Both widgets get the same absolute corner
+        // radius from the system, so on the smaller one the curve consumes a larger share of each
+        // edge and 12 already clears it — on `systemMedium` the same inset leaves full-width rows
+        // running into the corner. See `mediumLayout`.
         .padding(12)
     }
 
@@ -65,7 +69,7 @@ struct WidgetDungeonView: View {
                 footer(fontSize: 11, iconSize: 13)
             }
         }
-        .padding(12)
+        .padding(16)
     }
 
     private var mediumHeader: some View {
@@ -150,8 +154,20 @@ struct WidgetDungeonView: View {
         } else if entry.state.activeMobs.isEmpty {
             StatusText(WidgetStrings.resolve(WidgetStrings.statusDungeonQuiet, locale: .current), tone: .muted)
         } else if let mob = entry.state.activeMobs.first {
-            StatusText(deadlineText(for: mob), tone: .color(urgencyTint(for: mob)))
-                .privacySensitive()
+            // `systemSmall` has no other deadline display — the badge's timer row was removed as a
+            // duplicate — so this one has to keep counting on its own. `deadlineText` is computed
+            // once per timeline entry, and entries are only re-requested at the urgency thresholds
+            // or the 15-minute fallback, so a plain string here would sit reading "in 44 min." long
+            // after that stopped being true. `style: .timer` is rendered by WidgetKit, not by us,
+            // and advances without a reload. Overdue keeps the static wording: there is nothing
+            // left to count down to.
+            if mob.deadline > entry.state.date {
+                StatusTimer(deadline: mob.deadline, tint: urgencyTint(for: mob))
+                    .privacySensitive()
+            } else {
+                StatusText(deadlineText(for: mob), tone: .color(urgencyTint(for: mob)))
+                    .privacySensitive()
+            }
         }
     }
 
@@ -223,19 +239,24 @@ private struct MobBadge: View {
     var body: some View {
         let monster = MonsterArtworkSelection.monster(forMobLevel: mob.mobLevel, questID: mob.id)
 
-        HStack(spacing: 8) {
-            WidgetArtworkView(
-                artwork: .monster(level: mob.mobLevel, questID: mob.id),
-                size: compact ? 28 : dense ? 18 : 22
-            )
-            .frame(
-                width: compact ? 28 : dense ? 20 : 24,
-                height: compact ? 28 : dense ? 20 : 24
-            )
-            .accessibilityLabel(WidgetStrings.resolve(
-                WidgetStrings.a11yMonsterLevel(monster.localizedName(), mob.mobLevel),
-                locale: .current
-            ))
+        // `systemSmall` shows the quest, not the bestiary: at that width the sprite and its gap
+        // were spending ~30pt of a ~131pt row on flavour while the title got three characters a
+        // line. The monster still leads every row in `systemMedium` and in the app.
+        HStack(spacing: compact ? 5 : 8) {
+            if !compact {
+                WidgetArtworkView(
+                    artwork: .monster(monster),
+                    size: dense ? 18 : 22
+                )
+                .frame(
+                    width: dense ? 20 : 24,
+                    height: dense ? 20 : 24
+                )
+                .accessibilityLabel(WidgetStrings.resolve(
+                    WidgetStrings.a11yMonsterLevel(monster.localizedName(), mob.mobLevel),
+                    locale: .current
+                ))
+            }
 
             VStack(alignment: .leading, spacing: compact ? 2 : dense ? 0 : 1) {
                 Text(mob.title)
@@ -245,17 +266,24 @@ private struct MobBadge: View {
                     .lineLimit(compact ? 2 : 1)
                     .minimumScaleFactor(0.74)
 
-                HStack(spacing: 6) {
-                    Text(WidgetStrings.mobDeadlineLabel)
-                        .foregroundStyle(DungeonPalette.ink.opacity(0.56))
+                // `systemSmall` omits this row: its status line already shows the same deadline,
+                // tinted by urgency, one line above. Drawing it twice cost the title its second
+                // line and left the row itself unreadable — rendered in English it collapsed to
+                // "- -" while the title showed "Re…". `systemMedium` has no per-mob status line,
+                // so there this is the only place the time appears and it stays.
+                if !compact {
+                    HStack(spacing: 6) {
+                        Text(WidgetStrings.mobDeadlineLabel)
+                            .foregroundStyle(DungeonPalette.ink.opacity(0.56))
 
-                    Text(mob.deadline, style: .timer)
-                        .privacySensitive()
-                        .foregroundStyle(DungeonPalette.ink.opacity(0.9))
+                        Text(mob.deadline, style: .timer)
+                            .privacySensitive()
+                            .foregroundStyle(DungeonPalette.ink.opacity(0.9))
+                    }
+                    .font(.system(size: dense ? 8 : 9, weight: .semibold, design: .monospaced))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
                 }
-                .font(.system(size: dense ? 8 : 9, weight: .semibold, design: .monospaced))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
             }
 
             Spacer(minLength: 0)
@@ -292,7 +320,7 @@ private struct MobBadge: View {
             .accessibilityLabel(WidgetStrings.resolve(WidgetStrings.questActionComplete, locale: .current))
         }
         .padding(.vertical, compact ? 7 : dense ? 0 : 2)
-        .padding(.horizontal, compact ? 8 : 7)
+        .padding(.horizontal, compact ? 6 : 7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
         .overlay {
@@ -302,34 +330,28 @@ private struct MobBadge: View {
     }
 }
 
-private enum WidgetArtwork: String {
-    case slime = "sprite-slime"
-    case bat = "sprite-bat"
-    case mushroom = "sprite-mushroom"
-    case skeleton = "sprite-skeleton"
-    case orc = "sprite-orc"
-    case mimic = "sprite-mimic"
-    case dragon = "sprite-dragon"
-    case golem = "sprite-golem"
-    case lich = "sprite-lich"
-    case staleWarning = "icon-stale-warning"
-    case protectionShield = "icon-protection-shield"
+/// Monsters carry their `MonsterKind` rather than re-listing the sprites: this enum used to name all
+/// nine again and `preconditionFailure` when a name did not map, which made adding a `MonsterKind`
+/// case a widget-process crash — "Unable to Load" on the Home Screen, with no user recovery. Reading
+/// `MonsterKind.assetName` deletes the second list, so there is nothing left to fall out of sync.
+private enum WidgetArtwork {
+    case monster(MonsterKind)
+    case staleWarning
+    case protectionShield
 
-    var contentScale: CGFloat {
+    var assetName: String {
         switch self {
-        case .staleWarning, .protectionShield:
-            1.5
-        case .slime, .bat, .mushroom, .skeleton, .orc, .mimic, .dragon, .golem, .lich:
-            1
+        case .monster(let kind): kind.assetName
+        case .staleWarning: "icon-stale-warning"
+        case .protectionShield: "icon-protection-shield"
         }
     }
 
-    static func monster(level: Int, questID: UUID) -> WidgetArtwork {
-        let assetName = MonsterArtworkSelection.monster(forMobLevel: level, questID: questID).assetName
-        guard let artwork = WidgetArtwork(rawValue: assetName) else {
-            preconditionFailure("Missing widget monster artwork for \(assetName)")
+    var contentScale: CGFloat {
+        switch self {
+        case .staleWarning, .protectionShield: 1.5
+        case .monster: 1
         }
-        return artwork
     }
 }
 
@@ -338,7 +360,7 @@ private struct WidgetArtworkView: View {
     let size: CGFloat
 
     var body: some View {
-        Image(decorative: artwork.rawValue)
+        Image(decorative: artwork.assetName)
             .resizable()
             .interpolation(.none)
             .scaledToFit()
@@ -364,6 +386,24 @@ private struct StatPill: View {
         .padding(.vertical, 3)
         .padding(.horizontal, 7)
         .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: PixelStyle.corner))
+    }
+}
+
+/// The status line's live variant: same type treatment as `StatusText`, but the time is a WidgetKit
+/// timer so it advances between timeline reloads instead of freezing at the entry's date.
+private struct StatusTimer: View {
+    let deadline: Date
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(WidgetStrings.mobDeadlineLabel)
+            Text(deadline, style: .timer)
+        }
+        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .minimumScaleFactor(0.78)
     }
 }
 
