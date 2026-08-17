@@ -130,6 +130,8 @@ Re-run `bundle exec fastlane screenshots` after the code change, or the new list
 
    The **next** version's release notes are not covered here — they do not exist yet when the rename lands. Their `<Name> X.Y.Z` first line is the Store metadata bullet's job, at cut time.
 
+   That cut adds a category this list did not anticipate: **announcing the rename requires naming the old name.** 1.3.0's notes say "Quest Keeper is now TODO Slayer" in both locales, the two generated `release_notes.txt` copies inherit it, and `CHANGELOG.md` records the same line — five hits that are neither inventory nor stale, and that must survive. Classify them as intentional rather than reaching for the old denylist reflex.
+
 5. Sweep for the **unspaced** form, which the search above cannot see:
 
    ```bash

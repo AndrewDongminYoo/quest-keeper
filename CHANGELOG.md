@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-17
+
+### Changed
+
+- Renamed the app from Quest Keeper to TODO Slayer, across the home screen, the widget, every in-app string, and both store listings. Existing quests and records are untouched.
+
+### Fixed
+
+- Gave the small widget its width back, so the quest badge and the remaining time are legible instead of clipped, and stopped the medium widget inheriting the small one's inset.
+- Rolled a widget completion back instead of passing silently when its write fails, and committed quest facts before publishing the widget snapshot so the widget never shows a state the app has not saved.
+- Ordered and capped the scheduled reminders so the quests nearest their deadline are the ones that fire, and restored reminders the cap had evicted for an add that then failed.
+- Stopped VoiceOver reading a quest's guidance twice.
+- Kept the app running with an explanation instead of stopping when its store cannot be opened.
+- Stopped the English widget empty state truncating, shortened the English victory label to fit, and named the app in the notification permission banner the way Settings lists it.
+
+### Internal
+
+- Blocked `fastlane release` when a store locale's name, description, and screenshots do not all name the same app, and made the lane regenerate the screenshots from the current build rather than trusting committed PNGs.
+- Gave the rendered product name one home in `Brand`, so a future rename edits two constants rather than three view literals.
+- Replaced store screenshots on upload instead of appending to whatever the listing already held.
+- Updated fastlane to 2.238.0.
+
 ## [1.2.0] - 2026-08-15
 
 ### Added

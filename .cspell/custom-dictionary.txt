@@ -13,6 +13,7 @@ OBJC
 Onone
 pbxproj
 simctl
+Siri
 TIRD
 uitests
 uncomplete
