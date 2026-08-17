@@ -1,4 +1,4 @@
-Tired of your to-do list? Quest Keeper turns today's tasks into dungeon monsters.
+Tired of your to-do list? TODO Slayer turns today's tasks into dungeon monsters.
 
 The closer the deadline, the stronger the monster — but finish in time and your pixel hero takes it down in a single swing. A missed task is not a punishment; it turns into "Try again tomorrow," and yesterday's misses quietly clear so every day opens on a fresh dungeon.
 

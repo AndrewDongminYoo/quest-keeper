@@ -1,6 +1,6 @@
-# QuestKeeper
+# TODO Slayer
 
-QuestKeeper is a native iOS gamified to-do app for celebrating small wins without turning missed tasks into permanent shame.
+TODO Slayer is a native iOS gamified to-do app for celebrating small wins without turning missed tasks into permanent shame.
 The app treats each task as a `Quest`, each deadline as a dungeon encounter, and each on-time completion as a one-hit victory.
 Missed quests can appear as today's temporary grave, but old misses are hidden by derivation so the main dungeon resets emotionally.
 
@@ -125,9 +125,9 @@ Check the app through the user-facing surface before calling a feature done:
 4. Create or edit a far-future quest and confirm the elder guide appears.
 5. Let a quest pass its deadline, reopen the app, and confirm today's daily grave appears.
 6. Use `내일 도전하기` and confirm the quest returns to the active dungeon.
-7. Add the QuestKeeper widget to the Home Screen and confirm pending mobs appear from the App Group snapshot.
+7. Add the TODO Slayer widget to the Home Screen and confirm pending mobs appear from the App Group snapshot.
 8. Complete or retry a quest in the app and confirm the widget refreshes through WidgetKit.
-9. Run Create Quest from Shortcuts while QuestKeeper is in the background and notification permission is undetermined, then confirm it creates the quest without foregrounding the app or showing a permission prompt.
+9. Run Create Quest from Shortcuts while TODO Slayer is in the background and notification permission is undetermined, then confirm it creates the quest without foregrounding the app or showing a permission prompt.
 10. Reactivate the app, open the shortcut-created quest, and confirm the common detail surface shows its description.
 
 ## Documentation Conventions

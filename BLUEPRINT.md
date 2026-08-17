@@ -1,4 +1,4 @@
-# BLUEPRINT — QuestKeeper (가칭)
+# BLUEPRINT — TODO Slayer
 
 > "오늘 헬스도 못 가고 물도 안 마셨지만 샤워는 했어!"
 > 완벽하지 않은 하루라도 '작은 성공'을 축하하고, 실패의 흔적은 다음 날 말끔히 지워주는 ADHD 친화적 게이미피케이션 투두 앱.
