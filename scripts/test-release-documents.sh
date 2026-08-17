@@ -135,6 +135,52 @@ make_fixture fabricated-start-tag \
 	sed "s|/compare/[^/]*\.\.\.|/compare/v0.0.0+00000000...|"
 run_case "comparison starts at a tag that does not exist" "${fixture_path}" fail
 
+# The release notes are checked per listing locale, so each locale needs its own
+# case: hardcoding Korean is exactly what let a tag go green while `en-US.txt`
+# was never looked at. The fixtures here vary the release root instead of the
+# changelog, so they run the validator directly.
+notes_case() {
+	local label="$1" drop_locale="$2" release_root status
+
+	release_root="${work_dir}/releases-without-${drop_locale}"
+	mkdir -p "${release_root}/${version}"
+	local copied=0 locale
+	while IFS= read -r locale; do
+		[[ -n ${locale} ]] || continue
+		[[ ${locale} == "${drop_locale}" ]] && continue
+		cp "${repo_root}/docs/releases/${version}/${locale}.txt" \
+			"${release_root}/${version}/${locale}.txt"
+		copied=$((copied + 1))
+	done <<<"${listing_locales}"
+
+	# If nothing was copied the fixture proves nothing: the validator would
+	# reject it for the first missing locale whichever one that is.
+	if [[ ${copied} -eq 0 ]]; then
+		echo "FAIL: ${label} -> fixture kept no other locale, so it cannot isolate ${drop_locale}" >&2
+		failed=1
+		return
+	fi
+
+	bash "${script_path}" "${work_dir}/real.md" "" "${release_root}" >/dev/null 2>&1
+	status=$?
+	if [[ ${status} -ne 0 ]]; then
+		echo "ok: ${label} -> fail"
+	else
+		echo "FAIL: ${label} -> pass, expected fail" >&2
+		failed=1
+	fi
+}
+
+listing_locales="$(bash "${repo_root}/scripts/store-locales.sh")" || {
+	echo "FAIL: could not determine the listing locales" >&2
+	exit 1
+}
+
+while IFS= read -r listing_locale; do
+	[[ -n ${listing_locale} ]] || continue
+	notes_case "release notes missing for ${listing_locale}" "${listing_locale}"
+done <<<"${listing_locales}"
+
 if [[ ${failed} -ne 0 ]]; then
 	exit 1
 fi

@@ -13,6 +13,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 changelog="${1:-${repo_root}/CHANGELOG.md}"
 project_file="${2:-${repo_root}/QuestKeeper.xcodeproj/project.pbxproj}"
 release_root="${3:-${repo_root}/docs/releases}"
+metadata_root="${4:-${repo_root}/fastlane/metadata}"
 
 version_output="$(bash "${repo_root}/scripts/release-version.sh" "${project_file}")"
 version="$(printf '%s\n' "${version_output}" | sed -n 's/^marketing_version=//p')"
@@ -81,7 +82,27 @@ unreleased_link="${definition_line}"
 [[ ${unreleased_link} == *"compare/${tag}...HEAD" ]] ||
 	fail "[Unreleased] must compare from ${tag}, got: ${unreleased_link}"
 
-notes="${release_root}/${version}/ko.txt"
-test -s "${notes}" || fail "release notes are missing or empty: ${notes}"
+# Every listing locale, not just Korean. `prepare-release-notes.sh` requires a
+# source file for each locale it discovers, so checking one of them here let a
+# tag go green while another locale's notes were missing -- and a tag is
+# effectively permanent, while the release lane never runs that preparation
+# itself and would upload the previous version's notes for the gap.
+# The locale list is captured before the loop rather than piped into it: a
+# process substitution hides the producer's exit status, so a failing discovery
+# would feed an empty list to a loop that then checks nothing and returns
+# success.
+locales="$(bash "${repo_root}/scripts/store-locales.sh" "${metadata_root}")" ||
+	fail "could not determine the listing locales under ${metadata_root}"
+
+locale_count=0
+while IFS= read -r locale; do
+	[[ -n ${locale} ]] || continue
+	notes="${release_root}/${version}/${locale}.txt"
+	test -s "${notes}" || fail "release notes are missing or empty: ${notes}"
+	locale_count=$((locale_count + 1))
+done <<<"${locales}"
+
+[[ ${locale_count} -gt 0 ]] ||
+	fail "no listing locale was discovered, so no release notes were checked"
 
 echo "release documents validated for ${version} (${tag})"
