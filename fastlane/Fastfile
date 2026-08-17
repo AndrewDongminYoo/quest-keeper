@@ -38,6 +38,17 @@ platform :ios do
   # what the release tag names, so this lane must submit it unchanged.
   desc "Push a new release build to the App Store"
   lane :release do
+    # A release cut while a rename is half-applied ships a listing whose title,
+    # description and screenshots name different apps -- and which of the three
+    # is stale depends only on which was edited first. Assert they agree before
+    # doing any work, rather than guarding each of them separately.
+    sh("bash", "../scripts/test-store-locale-brand.sh")
+    # Deliver replaces the whole store set from the committed PNGs
+    # (`overwrite_screenshots(true)` in the Deliverfile), and the dungeon header
+    # is rendered into those images, so a stale one ships the wrong brand and no
+    # gate can read it. Regenerate from the current build instead of trusting
+    # whatever happens to be committed.
+    screenshots
     # Reads APP_STORE_CONNECT_API_KEY_{KEY_ID,ISSUER_ID,KEY_FILEPATH} from the
     # environment so no account identifier or private key lives in this repo.
     # upload_to_app_store picks the key up from the lane context, which is what

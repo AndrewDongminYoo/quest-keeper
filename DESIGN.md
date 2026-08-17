@@ -1,4 +1,4 @@
-# DESIGN — QuestKeeper
+# DESIGN — TODO Slayer
 
 Visual and UX direction for the post-BLUEPRINT pivot.
 `BLUEPRINT.md` owns product rules; `docs/specs/` owns implementation contracts.
@@ -8,7 +8,7 @@ This file owns how the app should feel and look.
 
 A **daily pixel dungeon for small wins**.
 
-QuestKeeper is no longer a quiet native ledger with one decorative hero stage.
+TODO Slayer is no longer a quiet native ledger with one decorative hero stage.
 The root screen is the game board: each quest is a dungeon floor, each deadline is a monster, and each small completion is a one-hit victory.
 The tone is playful and forgiving, not punitive.
 Missed quests can look dramatic for a moment, but yesterday's failures must not become a permanent monument.
@@ -26,7 +26,7 @@ The first viewport is a full-screen vertical dungeon.
 Do not make a marketing page, dashboard card grid, or native settings-style list as the primary surface.
 
 ```plaintext
-QUEST KEEPER
+TODO SLAYER
 HERO: Leo | VICTORIES: 13
 
 [floor] Review BLUEPRINT.md                 LEVEL 1  [slime]

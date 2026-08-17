@@ -86,13 +86,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Create a new quest in Quest Keeper."
+            "value" : "Create a new quest in TODO Slayer."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quest Keeper에 새 퀘스트를 생성합니다."
+            "value" : "TODO Slayer에 새 퀘스트를 생성합니다."
           }
         }
       }
@@ -326,13 +326,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quest created. You can receive notifications after allowing permission in Quest Keeper."
+            "value" : "Quest created. You can receive notifications after allowing permission in TODO Slayer."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "퀘스트를 생성했습니다. 알림은 Quest Keeper에서 권한을 허용하면 받을 수 있습니다."
+            "value" : "퀘스트를 생성했습니다. 알림은 TODO Slayer에서 권한을 허용하면 받을 수 있습니다."
           }
         }
       }
@@ -1657,13 +1657,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn on Quest Keeper notifications in Settings to get deadline alerts."
+            "value" : "Turn on TODO Slayer notifications in Settings to get deadline alerts."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "마감 알림을 받으려면 설정에서 Quest Keeper 알림을 켜세요."
+            "value" : "마감 알림을 받으려면 설정에서 TODO Slayer 알림을 켜세요."
           }
         }
       }

@@ -63,7 +63,7 @@ nonisolated enum CreateQuestIntentDialogKind: Equatable, Sendable {
         case .createdNeedsNotificationPermission:
             LocalizedStringResource(
                 "appIntent.createQuest.result.permissionRequired",
-                defaultValue: "퀘스트를 생성했습니다. 알림은 Quest Keeper에서 권한을 허용하면 받을 수 있습니다."
+                defaultValue: "퀘스트를 생성했습니다. 알림은 TODO Slayer에서 권한을 허용하면 받을 수 있습니다."
             )
         case .createdWithFollowUpWarning:
             LocalizedStringResource(
@@ -122,7 +122,7 @@ struct CreateQuestIntent: AppIntent {
     )
     static let description = IntentDescription(LocalizedStringResource(
         "appIntent.createQuest.description",
-        defaultValue: "Quest Keeper에 새 퀘스트를 생성합니다."
+        defaultValue: "TODO Slayer에 새 퀘스트를 생성합니다."
     ))
     static let supportedModes: IntentModes = .background
 
