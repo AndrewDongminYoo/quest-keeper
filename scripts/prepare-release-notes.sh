@@ -10,18 +10,18 @@ metadata_root="${3:-${repo_root}/fastlane/metadata}"
 version_output="$(bash "${repo_root}/scripts/release-version.sh" "${project_file}")"
 marketing_version="$(printf '%s\n' "${version_output}" | sed -n 's/^marketing_version=//p')"
 
-# deliver가 리스팅 로캘로 취급하는 디렉터리는 name.txt를 가진 것뿐이다.
-# 로캘을 여기 나열하지 않고 메타데이터에서 읽어야 새 로캘이 조용히 누락되지 않는다.
-locales=()
-for candidate in "${metadata_root}"/*/; do
-	[[ -f "${candidate}name.txt" ]] || continue
-	locales+=("$(basename "${candidate}")")
-done
+# 리스팅 로캘 집합은 store-locales.sh가 소유한다.
+# 여기서 다시 열거하면 validate-release-documents.sh와 갈라지고,
+# 새 로캘이 한쪽에서만 검사되는 상태가 조용히 생긴다.
+# 프로세스 치환은 생산자의 종료 상태를 감춘다. 발견이 실패하면 빈 목록으로
+# 조용히 넘어가므로, 목록을 먼저 받아 상태를 확인한 뒤 순회한다.
+locale_list="$(bash "${repo_root}/scripts/store-locales.sh" "${metadata_root}")"
 
-if [[ ${#locales[@]} -eq 0 ]]; then
-	echo "no listing locale found under ${metadata_root}" >&2
-	exit 1
-fi
+locales=()
+while IFS= read -r locale; do
+	[[ -n ${locale} ]] || continue
+	locales+=("${locale}")
+done <<<"${locale_list}"
 
 for locale in "${locales[@]}"; do
 	source_file="${release_root}/${marketing_version}/${locale}.txt"
