@@ -43,11 +43,11 @@ struct AppStringsTests {
         )
         #expect(
             AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: ko)
-                == "마감 알림을 받으려면 설정에서 Quest Keeper 알림을 켜세요."
+                == "마감 알림을 받으려면 설정에서 TODO Slayer 알림을 켜세요."
         )
         #expect(
             AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: en)
-                == "Turn on Quest Keeper notifications in Settings to get deadline alerts."
+                == "Turn on TODO Slayer notifications in Settings to get deadline alerts."
         )
     }
 
@@ -92,8 +92,8 @@ struct AppStringsTests {
             (CreateQuestIntentDialogKind.created.resource, "퀘스트를 생성했습니다.", "Quest created."),
             (
                 CreateQuestIntentDialogKind.createdNeedsNotificationPermission.resource,
-                "퀘스트를 생성했습니다. 알림은 Quest Keeper에서 권한을 허용하면 받을 수 있습니다.",
-                "Quest created. You can receive notifications after allowing permission in Quest Keeper."
+                "퀘스트를 생성했습니다. 알림은 TODO Slayer에서 권한을 허용하면 받을 수 있습니다.",
+                "Quest created. You can receive notifications after allowing permission in TODO Slayer."
             ),
             (
                 CreateQuestIntentDialogKind.createdWithFollowUpWarning.resource,

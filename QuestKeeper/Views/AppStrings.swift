@@ -159,7 +159,7 @@ nonisolated extension AppStrings {
     )
     static let notificationPermissionBannerBody = LocalizedStringResource(
         "notification.permissionBanner.body",
-        defaultValue: "마감 알림을 받으려면 설정에서 Quest Keeper 알림을 켜세요."
+        defaultValue: "마감 알림을 받으려면 설정에서 TODO Slayer 알림을 켜세요."
     )
     static let notificationPermissionRequestBody = LocalizedStringResource(
         "notification.permissionBanner.requestBody",

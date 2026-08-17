@@ -10,9 +10,9 @@ import Foundation
 /// 이름을 바꿀 때 놓치기 쉬운 자리들은 `docs/notes/app-name-rename-scope.md`가 정리한다.
 nonisolated enum Brand {
     /// 던전 헤더에 쓰는 표시명.
-    static let displayName = "QUEST KEEPER"
+    static let displayName = "TODO SLAYER"
 
     /// `systemSmall` 위젯처럼 폭이 좁은 자리에 쓰는 축약형.
     /// 표시명을 자른 문자열이 아니라 따로 고르는 값이다.
-    static let shortName = "QUEST"
+    static let shortName = "TODO"
 }

@@ -230,13 +230,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quest Keeper"
+            "value" : "TODO Slayer"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quest Keeper"
+            "value" : "TODO Slayer"
           }
         }
       }
