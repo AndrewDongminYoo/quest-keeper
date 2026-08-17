@@ -12,7 +12,20 @@ set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 script_path="${repo_root}/scripts/validate-release-documents.sh"
-work_dir="$(mktemp -d)"
+
+# If this fails, `work_dir` is empty, every fixture path becomes `/<name>.md`,
+# and the writes are refused -- at which point the validator rejects each
+# missing file and all four negative cases go green for the wrong reason.
+# Observed for real in a read-only Codex sandbox, where the harness happily
+# printed four "ok" lines while creating nothing.
+work_dir="$(mktemp -d)" || {
+	echo "FAIL: could not create a temporary directory" >&2
+	exit 1
+}
+if [[ -z ${work_dir} || ! -d ${work_dir} || ! -w ${work_dir} ]]; then
+	echo "FAIL: temporary directory is unusable: '${work_dir}'" >&2
+	exit 1
+fi
 trap 'rm -rf "${work_dir}"' EXIT
 
 version_output="$(bash "${repo_root}/scripts/release-version.sh")"
@@ -23,6 +36,15 @@ failed=0
 
 run_case() {
 	local label="$1" fixture="$2" want="$3" status got
+
+	# A negative case that never got a fixture would "fail" because the file is
+	# absent rather than because the defect was caught, which is the same green
+	# as a working check.
+	if [[ ! -s ${fixture} ]]; then
+		echo "FAIL: ${label} -> its fixture is missing or empty: '${fixture}'" >&2
+		failed=1
+		return
+	fi
 
 	bash "${script_path}" "${fixture}" >/dev/null 2>&1
 	status=$?
@@ -42,32 +64,62 @@ run_case() {
 # The path comes back through a global rather than through `$(...)`: a command
 # substitution runs in a subshell, so a `failed=1` set inside one is discarded
 # and the harness would report success while announcing a broken fixture.
+#
+# The filter is passed as a whole command rather than as sed arguments, because
+# inserting a line needs a tool whose replacement understands a newline and BSD
+# sed's does not.
 fixture_path=""
 make_fixture() {
 	local name="$1"
 	shift
 	fixture_path="${work_dir}/${name}.md"
-	sed "$@" "${work_dir}/real.md" >"${fixture_path}"
+	if ! "$@" <"${work_dir}/real.md" >"${fixture_path}"; then
+		echo "FAIL: fixture ${name} could not be written" >&2
+		failed=1
+		return
+	fi
+	if [[ ! -s ${fixture_path} ]]; then
+		echo "FAIL: fixture ${name} is empty" >&2
+		failed=1
+		return
+	fi
+	# `diff` distinguishes identical from different, but exits non-zero for a
+	# missing file too, so the emptiness check above has to come first.
 	if diff -q "${work_dir}/real.md" "${fixture_path}" >/dev/null; then
 		echo "FAIL: fixture ${name} is identical to the original; its edit did not apply" >&2
 		failed=1
 	fi
 }
 
-cp "${repo_root}/CHANGELOG.md" "${work_dir}/real.md"
+if ! cp "${repo_root}/CHANGELOG.md" "${work_dir}/real.md" || [[ ! -s "${work_dir}/real.md" ]]; then
+	echo "FAIL: could not stage CHANGELOG.md into ${work_dir}" >&2
+	exit 1
+fi
 run_case "the real changelog" "${work_dir}/real.md" pass
 
-make_fixture no-definition "/^\[${version}\]: /d"
+make_fixture no-definition sed "/^\[${version}\]: /d"
 run_case "link definition deleted" "${fixture_path}" fail
 
-make_fixture stale-endpoint "s|^\(\[${version}\]: .*\.\.\.\)${tag}\$|\1v0.0.0+00000000|"
+make_fixture stale-endpoint sed "s|^\(\[${version}\]: .*\.\.\.\)${tag}\$|\1v0.0.0+00000000|"
 run_case "link definition left at the previous tag" "${fixture_path}" fail
 
-make_fixture unreleased-stale "s|compare/${tag}\.\.\.HEAD|compare/v0.0.0+00000000...HEAD|"
+make_fixture unreleased-stale sed "s|compare/${tag}\.\.\.HEAD|compare/v0.0.0+00000000...HEAD|"
 run_case "unreleased not advanced to the new tag" "${fixture_path}" fail
 
-make_fixture no-heading "/^## \[${version}\] - /d"
+make_fixture no-heading sed "/^## \[${version}\] - /d"
 run_case "version heading deleted" "${fixture_path}" fail
+
+# A stale definition placed *before* the correct one. The order matters: with
+# the stale line last the endpoint test already rejects it, so only this
+# arrangement exercises the uniqueness check.
+stale_line="[${version}]: https://example.com/compare/v0.0.0+00000000...v0.0.0+00000000"
+make_fixture duplicate-version-definition \
+	perl -pe "s|^(\\Q[${version}]: \\E.*)\$|${stale_line}\\n\$1|"
+run_case "two conflicting version link definitions" "${fixture_path}" fail
+
+make_fixture duplicate-unreleased-definition \
+	perl -pe 's|^(\Q[Unreleased]: \E.*)$|[Unreleased]: https://example.com/compare/v0.0.0+00000000...HEAD\n$1|'
+run_case "two conflicting unreleased definitions" "${fixture_path}" fail
 
 if [[ ${failed} -ne 0 ]]; then
 	exit 1

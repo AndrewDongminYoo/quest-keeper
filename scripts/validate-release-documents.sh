@@ -35,15 +35,24 @@ grep -Fq "## [${version}] - " "${changelog}" ||
 # Matching is fixed-string and suffix-anchored on purpose. The tag carries a
 # `+` and the version carries dots, all regex metacharacters that would quietly
 # match more than intended.
-version_link="$(grep -F "[${version}]: " "${changelog}" || true)"
-[[ -n ${version_link} ]] ||
-	fail "CHANGELOG.md has no '[${version}]: <url>' link definition"
+# Uniqueness is checked before the endpoint, because `grep` returns every
+# matching line: a stale definition followed by a correct one yields a
+# multi-line value whose tail still ends at the tag, so the suffix test alone
+# accepts a changelog carrying two conflicting definitions.
+expect_one_definition() {
+	local label="$1" needle="$2" count
+	count="$(grep -cF "${needle}" "${changelog}" || true)"
+	[[ ${count} -eq 1 ]] ||
+		fail "expected exactly one '${needle}' line in CHANGELOG.md, found ${count} (${label})"
+}
+
+expect_one_definition "version link" "[${version}]: "
+version_link="$(grep -F "[${version}]: " "${changelog}")"
 [[ ${version_link} == *"...${tag}" ]] ||
 	fail "the [${version}] link must end at ${tag}, got: ${version_link}"
 
-unreleased_link="$(grep -F "[Unreleased]: " "${changelog}" || true)"
-[[ -n ${unreleased_link} ]] ||
-	fail "CHANGELOG.md has no '[Unreleased]: <url>' link definition"
+expect_one_definition "unreleased link" "[Unreleased]: "
+unreleased_link="$(grep -F "[Unreleased]: " "${changelog}")"
 [[ ${unreleased_link} == *"compare/${tag}...HEAD" ]] ||
 	fail "[Unreleased] must compare from ${tag}, got: ${unreleased_link}"
 
