@@ -421,6 +421,10 @@ nonisolated extension AppStrings {
     static let aboutTipLoadFailed = LocalizedStringResource("about.tip.loadFailed", defaultValue: "물약을 진열하지 못했어요.")
     static let aboutTipRetryAction = LocalizedStringResource("about.tip.retryAction", defaultValue: "다시 시도")
     static let aboutTipThanks = LocalizedStringResource("about.tip.thanks", defaultValue: "용사가 물약을 들이켰습니다. 고마워요!")
+    static let aboutTipFailed = LocalizedStringResource(
+        "about.tip.failed",
+        defaultValue: "결제를 마치지 못했어요. 잠시 후 다시 시도해 주세요."
+    )
 
     static let heroHeaderAboutButtonAccessibility = LocalizedStringResource(
         "hero.header.about.accessibility",

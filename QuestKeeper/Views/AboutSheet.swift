@@ -24,9 +24,12 @@ struct AboutSheet: View {
         return build.map { "\(short) (\($0))" } ?? short
     }
 
-    /// 랜딩 사이트가 로케일별 경로를 쓰므로 현재 언어에 맞춰 고른다.
+    /// 랜딩 사이트가 로케일별 경로를 쓰므로 언어에 맞춰 고른다.
+    /// `Locale.current`가 아니라 번들이 실제로 고른 로컬라이제이션을 읽는다 — 기기 언어가
+    /// 지원 목록에 없어 한국어로 폴백한 경우나 앱별 언어 설정을 쓴 경우, 둘은 서로 다르다.
     private var privacyURL: URL? {
-        let language = Locale.current.language.languageCode?.identifier == "ko" ? "ko" : "en"
+        let localization = Bundle.main.preferredLocalizations.first ?? "en"
+        let language = localization.hasPrefix("ko") ? "ko" : "en"
         return URL(string: "https://quest.donminzzi.kr/\(language)/privacy")
     }
 
@@ -100,9 +103,16 @@ struct AboutSheet: View {
         } header: {
             Text(AppStrings.aboutTipSection)
         } footer: {
-            // 감사 문구는 검증된 구매 뒤에만 나타난다. 거절에는 아무 문구도 붙지 않는다.
-            Text(model.isThanking ? AppStrings.aboutTipThanks : AppStrings.aboutTipNote)
-                .foregroundStyle(model.isThanking ? DungeonPalette.victory : DungeonPalette.ink.opacity(0.7))
+            // 감사 문구는 검증된 구매 뒤에만, 실패 문구는 결제가 성립하지 못했을 때만 나타난다.
+            // 거절에는 아무 문구도 붙지 않는다.
+            switch model.purchaseNote {
+            case .thanks:
+                Text(AppStrings.aboutTipThanks).foregroundStyle(DungeonPalette.victory)
+            case .failed:
+                Text(AppStrings.aboutTipFailed).foregroundStyle(DungeonPalette.danger)
+            case .none:
+                Text(AppStrings.aboutTipNote).foregroundStyle(DungeonPalette.ink.opacity(0.7))
+            }
         }
     }
 

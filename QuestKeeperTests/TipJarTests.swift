@@ -63,10 +63,10 @@ struct TipJarPolicyTests {
         #expect(TipJarPolicy.outcome(for: .failed) == .failed)
     }
 
-    @Test("an unverified transaction is still finished, or the consumable is redelivered forever")
-    func unverifiedIsFinished() {
-        #expect(TipJarPolicy.shouldFinish(.completed(verified: false)))
+    @Test("only a verified transaction is finished — an unverified one stays pending for retry")
+    func onlyVerifiedIsFinished() {
         #expect(TipJarPolicy.shouldFinish(.completed(verified: true)))
+        #expect(!TipJarPolicy.shouldFinish(.completed(verified: false)))
     }
 
     @Test("nothing is finished when no transaction was created")
@@ -123,7 +123,7 @@ struct TipJarModelTests {
         #expect(model.purchasingTier == nil)
     }
 
-    @Test("an unverified transaction never thanks the user")
+    @Test("an unverified transaction never thanks the user, and says the payment did not land")
     func unverifiedPurchaseDoesNotThank() async {
         let store = FakeTipJarStore()
         store.signal = .completed(verified: false)
@@ -132,6 +132,31 @@ struct TipJarModelTests {
         await model.tip(.large)
 
         #expect(!model.isThanking)
+        #expect(model.purchaseNote == .failed)
+    }
+
+    @Test("a failed purchase is surfaced rather than silently reset")
+    func failureIsSurfaced() async {
+        let store = FakeTipJarStore()
+        store.signal = .failed
+        let model = TipJarModel(store: store)
+
+        await model.tip(.small)
+
+        #expect(model.purchaseNote == .failed)
+        #expect(!model.isThanking)
+    }
+
+    @Test("a load missing any tier fails instead of drawing a partial list")
+    func partialCatalogFails() async {
+        let store = FakeTipJarStore()
+        store.items = [TipJarItem(tier: .small, displayName: "물약 한 병", displayPrice: "₩1,100")]
+        store.loadFails = true
+        let model = TipJarModel(store: store)
+
+        await model.load()
+
+        #expect(model.loadState == .failed)
     }
 
     @Test("cancelling leaves no state behind")
@@ -143,6 +168,7 @@ struct TipJarModelTests {
         await model.tip(.small)
 
         #expect(!model.isThanking)
+        #expect(model.purchaseNote == .none)
         #expect(model.purchasingTier == nil)
     }
 
@@ -165,7 +191,7 @@ struct TipJarModelTests {
         await model.tip(.small)
         #expect(model.isThanking)
 
-        model.dismissThanks()
+        model.dismissNote()
         #expect(!model.isThanking)
     }
 }

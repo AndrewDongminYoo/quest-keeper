@@ -65,10 +65,14 @@ nonisolated enum TipJarPolicy {
     }
 
     /// 거래를 큐에서 치워야 하는지 판정한다.
-    /// 검증에 실패한 거래도 반드시 치워야 소모품이 무한히 재전달되지 않는다.
+    ///
+    /// 검증에 실패한 거래는 치우지 않는다. Apple의 예제는 `.unverified`에서 곧바로 throw 해
+    /// `finish()`에 닿지 않으며, 규칙은 "지급을 마친 뒤에만 finish 한다"이다. 지급하지 않을
+    /// 거래를 finish 하면 사용자는 결제하고도 아무것도 받지 못한 채 되돌릴 길이 없어진다.
+    /// 재전달은 그래서 생기는 낭비가 아니라 재시도 수단이다.
     static func shouldFinish(_ signal: TipJarPurchaseSignal) -> Bool {
         switch signal {
-        case .completed: true
+        case .completed(let verified): verified
         case .userCancelled, .pending, .failed: false
         }
     }

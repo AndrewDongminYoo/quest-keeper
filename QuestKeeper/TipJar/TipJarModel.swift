@@ -20,10 +20,20 @@ final class TipJarModel {
         case failed
     }
 
+    /// 구매 시도가 화면에 남기는 흔적.
+    enum PurchaseNote: Equatable {
+        case none
+        /// 검증된 구매. 감사 문구를 보여준다.
+        case thanks
+        /// 결제가 성립하지 못했거나 검증에 실패했다. 사용자는 다시 시도할지 알아야 한다.
+        case failed
+    }
+
     private(set) var loadState: LoadState = .idle
-    /// 검증된 구매 직후에만 참이다. 취소나 검증 실패는 여기에 닿지 않는다.
-    private(set) var isThanking = false
+    private(set) var purchaseNote: PurchaseNote = .none
     private(set) var purchasingTier: TipJarTier?
+
+    var isThanking: Bool { purchaseNote == .thanks }
 
     private let store: TipJarStore
 
@@ -45,16 +55,21 @@ final class TipJarModel {
         defer { purchasingTier = nil }
 
         // 검증 판정은 seam 위의 순수 함수가 한다 — 그래야 페이크가 검증 실패까지 만든다.
-        let outcome = TipJarPolicy.outcome(for: await store.purchase(tier))
-
-        // 감사 문구는 검증된 구매에만 뜬다.
-        // 취소는 화면에 아무 흔적도 남기지 않는다 — 되묻거나 아쉬워하지 않는다.
-        if outcome == .thanked {
-            isThanking = true
+        switch TipJarPolicy.outcome(for: await store.purchase(tier)) {
+        case .thanked:
+            purchaseNote = .thanks
+        case .failed, .discarded:
+            // 결제를 시도했는데 성립하지 않았다면 알려야 한다. 그러지 않으면 진행 표시만
+            // 사라지고 사용자는 결제가 됐는지조차 알 수 없다.
+            purchaseNote = .failed
+        case .cancelled, .pending:
+            // 취소는 화면에 아무 흔적도 남기지 않는다 — 되묻거나 아쉬워하지 않는다.
+            // 승인 대기는 결과가 나중에 도착하므로 지금 단정하지 않는다.
+            purchaseNote = .none
         }
     }
 
-    func dismissThanks() {
-        isThanking = false
+    func dismissNote() {
+        purchaseNote = .none
     }
 }

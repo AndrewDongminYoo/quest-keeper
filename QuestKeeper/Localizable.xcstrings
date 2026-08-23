@@ -145,6 +145,22 @@
         }
       }
     },
+    "about.tip.failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That payment did not go through. Please try again shortly."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "결제를 마치지 못했어요. 잠시 후 다시 시도해 주세요."
+          }
+        }
+      }
+    },
     "about.tip.loadFailed" : {
       "localizations" : {
         "en" : {

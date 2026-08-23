@@ -27,6 +27,11 @@ nonisolated struct TipJarItem: Equatable, Sendable, Identifiable {
     var id: TipJarTier { tier }
 }
 
+nonisolated enum TipJarLoadError: Error, Equatable {
+    /// 요청한 티어 중 일부가 돌아오지 않았다. 부분 목록을 성공으로 그리지 않기 위한 신호다.
+    case incompleteCatalog(missing: [TipJarTier])
+}
+
 @MainActor
 protocol TipJarStore: AnyObject {
     func loadItems() async throws -> [TipJarItem]
@@ -45,12 +50,20 @@ final class StoreKitTipJarStore: TipJarStore {
         cachedProducts = Dictionary(uniqueKeysWithValues: products.map { ($0.id, $0) })
 
         // StoreKit은 요청한 순서를 보장하지 않으므로 표시 순서로 다시 세운다.
-        // 등록되지 않은 티어는 조용히 빠진다 — 화면은 남은 티어로 계속 동작한다.
-        return TipJarTier.displayOrder.compactMap { tier in
+        // 일부만 돌아오면 성공으로 다루지 않는다. 스토어프론트 미제공이나 App Store Connect
+        // 전파 지연으로 한 티어가 빠지면, 조용히 두 줄만 그리는 대신 재시도를 제안해야 한다.
+        // (2026-08-24에 실제로 겪었다 — medium 미등록 상태에서 오류 없이 두 줄만 떴다.)
+        let items = TipJarTier.displayOrder.compactMap { tier in
             cachedProducts[tier.productID].map {
                 TipJarItem(tier: tier, displayName: $0.displayName, displayPrice: $0.displayPrice)
             }
         }
+        guard items.count == TipJarTier.displayOrder.count else {
+            let missing = TipJarTier.displayOrder.filter { cachedProducts[$0.productID] == nil }
+            tipJarLogger.error("tip products missing: \(missing.map(\.rawValue).joined(separator: ","), privacy: .public)")
+            throw TipJarLoadError.incompleteCatalog(missing: missing)
+        }
+        return items
     }
 
     func purchase(_ tier: TipJarTier) async -> TipJarPurchaseSignal {
