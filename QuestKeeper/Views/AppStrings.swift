@@ -403,3 +403,31 @@ nonisolated extension AppStrings {
     )
 }
 #endif
+
+// MARK: - About sheet (spec 020)
+
+nonisolated extension AppStrings {
+    static let aboutNavigationTitle = LocalizedStringResource("about.navigationTitle", defaultValue: "이 앱에 대하여")
+    static let aboutDoneAction = LocalizedStringResource("about.doneAction", defaultValue: "닫기")
+    static let aboutVersionLabel = LocalizedStringResource("about.versionLabel", defaultValue: "버전")
+    static let aboutPrivacyPolicy = LocalizedStringResource("about.privacyPolicy", defaultValue: "개인정보 처리방침")
+    static let aboutSourceRepository = LocalizedStringResource("about.sourceRepository", defaultValue: "오픈소스 저장소")
+
+    static let aboutTipSection = LocalizedStringResource("about.tip.section", defaultValue: "용사에게 물약 사주기")
+    static let aboutTipNote = LocalizedStringResource(
+        "about.tip.note",
+        defaultValue: "순전히 선택입니다. 게임에는 아무 영향도 주지 않아요."
+    )
+    static let aboutTipLoadFailed = LocalizedStringResource("about.tip.loadFailed", defaultValue: "물약을 진열하지 못했어요.")
+    static let aboutTipRetryAction = LocalizedStringResource("about.tip.retryAction", defaultValue: "다시 시도")
+    static let aboutTipThanks = LocalizedStringResource("about.tip.thanks", defaultValue: "용사가 물약을 들이켰습니다. 고마워요!")
+
+    static let heroHeaderAboutButtonAccessibility = LocalizedStringResource(
+        "hero.header.about.accessibility",
+        defaultValue: "이 앱에 대하여"
+    )
+    static let heroHeaderAboutButtonHint = LocalizedStringResource(
+        "hero.header.about.hint",
+        defaultValue: "버전과 개인정보 처리방침, 후원 항목을 엽니다."
+    )
+}

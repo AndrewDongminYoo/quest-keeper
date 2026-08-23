@@ -14,12 +14,15 @@ struct HeroHeader: View {
     let isMourning: Bool
     var appearance: HeroAppearance = .default
     var onEditAppearance: () -> Void = {}
+    var onOpenAbout: () -> Void = {}
 
     @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .caption) private var aboutIconSize: CGFloat = 20
 
     /// 스프라이트가 44pt 최소 터치 타깃보다 작을 때 채워야 할 한쪽 여백.
     /// Dynamic Type으로 스프라이트가 44pt를 넘으면 0이 되어 패딩이 뒤집히지 않는다.
     private var appearanceTapInset: CGFloat { max(0, (44 - heroSize) / 2) }
+    private var aboutTapInset: CGFloat { max(0, (44 - aboutIconSize) / 2) }
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -27,10 +30,15 @@ struct HeroHeader: View {
                 hero
                 stats
                 Spacer(minLength: 0)
+                aboutButton
             }
             VStack(alignment: .leading, spacing: 10) {
                 hero
-                stats
+                HStack(spacing: 14) {
+                    stats
+                    Spacer(minLength: 0)
+                    aboutButton
+                }
             }
         }
         .font(.caption.bold().monospacedDigit())
@@ -58,6 +66,26 @@ struct HeroHeader: View {
                 .foregroundStyle(DungeonPalette.ink)
         }
         .fixedSize(horizontal: true, vertical: false)
+    }
+
+    // HUD 오른쪽 끝. 스프라이트가 이미 외형 편집 진입점이라, 그 옆에 두면
+    // 두 번째 외형 버튼으로 읽힌다.
+    // ponytail: SF Symbol placeholder — 픽셀 아이콘 세트에 info 계열이 없다.
+    // 다른 아이콘처럼 icon-about.imageset 을 그리면 교체한다.
+    private var aboutButton: some View {
+        Button(action: onOpenAbout) {
+            Image(systemName: "info.circle")
+                .font(.system(size: aboutIconSize))
+                .padding(aboutTapInset)
+        }
+        .contentShape(Rectangle())
+        .padding(-aboutTapInset)
+        .buttonStyle(.plain)
+        .foregroundStyle(DungeonPalette.ink.opacity(0.6))
+        // Button 은 감싼 뷰의 접근성 라벨을 대체하므로, 라벨과 힌트를 직접 나눠 붙인다.
+        .accessibilityLabel(AppStrings.resolve(AppStrings.heroHeaderAboutButtonAccessibility, locale: .current))
+        .accessibilityHint(AppStrings.resolve(AppStrings.heroHeaderAboutButtonHint, locale: .current))
+        .accessibilityIdentifier("aboutButton")
     }
 
     // 승리만 남는다. 진행 중 퀘스트 수는 바로 아래 목록이 이미 말하고 있어 지웠다 — DESIGN.md HUD.
