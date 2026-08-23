@@ -17,6 +17,15 @@ struct AboutSheet: View {
         _model = State(initialValue: TipJarModel(store: store))
     }
 
+    /// 번들이 표시용으로 들고 있는 이름. 코드에 상수로 적지 않는다 — 로케일별 이름과
+    /// 리브랜딩이 모두 번들 쪽에서 결정된다.
+    private var appName: String {
+        let info = Bundle.main.infoDictionary
+        return (info?["CFBundleDisplayName"] as? String)
+            ?? (info?["CFBundleName"] as? String)
+            ?? Brand.displayName
+    }
+
     private var versionText: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "—"
@@ -41,6 +50,9 @@ struct AboutSheet: View {
         NavigationStack {
             Form {
                 Section {
+                    Text(verbatim: appName)
+                        .font(.headline)
+                        .foregroundStyle(DungeonPalette.ink)
                     LabeledContent(String(localized: AppStrings.aboutVersionLabel), value: versionText)
                 }
                 .listRowBackground(DungeonPalette.stone)
