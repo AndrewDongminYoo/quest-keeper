@@ -82,9 +82,9 @@ struct TipJarPolicyTests {
 struct TipJarModelTests {
     private func makeItems() -> [TipJarItem] {
         [
-            TipJarItem(tier: .small, displayPrice: "₩1,100"),
-            TipJarItem(tier: .medium, displayPrice: "₩3,300"),
-            TipJarItem(tier: .large, displayPrice: "₩5,500"),
+            TipJarItem(tier: .small, displayName: "물약 한 병", displayPrice: "₩1,100"),
+            TipJarItem(tier: .medium, displayName: "물약 세 병", displayPrice: "₩3,300"),
+            TipJarItem(tier: .large, displayName: "물약 한 상자", displayPrice: "₩5,500"),
         ]
     }
 

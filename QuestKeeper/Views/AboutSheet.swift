@@ -110,7 +110,7 @@ struct AboutSheet: View {
         Button {
             Task { await model.tip(item.tier) }
         } label: {
-            LabeledContent(String(localized: AppStrings.aboutTipSection)) {
+            LabeledContent(item.displayName) {
                 if model.purchasingTier == item.tier {
                     ProgressView()
                 } else {

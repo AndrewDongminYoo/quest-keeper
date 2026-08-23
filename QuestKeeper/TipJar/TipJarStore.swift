@@ -20,6 +20,8 @@ private let tipJarLogger = Logger(
 /// 코드나 문자열 카탈로그에 적지 않는다.
 nonisolated struct TipJarItem: Equatable, Sendable, Identifiable {
     let tier: TipJarTier
+    /// StoreKit 이 준 상품 이름. 티어마다 달라야 세 줄을 구분할 수 있다.
+    let displayName: String
     let displayPrice: String
 
     var id: TipJarTier { tier }
@@ -45,7 +47,9 @@ final class StoreKitTipJarStore: TipJarStore {
         // StoreKit은 요청한 순서를 보장하지 않으므로 표시 순서로 다시 세운다.
         // 등록되지 않은 티어는 조용히 빠진다 — 화면은 남은 티어로 계속 동작한다.
         return TipJarTier.displayOrder.compactMap { tier in
-            cachedProducts[tier.productID].map { TipJarItem(tier: tier, displayPrice: $0.displayPrice) }
+            cachedProducts[tier.productID].map {
+                TipJarItem(tier: tier, displayName: $0.displayName, displayPrice: $0.displayPrice)
+            }
         }
     }
 
