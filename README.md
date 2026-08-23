@@ -104,6 +104,7 @@ xcodebuild test -scheme QuestKeeper -destination "platform=iOS Simulator,id=$SIM
 Use the build gate when target or signing wiring changes:
 
 ```bash
+SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for v in json.load(sys.stdin)["devices"].values() for d in v))')
 xcodebuild build -scheme QuestKeeper -destination "platform=iOS Simulator,id=$SIM_ID"
 ```
 

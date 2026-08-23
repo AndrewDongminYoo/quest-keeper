@@ -37,7 +37,9 @@ The consumable path is:
 - `Product.products(for:)` to load the tiers,
 - `product.purchase()` for the transaction,
 - `Transaction.updates` as a long-running listener for transactions that arrive outside a purchase call (an interrupted purchase, an Ask-to-Buy approval),
-- `transaction.finish()` on every verified transaction, which is what removes it from the queue.
+- `transaction.finish()` on a **verified** transaction only, which is what removes it from the queue.
+
+**A transaction that fails verification is not finished.** Apple's own sample throws from `checkVerified()` on `.unverified` and never reaches `finish()`, and the rule it follows is "finish only after unlocking the content" — so an app that will not honour an unverified transaction must leave it unfinished. The redelivery that causes is the retry mechanism, not a leak.
 
 Verification goes through `VerificationResult`; an unverified transaction is finished without thanking the user, never trusted.
 
@@ -78,6 +80,8 @@ When products fail to load, the section states that plainly and offers a retry. 
 
 An icon-only button in `HeroHeader`, at the trailing end of the HUD line — after the stats and the existing `Spacer`, not beside the hero sprite. The sprite is already the appearance entry point, and putting a second button next to it reads as a second appearance control.
 
+**It must appear in both branches of `ViewThatFits`.** The vertical fallback is what renders on a narrow screen or at large Dynamic Type, and it is the app's only entry to this sheet — dropping it there would remove the surface entirely in exactly the case that needs it most. Put the stats and the button on a shared row inside the `VStack` so the trailing placement carries over.
+
 Two constraints that file already documents apply unchanged:
 
 - **No label text.** The header comment records that a label breaks the one-line HUD, because Korean and English differ too much in width. The icon carries it, and `ViewThatFits` keeps the vertical fallback.
@@ -101,6 +105,18 @@ Prices are never written into a string. `displayPrice` owns them.
   The project uses `PBXFileSystemSynchronizedRootGroup` for `QuestKeeper`, `QuestKeeperShared`, `QuestKeeperTests`, and `QuestKeeperUITests`, so new Swift files in those directories need no `project.pbxproj` edit. The `.storekit` file does need a scheme reference, and `QuestKeeper.xcscheme` is checked in under `xcshareddata/xcschemes/`; it lives at the repo root rather than inside a synchronized group, so it is not swept into the app bundle as a resource.
 - The persistence guard must still match nothing — no tip state may land on `Quest`.
 - **Read the rendered sheet in both locales, at the default and at a large Dynamic Type size.** A tip row carries a label and `displayPrice` on one line, and `test-localization.sh` verifies that a key has a value — never what it looks like on screen. Four English defects have already shipped past every gate in this repo for exactly that reason.
+
+## Privacy disclosure — a release prerequisite
+
+StoreKit talks to Apple, so the app stops being offline-only the moment this ships. Three surfaces claim otherwise and must agree before release:
+
+- `docs/legal/privacy-policy.md` — §1 said "완전한 로컬 전용·오프라인" and §5 said "외부 API 호출이 포함되어 있지 않습니다". Both are corrected in this branch, and §5 now describes what the App Store exchange covers and what Apple, not the developer, receives.
+- **The deployed landing copies** at `quest-keeper.donminzzi.kr`, including the English translation, live in the separate `quest-keeper-landing` repository. They are not updated here and must be synced before the release goes out.
+- **The policy's effective date** (`시행일`) is deliberately left unchanged. The document takes effect when the landing copies are published alongside a build that actually contains the tip jar, not when this branch merges.
+
+The App Store listing text needs no change: "no account, no login, no ads" all remain true — a tip needs no account and shows no ads.
+
+`[UNCERTAIN]` The App Store Connect **App Privacy** declaration probably stays "Data Not Collected", because payment information handled solely by Apple is exempt from declaration and this app collects no User ID. That reading comes from a search summary rather than Apple's own page; confirm it in the App Privacy form before submitting.
 
 ## Blocked on the operator
 
