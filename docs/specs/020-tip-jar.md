@@ -41,7 +41,7 @@ The consumable path is:
 
 **A transaction that fails verification is not finished.** Apple's own sample throws from `checkVerified()` on `.unverified` and never reaches `finish()`, and the rule it follows is "finish only after unlocking the content" — so an app that will not honour an unverified transaction must leave it unfinished. The redelivery that causes is the retry mechanism, not a leak.
 
-Verification goes through `VerificationResult`; an unverified transaction is finished without thanking the user, never trusted.
+Verification goes through `VerificationResult`; an unverified transaction is never trusted and never thanked for.
 
 **`QuestKeeperApp` owns the `Transaction.updates` listener, started at launch and alive for the process.** It must not hang off `AboutSheet`: a listener that only runs while the sheet is open misses an Ask-to-Buy approval or an interrupted purchase that lands later, and an unfinished consumable is re-delivered indefinitely.
 This follows the existing rule that activation and launch work belongs on the app, never on `ContentView`.
@@ -100,7 +100,7 @@ Prices are never written into a string. `displayPrice` owns them.
 ## Verification
 
 - `bash scripts/test-localization.sh` — new keys must carry both locales and add no stray Korean literal.
-- `xcodebuild test -only-testing:QuestKeeperTests` with a fake `TipJarStore`, covering: tier order, identifier construction, a successful purchase reaching the thank-you state, a cancelled purchase leaving no state behind, an unverified transaction being finished without thanks, and a product-load failure rendering the retry state.
+- `xcodebuild test -only-testing:QuestKeeperTests` with a fake `TipJarStore`, covering: tier order, identifier construction, a successful purchase reaching the thank-you state, a cancelled purchase leaving no state behind, an unverified transaction being left unfinished and reported as a failure rather than thanked, a load that is missing any tier failing instead of drawing a partial list, and a product-load failure rendering the retry state.
 - A `.storekit` configuration file referenced from the scheme, so the sheet can be exercised in the simulator before any App Store Connect product exists.
   The project uses `PBXFileSystemSynchronizedRootGroup` for `QuestKeeper`, `QuestKeeperShared`, `QuestKeeperTests`, and `QuestKeeperUITests`, so new Swift files in those directories need no `project.pbxproj` edit. The `.storekit` file does need a scheme reference, and `QuestKeeper.xcscheme` is checked in under `xcshareddata/xcschemes/`; it lives at the repo root rather than inside a synchronized group, so it is not swept into the app bundle as a resource.
 - The persistence guard must still match nothing — no tip state may land on `Quest`.
