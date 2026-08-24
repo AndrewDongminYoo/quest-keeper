@@ -7,12 +7,14 @@ import Testing
 private final class FakeTipJarStore: TipJarStore {
     var items: [TipJarItem] = []
     var loadFails = false
+    var loadError: Error?
     var signal: TipJarPurchaseSignal = .completed(verified: true)
     private(set) var purchasedTiers: [TipJarTier] = []
 
     struct LoadFailure: Error {}
 
     func loadItems() async throws -> [TipJarItem] {
+        if let loadError { throw loadError }
         if loadFails { throw LoadFailure() }
         return items
     }
@@ -67,6 +69,13 @@ struct TipJarPolicyTests {
     func onlyVerifiedIsFinished() {
         #expect(TipJarPolicy.shouldFinish(.completed(verified: true)))
         #expect(!TipJarPolicy.shouldFinish(.completed(verified: false)))
+    }
+
+    @Test("a tier absent from the returned set is reported missing")
+    func missingTiersAreNamed() {
+        #expect(TipJarPolicy.missingTiers(returned: [.small, .medium, .large]).isEmpty)
+        #expect(TipJarPolicy.missingTiers(returned: [.small, .large]) == [.medium])
+        #expect(TipJarPolicy.missingTiers(returned: []) == [.small, .medium, .large])
     }
 
     @Test("nothing is finished when no transaction was created")
@@ -147,11 +156,12 @@ struct TipJarModelTests {
         #expect(!model.isThanking)
     }
 
-    @Test("a load missing any tier fails instead of drawing a partial list")
-    func partialCatalogFails() async {
+    @Test("an incomplete catalog reaches the retry state rather than a partial list")
+    func incompleteCatalogFails() async {
         let store = FakeTipJarStore()
-        store.items = [TipJarItem(tier: .small, displayName: "물약 한 병", displayPrice: "₩1,100")]
-        store.loadFails = true
+        // 페이크가 프로덕션과 같은 오류를 던진다. loadFails 로 다른 오류를 강제하면
+        // 완전성 검사를 지워도 초록으로 남는 테스트가 된다.
+        store.loadError = TipJarLoadError.incompleteCatalog(missing: [.medium])
         let model = TipJarModel(store: store)
 
         await model.load()

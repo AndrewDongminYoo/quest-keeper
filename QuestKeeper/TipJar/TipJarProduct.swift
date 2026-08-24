@@ -64,6 +64,15 @@ nonisolated enum TipJarPolicy {
         }
     }
 
+    /// 돌아온 티어 집합에서 빠진 것을 돌려준다.
+    ///
+    /// 이 판정이 StoreKit 래퍼 안에만 있으면 페이크로는 탈 수 없어, 완전성 검사를 지워도
+    /// 테스트가 초록으로 남는다. `shouldFinish`와 같은 이유로 seam 위에 둔다.
+    static func missingTiers(returned: [TipJarTier]) -> [TipJarTier] {
+        let present = Set(returned)
+        return TipJarTier.displayOrder.filter { !present.contains($0) }
+    }
+
     /// 거래를 큐에서 치워야 하는지 판정한다.
     ///
     /// 검증에 실패한 거래는 치우지 않는다. Apple의 예제는 `.unverified`에서 곧바로 throw 해

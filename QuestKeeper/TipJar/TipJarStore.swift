@@ -58,8 +58,8 @@ final class StoreKitTipJarStore: TipJarStore {
                 TipJarItem(tier: tier, displayName: $0.displayName, displayPrice: $0.displayPrice)
             }
         }
-        guard items.count == TipJarTier.displayOrder.count else {
-            let missing = TipJarTier.displayOrder.filter { cachedProducts[$0.productID] == nil }
+        let missing = TipJarPolicy.missingTiers(returned: items.map(\.tier))
+        guard missing.isEmpty else {
             tipJarLogger.error("tip products missing: \(missing.map(\.rawValue).joined(separator: ","), privacy: .public)")
             throw TipJarLoadError.incompleteCatalog(missing: missing)
         }
