@@ -45,6 +45,8 @@ The consumable path is:
 
 Verification goes through `VerificationResult`; an unverified transaction is never trusted and never thanked for.
 
+**An awaiting-approval outcome is part of the contract.** `.pending` is a real result of `product.purchase()` under Ask to Buy, and it has to be visible: without it the row looks immediately purchasable again while an approval is outstanding. It gets its own `purchaseNote` case with a localized line, distinct from the silent cancellation and from the failure state. The approval itself arrives later through the listener; carrying that outcome into an already-open sheet is tracked separately as issue #46.
+
 **`QuestKeeperApp` owns the `Transaction.updates` listener, started at launch and alive for the process.** It must not hang off `AboutSheet`: a listener that only runs while the sheet is open misses an Ask-to-Buy approval or an interrupted purchase that lands later, and an unfinished consumable is re-delivered indefinitely.
 This follows the existing rule that activation and launch work belongs on the app, never on `ContentView`.
 
@@ -104,7 +106,7 @@ Prices are never written into a string. `displayPrice` owns them.
 ## Verification
 
 - `bash scripts/test-localization.sh` — new keys must carry both locales and add no stray Korean literal.
-- `xcodebuild test -only-testing:QuestKeeperTests` with a fake `TipJarStore`, covering: tier order, identifier construction, a successful purchase reaching the thank-you state, a cancelled purchase leaving no state behind, an unverified transaction being left unfinished and reported as a failure rather than thanked, a load that is missing any tier failing instead of drawing a partial list, and a product-load failure rendering the retry state.
+- `xcodebuild test -only-testing:QuestKeeperTests` with a fake `TipJarStore`, covering: tier order, identifier construction, a successful purchase reaching the thank-you state, a cancelled purchase leaving no state behind, a pending purchase showing the awaiting-approval line, an unverified transaction being left unfinished and reported as a failure rather than thanked, a load that is missing any tier failing instead of drawing a partial list, and a product-load failure rendering the retry state.
 - A `.storekit` configuration file referenced from the scheme, so the sheet can be exercised in the simulator before any App Store Connect product exists.
   The project uses `PBXFileSystemSynchronizedRootGroup` for `QuestKeeper`, `QuestKeeperShared`, `QuestKeeperTests`, and `QuestKeeperUITests`, so new Swift files in those directories need no `project.pbxproj` edit. The `.storekit` file does need a scheme reference, and `QuestKeeper.xcscheme` is checked in under `xcshareddata/xcschemes/`; it lives at the repo root rather than inside a synchronized group, so it is not swept into the app bundle as a resource.
 - The persistence guard must still match nothing — no tip state may land on `Quest`.
@@ -117,7 +119,7 @@ StoreKit talks to Apple, so the app stops being offline-only the moment this shi
 - `docs/legal/terms-of-service.md` — §2 described the app as a `로컬 전용·오프라인 생산성 앱` operating `계정·서버·동기화 없이`. Corrected in this branch, and its deployed Korean and English translations live in the landing repository alongside the policy.
 - `docs/legal/privacy-policy.md` — §1 said "완전한 로컬 전용·오프라인" and §5 said "외부 API 호출이 포함되어 있지 않습니다". Both are corrected in this branch, and §5 now describes what the App Store exchange covers and what Apple, not the developer, receives.
 - **The deployed landing copies** at `quest.donminzzi.kr` — the host `fastlane/metadata/*/privacy_url.txt` and the listing doc both name — including the English translation. They live in the separate `quest-keeper-landing` repository, are not updated here, and must be synced before the release goes out.
-- **The policy's effective date** (`시행일`) is unchanged _in this branch_ and must be set to the publication date at release. §8 of the policy promises to update it whenever the policy changes, so shipping the new text under `2026-07-25` would break the document's own rule. The date to use is the day the landing copies go up alongside a build that contains the tip jar.
+- **Both documents' effective dates** (`시행일`) are unchanged _in this branch_ and must be set to the publication date at release. §8 of the policy promises to update it whenever the policy changes, so shipping the new text under `2026-07-25` would break the document's own rule — and the terms changed materially here too, so its date is misdated in exactly the same way if left behind. The date to use is the day the landing copies go up alongside a build that contains the tip jar.
 
 **Both listing locales need an edit too.** An earlier draft of this spec exempted them, which was wrong — it checked only the account/login/ads clause. `fastlane/metadata/en-US/description.txt` and `fastlane/metadata/ko/description.txt` each carry two lines that the tip jar falsifies:
 
