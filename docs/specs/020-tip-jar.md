@@ -114,9 +114,10 @@ Prices are never written into a string. `displayPrice` owns them.
 
 StoreKit talks to Apple, so the app stops being offline-only the moment this ships. Three surfaces claim otherwise and must agree before release:
 
+- `docs/legal/terms-of-service.md` — §2 described the app as a `로컬 전용·오프라인 생산성 앱` operating `계정·서버·동기화 없이`. Corrected in this branch, and its deployed Korean and English translations live in the landing repository alongside the policy.
 - `docs/legal/privacy-policy.md` — §1 said "완전한 로컬 전용·오프라인" and §5 said "외부 API 호출이 포함되어 있지 않습니다". Both are corrected in this branch, and §5 now describes what the App Store exchange covers and what Apple, not the developer, receives.
 - **The deployed landing copies** at `quest.donminzzi.kr` — the host `fastlane/metadata/*/privacy_url.txt` and the listing doc both name — including the English translation. They live in the separate `quest-keeper-landing` repository, are not updated here, and must be synced before the release goes out.
-- **The policy's effective date** (`시행일`) is deliberately left unchanged. The document takes effect when the landing copies are published alongside a build that actually contains the tip jar, not when this branch merges.
+- **The policy's effective date** (`시행일`) is unchanged _in this branch_ and must be set to the publication date at release. §8 of the policy promises to update it whenever the policy changes, so shipping the new text under `2026-07-25` would break the document's own rule. The date to use is the day the landing copies go up alongside a build that contains the tip jar.
 
 **Both listing locales need an edit too.** An earlier draft of this spec exempted them, which was wrong — it checked only the account/login/ads clause. `fastlane/metadata/en-US/description.txt` and `fastlane/metadata/ko/description.txt` each carry two lines that the tip jar falsifies:
 
@@ -132,5 +133,6 @@ StoreKit talks to Apple, so the app stops being offline-only the moment this shi
 ## Blocked on the operator
 
 - **App Store Connect products.** The three consumables must be created in ASC before a real purchase can be tested; only the operator can do that. Local work proceeds against the `.storekit` file.
+- **The In-App Purchase capability on the app target and App ID.** `QuestKeeper.xcodeproj` carries no such entry today — only the App Group is in `QuestKeeper.entitlements` — and a local `.storekit` configuration does not need it, so simulator testing passes while the signed build has no way to transact. Add it in Xcode (which regenerates the provisioning profile) before the first Sandbox or TestFlight purchase.
 - **A Sandbox tester account** for an end-to-end purchase on device.
 - **The Paid Applications Agreement**, banking, and tax setup, none of which is signed for a free-only account. Verify these on Apple's own pages rather than from recall.
