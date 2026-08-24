@@ -34,6 +34,8 @@ nonisolated enum TipJarLoadError: Error, Equatable {
 
 @MainActor
 protocol TipJarStore: AnyObject {
+    /// 구매 호출 밖에서 완료된 거래 결과. 각 구독은 독립된 스트림을 받아 시트를 다시 열어도 이어진다.
+    var outcomes: AsyncStream<TipJarOutcome> { get }
     func loadItems() async throws -> [TipJarItem]
     func purchase(_ tier: TipJarTier) async -> TipJarPurchaseSignal
     /// 프로세스가 살아 있는 동안 유지되는 거래 리스너.
@@ -44,6 +46,19 @@ protocol TipJarStore: AnyObject {
 @MainActor
 final class StoreKitTipJarStore: TipJarStore {
     private var cachedProducts: [String: Product] = [:]
+    private var outcomeContinuations: [UUID: AsyncStream<TipJarOutcome>.Continuation] = [:]
+
+    var outcomes: AsyncStream<TipJarOutcome> {
+        let subscriptionID = UUID()
+        let pair = AsyncStream<TipJarOutcome>.makeStream()
+        outcomeContinuations[subscriptionID] = pair.continuation
+        pair.continuation.onTermination = { @Sendable [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.outcomeContinuations.removeValue(forKey: subscriptionID)
+            }
+        }
+        return pair.stream
+    }
 
     func loadItems() async throws -> [TipJarItem] {
         let products = try await Product.products(for: TipJarTier.displayOrder.map(\.productID))
@@ -88,7 +103,14 @@ final class StoreKitTipJarStore: TipJarStore {
 
     func listenForTransactions() async {
         for await verification in Transaction.updates {
-            _ = await settle(verification)
+            let signal = await settle(verification)
+            publish(TipJarPolicy.outcome(for: signal))
+        }
+    }
+
+    private func publish(_ outcome: TipJarOutcome) {
+        for continuation in outcomeContinuations.values {
+            continuation.yield(outcome)
         }
     }
 

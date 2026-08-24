@@ -9,9 +9,28 @@ private final class FakeTipJarStore: TipJarStore {
     var loadFails = false
     var loadError: Error?
     var signal: TipJarPurchaseSignal = .completed(verified: true)
+    var listenerOutcome: TipJarOutcome?
     private(set) var purchasedTiers: [TipJarTier] = []
+    private var outcomeContinuations: [UUID: AsyncStream<TipJarOutcome>.Continuation] = [:]
+    private var outcomesFinished = false
 
     struct LoadFailure: Error {}
+
+    var outcomes: AsyncStream<TipJarOutcome> {
+        let subscriptionID = UUID()
+        let pair = AsyncStream<TipJarOutcome>.makeStream()
+        if outcomesFinished {
+            pair.continuation.finish()
+        } else {
+            outcomeContinuations[subscriptionID] = pair.continuation
+            pair.continuation.onTermination = { @Sendable [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.outcomeContinuations.removeValue(forKey: subscriptionID)
+                }
+            }
+        }
+        return pair.stream
+    }
 
     func loadItems() async throws -> [TipJarItem] {
         if let loadError { throw loadError }
@@ -24,7 +43,18 @@ private final class FakeTipJarStore: TipJarStore {
         return signal
     }
 
-    func listenForTransactions() async {}
+    func listenForTransactions() async {
+        if let listenerOutcome {
+            for continuation in outcomeContinuations.values {
+                continuation.yield(listenerOutcome)
+            }
+        }
+        outcomesFinished = true
+        for continuation in outcomeContinuations.values {
+            continuation.finish()
+        }
+        outcomeContinuations.removeAll()
+    }
 }
 
 @Suite("Tip jar tiers")
@@ -209,6 +239,27 @@ struct TipJarModelTests {
             let model = TipJarModel(store: store)
             await model.tip(.small)
             #expect(model.purchaseNote == note, "\(signal) should map to \(note)")
+        }
+    }
+
+    @Test("a delayed listener outcome reaches a model that is already open")
+    func delayedListenerOutcomeReachesOpenModel() async {
+        let expected: [(TipJarOutcome, TipJarModel.PurchaseNote)] = [
+            (.thanked, .thanks),
+            (.discarded, .failed),
+            (.failed, .failed),
+            (.pending, .awaitingApproval),
+            (.cancelled, .none),
+        ]
+        for (outcome, note) in expected {
+            let store = FakeTipJarStore()
+            store.listenerOutcome = outcome
+            let model = TipJarModel(store: store)
+
+            await store.listenForTransactions()
+            await model.listenForOutcomes()
+
+            #expect(model.purchaseNote == note, "\(outcome) should map to \(note)")
         }
     }
 

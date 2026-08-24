@@ -39,9 +39,11 @@ final class TipJarModel {
     var isThanking: Bool { purchaseNote == .thanks }
 
     private let store: TipJarStore
+    private let outcomeStream: AsyncStream<TipJarOutcome>
 
     init(store: TipJarStore) {
         self.store = store
+        outcomeStream = store.outcomes
     }
 
     func load() async {
@@ -58,7 +60,17 @@ final class TipJarModel {
         defer { purchasingTier = nil }
 
         // 검증 판정은 seam 위의 순수 함수가 한다 — 그래야 페이크가 검증 실패까지 만든다.
-        switch TipJarPolicy.outcome(for: await store.purchase(tier)) {
+        apply(TipJarPolicy.outcome(for: await store.purchase(tier)))
+    }
+
+    func listenForOutcomes() async {
+        for await outcome in outcomeStream {
+            apply(outcome)
+        }
+    }
+
+    private func apply(_ outcome: TipJarOutcome) {
+        switch outcome {
         case .thanked:
             purchaseNote = .thanks
         case .failed, .discarded:

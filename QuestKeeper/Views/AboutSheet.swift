@@ -86,6 +86,7 @@ struct AboutSheet: View {
                 }
             }
             .task { await model.load() }
+            .task { await model.listenForOutcomes() }
         }
         .presentationDetents([.medium, .large])
     }
