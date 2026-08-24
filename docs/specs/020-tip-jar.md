@@ -31,7 +31,9 @@ kr.donminzzi.QuestKeeper.tip.medium
 kr.donminzzi.QuestKeeper.tip.large
 ```
 
-`Transaction.currentEntitlements` returns transactions for non-consumables and auto-renewable subscriptions **only**, so it is the wrong API here and no restore flow exists.
+`Transaction.currentEntitlements` returns non-consumables, active auto-renewable subscriptions, non-renewing subscriptions, and **unfinished** consumables — a consumable that has been finished is gone from it. Since a tip is finished the moment it is verified, it never appears there, so it is the wrong API for this feature and no restore flow exists.
+
+The one case where a tip _would_ show up is the one this spec deliberately creates: a transaction that fails verification is left unfinished, so it stays in `currentEntitlements` and keeps being redelivered until it can be resolved. That is the retry path, not a bug.
 The consumable path is:
 
 - `Product.products(for:)` to load the tiers,
@@ -60,6 +62,8 @@ This mirrors `QuestNotificationCenter` / `SystemQuestNotificationCenter` exactly
 
 **Verification lives above the seam, not inside the StoreKit wrapper.** The protocol yields a `TipJarPurchaseSignal` carrying whether the transaction verified, rather than a `VerificationResult`, and `TipJarPolicy.outcome(for:)` decides thank-versus-discard from it.
 If the wrapper made that decision internally, a fake could never produce an unverified transaction and the test asserting the discard path would pass by construction — reading nothing. Keeping the decision pure is what makes that case testable at all.
+
+**The judgement is pure; the execution stays behind the seam.** `TipJarPolicy.shouldFinish(_:)` decides whether a transaction should be taken off the queue, and `StoreKitTipJarStore` calls it inside `settle(_:)` before awaiting `transaction.finish()`. The protocol therefore needs no finish operation and no transaction handle above it — the layer above never holds a `Transaction`, which is what keeps the seam free of StoreKit types.
 
 Both types are declared `nonisolated`: `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` is set project-wide, and a bare `extension` does not inherit the primary type's `nonisolated`, so every extension needs it spelled out too.
 
@@ -111,10 +115,17 @@ Prices are never written into a string. `displayPrice` owns them.
 StoreKit talks to Apple, so the app stops being offline-only the moment this ships. Three surfaces claim otherwise and must agree before release:
 
 - `docs/legal/privacy-policy.md` — §1 said "완전한 로컬 전용·오프라인" and §5 said "외부 API 호출이 포함되어 있지 않습니다". Both are corrected in this branch, and §5 now describes what the App Store exchange covers and what Apple, not the developer, receives.
-- **The deployed landing copies** at `quest-keeper.donminzzi.kr`, including the English translation, live in the separate `quest-keeper-landing` repository. They are not updated here and must be synced before the release goes out.
+- **The deployed landing copies** at `quest.donminzzi.kr` — the host `fastlane/metadata/*/privacy_url.txt` and the listing doc both name — including the English translation. They live in the separate `quest-keeper-landing` repository, are not updated here, and must be synced before the release goes out.
 - **The policy's effective date** (`시행일`) is deliberately left unchanged. The document takes effect when the landing copies are published alongside a build that actually contains the tip jar, not when this branch merges.
 
-The App Store listing text needs no change: "no account, no login, no ads" all remain true — a tip needs no account and shows no ads.
+**Both listing locales need an edit too.** An earlier draft of this spec exempted them, which was wrong — it checked only the account/login/ads clause. `fastlane/metadata/en-US/description.txt` and `fastlane/metadata/ko/description.txt` each carry two lines that the tip jar falsifies:
+
+```text
+· Fully offline and local: no account, no login, no ads.
+· No data collection: everything stays on your device.
+```
+
+"no account, no login, no ads" does stay true. "Fully offline" and "everything stays on your device" do not, because opening the About sheet loads products from Apple. Reword both locales before release; the clause about accounts and ads can survive as-is.
 
 `[UNCERTAIN]` The App Store Connect **App Privacy** declaration probably stays "Data Not Collected", because payment information handled solely by Apple is exempt from declaration and this app collects no User ID. That reading comes from a search summary rather than Apple's own page; confirm it in the App Privacy form before submitting.
 
