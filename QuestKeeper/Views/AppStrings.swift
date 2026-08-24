@@ -425,6 +425,10 @@ nonisolated extension AppStrings {
         "about.tip.failed",
         defaultValue: "결제를 마치지 못했어요. 잠시 후 다시 시도해 주세요."
     )
+    static let aboutTipAwaitingApproval = LocalizedStringResource(
+        "about.tip.awaitingApproval",
+        defaultValue: "승인을 기다리는 중이에요. 승인되면 물약이 전달됩니다."
+    )
 
     static let heroHeaderAboutButtonAccessibility = LocalizedStringResource(
         "hero.header.about.accessibility",

@@ -182,15 +182,34 @@ struct TipJarModelTests {
         #expect(model.purchasingTier == nil)
     }
 
-    @Test("a pending approval does not thank the user either")
-    func pendingDoesNotThank() async {
+    @Test("a pending approval shows the awaiting line rather than thanking or failing")
+    func pendingAwaitsApproval() async {
         let store = FakeTipJarStore()
         store.signal = .pending
         let model = TipJarModel(store: store)
 
         await model.tip(.small)
 
+        #expect(model.purchaseNote == .awaitingApproval)
         #expect(!model.isThanking)
+    }
+
+    @Test("every purchase signal maps to its own note, so none is silently dropped")
+    func everySignalHasANote() async {
+        let expected: [(TipJarPurchaseSignal, TipJarModel.PurchaseNote)] = [
+            (.completed(verified: true), .thanks),
+            (.completed(verified: false), .failed),
+            (.failed, .failed),
+            (.pending, .awaitingApproval),
+            (.userCancelled, .none),
+        ]
+        for (signal, note) in expected {
+            let store = FakeTipJarStore()
+            store.signal = signal
+            let model = TipJarModel(store: store)
+            await model.tip(.small)
+            #expect(model.purchaseNote == note, "\(signal) should map to \(note)")
+        }
     }
 
     @Test("the thank-you state can be dismissed")

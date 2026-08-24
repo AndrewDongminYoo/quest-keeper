@@ -122,6 +122,8 @@ struct AboutSheet: View {
                 Text(AppStrings.aboutTipThanks).foregroundStyle(DungeonPalette.victory)
             case .failed:
                 Text(AppStrings.aboutTipFailed).foregroundStyle(DungeonPalette.danger)
+            case .awaitingApproval:
+                Text(AppStrings.aboutTipAwaitingApproval).foregroundStyle(DungeonPalette.guide)
             case .none:
                 Text(AppStrings.aboutTipNote).foregroundStyle(DungeonPalette.ink.opacity(0.7))
             }
