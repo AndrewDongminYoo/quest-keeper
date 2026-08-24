@@ -42,7 +42,8 @@ struct HomeDungeonBoardView: View {
                         isMourning: isMourning,
                         heroAppearance: heroAppearance,
                         onCreate: onCreate,
-                        onEditAppearance: { presentedSheet = .appearance }
+                        onEditAppearance: { presentedSheet = .appearance },
+                        onOpenAbout: { presentedSheet = .about }
                     )
                     if storeFailedToOpen {
                         StoreFailureBanner()
@@ -118,6 +119,8 @@ struct HomeDungeonBoardView: View {
             switch sheet {
             case .appearance:
                 HeroAppearanceSheet(gender: heroGenderBinding, hairColor: heroHairColorBinding)
+            case .about:
+                AboutSheet(store: StoreKitTipJarStore())
             }
         }
     }
@@ -155,6 +158,7 @@ struct HomeDungeonBoardView: View {
 
 private enum HomeDungeonSheet: String, Identifiable {
     case appearance
+    case about
 
     var id: String { rawValue }
 }
@@ -275,6 +279,7 @@ private struct BoardHUD: View {
     let heroAppearance: HeroAppearance
     let onCreate: () -> Void
     let onEditAppearance: () -> Void
+    let onOpenAbout: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -302,7 +307,8 @@ private struct BoardHUD: View {
                 state: state,
                 isMourning: isMourning,
                 appearance: heroAppearance,
-                onEditAppearance: onEditAppearance
+                onEditAppearance: onEditAppearance,
+                onOpenAbout: onOpenAbout
             )
         }
         .padding(14)

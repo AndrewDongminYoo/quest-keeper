@@ -21,3 +21,6 @@ fastlane/Preview.html
 # App Store Connect API private key — never commit
 *.p8
 fastlane/.env*
+
+# Per-user schemes (a local StoreKit configuration reference lives here, not in the shared scheme)
+QuestKeeper.xcodeproj/xcuserdata/**/xcschemes/*.xcscheme

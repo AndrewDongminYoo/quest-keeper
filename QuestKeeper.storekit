@@ -1,0 +1,72 @@
+{
+  "identifier": "A1B2C3D4",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "1000000001",
+      "localizations": [
+        {
+          "description": "A small thank-you. Nothing changes in game.",
+          "displayName": "A Potion for the Hero",
+          "locale": "en_US"
+        },
+        {
+          "description": "작은 응원입니다. 게임에는 아무 영향이 없어요.",
+          "displayName": "용사에게 물약 한 병",
+          "locale": "ko"
+        }
+      ],
+      "productID": "kr.donminzzi.QuestKeeper.tip.small",
+      "referenceName": "Tip Jar - Small",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "1000000002",
+      "localizations": [
+        {
+          "description": "A warm thank-you. Nothing changes in game.",
+          "displayName": "Three Potions for the Hero",
+          "locale": "en_US"
+        },
+        {
+          "description": "넉넉한 응원입니다. 게임에는 아무 영향이 없어요.",
+          "displayName": "용사에게 물약 세 병",
+          "locale": "ko"
+        }
+      ],
+      "productID": "kr.donminzzi.QuestKeeper.tip.medium",
+      "referenceName": "Tip Jar - Medium",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "1000000003",
+      "localizations": [
+        {
+          "description": "A big thank-you. Nothing changes in game.",
+          "displayName": "A Crate of Potions",
+          "locale": "en_US"
+        },
+        {
+          "description": "큰 응원입니다. 게임에는 아무 영향이 없어요.",
+          "displayName": "용사에게 물약 한 상자",
+          "locale": "ko"
+        }
+      ],
+      "productID": "kr.donminzzi.QuestKeeper.tip.large",
+      "referenceName": "Tip Jar - Large",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {},
+  "subscriptionGroups": [],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

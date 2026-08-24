@@ -28,6 +28,11 @@ struct QuestKeeperApp: App {
     @State private var hasDeferredOnboardingThisRun = false
     @State private var hasAttemptedOnboardingExposure = false
     @State private var onboardingMeasurementAvailable = false
+    /// 팁 거래 리스너의 소유자. 시트가 열려 있는지와 무관하게 프로세스가 사는 동안 유지된다 —
+    /// AboutSheet 에 매달면 Ask to Buy 승인이나 중단된 구매가 나중에 도착했을 때 finish 되지 않고
+    /// 소모품이 무한히 재전달된다. `Transaction.updates` 는 전역 스트림이라 시트가 자체 인스턴스를
+    /// 써도 이 리스너가 놓치는 거래는 없다.
+    @State private var tipJarStore = StoreKitTipJarStore()
     private let notificationDelegate: NotificationDelegate
     private let notificationService: QuestNotificationService
     private let shortcutCreationCoordinator: QuestShortcutCreationCoordinator
@@ -195,6 +200,7 @@ struct QuestKeeperApp: App {
                 dailyFocusLoopEnabled: isDailyFocusLoopEnabled,
                 storeFailedToOpen: storeFailedToOpen
             )
+            .task { await tipJarStore.listenForTransactions() }
         }
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase, initial: true) { _, phase in
