@@ -104,7 +104,7 @@ In Claude Code and any other agent they are not available, so raw `xcodebuild` (
 
 **Codex — prefer XcodeBuildMCP.** It reuses one dedicated workspace and pins the simulator by **UDID**, avoiding the raw-`xcodebuild` failure mode described below.
 Session defaults are persisted in `.xcodebuildmcp/config.yaml` (git-ignored): project `QuestKeeper.xcodeproj`, scheme `QuestKeeper`, configuration `Debug`, and a pinned simulator UDID.
-**Confirm the pinned UDID against your machine** with `xcrun simctl list devices available` — simulator UDIDs are recreated and drift (the device set has been recreated twice, retiring `CDF2239B-…` and then `31D132A7-…` along with the `iPhone 17e` device itself; as of 2026-08-10 the only available device is `iPhone 17 Pro Max` at `24B14321-156A-4BC4-97DC-0183AD675A8D`).
+**Confirm the pinned UDID against your machine** with `xcrun simctl list devices available` before the first build — the device set has been recreated several times, retiring the UDID and on occasion the device model itself, so the pin in that file goes stale silently. It is git-ignored, so no gate in this repo can catch a stale pin; re-read the device list and re-pin after any simulator wedge.
 
 ```text
 # Once per session, confirm defaults (required before the first build/run/test):
@@ -119,17 +119,25 @@ mcp__xcodebuild__screenshot             # capture the running sim
 ```
 
 **Claude Code and any non-Codex agent — use raw `xcodebuild` (this is the primary path there, not a fallback).**
-Always target the device by **id (UDID), never `name`**: `xcodebuild -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max'` spins up a fresh ephemeral clone per run, which exhausts simulator memory and wedges the runtime (`server died` / `crashed before establishing connection`).
-Name matching also breaks outright whenever a duplicate device shares the name (destination-name ambiguity) — as of 2026-08-10 only one `iPhone 17 Pro Max` exists, but a UDID destination is immune either way.
-Confirm/replace the UDID with `xcrun simctl list devices available` first, and prefer an already-booted simulator to respect the one-heavy-job-at-a-time limit.
+Always target the device by **id (UDID), never `name`**: a `-destination 'platform=iOS Simulator,name=…'` spins up a fresh ephemeral clone per run, which exhausts simulator memory and wedges the runtime (`server died` / `crashed before establishing connection`).
+Name matching also breaks outright whenever a duplicate device shares the name (destination-name ambiguity), while a UDID destination is immune either way.
+Resolve the UDID at run time rather than pinning a literal, and prefer an already-booted simulator to respect the one-heavy-job-at-a-time limit.
 
 ```bash
+# Picks the first available simulator, which is correct while only one exists.
+# With several installed, read the list and substitute the id you want.
+SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys
+ds=[d for k,v in json.load(sys.stdin)["devices"].items() if "SimRuntime.iOS-" in k for d in v]
+print(next((d["udid"] for d in ds if d["state"]=="Booted"), ds[0]["udid"] if ds else ""))')
+
 xcodebuild test -scheme QuestKeeper \
-  -destination 'platform=iOS Simulator,id=24B14321-156A-4BC4-97DC-0183AD675A8D' \
+  -destination "platform=iOS Simulator,id=$SIM_ID" \
   -only-testing:QuestKeeperTests
 ```
 
-Run `bash scripts/test-localization.sh` alongside `-only-testing:QuestKeeperTests` whenever a change touches user-facing strings — it checks the `Localizable.xcstrings` catalogs for missing/empty `ko`/`en` values and fails on a stray Korean literal outside a `defaultValue:` or a comment.
+Run `bash scripts/test-localization.sh` alongside `-only-testing:QuestKeeperTests` whenever a change touches user-facing strings — it checks the `Localizable.xcstrings` catalogs for missing/empty `ko`/`en` values, fails on a stray Korean literal outside a `defaultValue:` or a comment, and cross-checks the keys declared in the three namespace files it owns — `AppStrings`, `WidgetStrings`, and `SharedStrings` — against the catalogs.
+`QuestKeeperShared` compiles into both bundles, so its keys must exist in both.
+**The cross-check does not reach `LocalizedStringResource` declared directly elsewhere**, which the App Intents files do (`CreateQuestIntent`, `QuestKeeperAppShortcuts`, `CompleteQuestIntent`); a renamed key there can go missing from its catalog with this gate still green.
 
 Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or raw `xcodebuild` (elsewhere) for headless verification.
 
@@ -151,6 +159,6 @@ Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or 
 - **Language:** user-facing strings live in the `Localizable.xcstrings` String Catalogs under semantic keys (`AppStrings` / `WidgetStrings` / `SharedStrings`), with Korean as each resource's `defaultValue` and English as a peer locale — do not hardcode a literal at a call site instead of adding a catalog key.
   Korean comments stay untranslated.
   Code identifiers and commit messages are English.
-  `scripts/test-localization.sh` gates both the catalogs (no missing/empty `ko`/`en` value) and stray Korean literals outside a `defaultValue:` or a comment.
+  `scripts/test-localization.sh` gates the catalogs (no missing/empty `ko`/`en` value), stray Korean literals outside a `defaultValue:` or a comment, and declared-key coverage for the three namespace files it owns — not for App Intents declarations, which it never scans.
 - **Voice:** quest-flavored but shame-free — `전투 추가`, `내일 도전하기`, `완료`; never `실패했습니다`, `무덤이 누적되었습니다`, `HP가 감소했습니다`.
   `DESIGN.md` (Voice) owns this.

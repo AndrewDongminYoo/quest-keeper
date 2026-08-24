@@ -97,17 +97,23 @@ QuestKeeperWidget
 Use the focused unit-test gate for normal development:
 
 ```bash
-xcodebuild test -scheme QuestKeeper -destination 'platform=iOS Simulator,id=24B14321-156A-4BC4-97DC-0183AD675A8D' -only-testing:QuestKeeperTests
+SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys
+ds=[d for k,v in json.load(sys.stdin)["devices"].items() if "SimRuntime.iOS-" in k for d in v]
+print(next((d["udid"] for d in ds if d["state"]=="Booted"), ds[0]["udid"] if ds else ""))')
+xcodebuild test -scheme QuestKeeper -destination "platform=iOS Simulator,id=$SIM_ID" -only-testing:QuestKeeperTests
 ```
 
 Use the build gate when target or signing wiring changes:
 
 ```bash
-xcodebuild build -scheme QuestKeeper -destination 'platform=iOS Simulator,id=24B14321-156A-4BC4-97DC-0183AD675A8D'
+SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys
+ds=[d for k,v in json.load(sys.stdin)["devices"].items() if "SimRuntime.iOS-" in k for d in v]
+print(next((d["udid"] for d in ds if d["state"]=="Booted"), ds[0]["udid"] if ds else ""))')
+xcodebuild build -scheme QuestKeeper -destination "platform=iOS Simulator,id=$SIM_ID"
 ```
 
 Target the simulator by UDID, never by `name`: a name destination clones a fresh ephemeral simulator per run and wedges the runtime.
-Simulator UDIDs are recreated over time, so confirm the id above with `xcrun simctl list devices available` before relying on it.
+Simulator UDIDs are recreated over time, so the commands above resolve one instead of pinning a literal. Run `xcrun simctl list devices available` yourself when more than one device is present, and substitute the id you want.
 
 Use this guard when changing persistence — it must cover both paths, since `Quest` lives in `QuestKeeperShared/` and a guard pointed only at `QuestKeeper/Models/` scans no `@Model` at all:
 

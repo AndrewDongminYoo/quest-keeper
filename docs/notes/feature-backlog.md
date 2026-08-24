@@ -46,6 +46,17 @@ Actionable deadline notifications with inline buttons.
 - **Product value:** `완료` / `내일 도전하기` directly from the notification banner.
 - **Fact-only guardrail:** the action routes through the existing fact-mutation path.
 
+### 5. Tip Jar (StoreKit 2)
+
+A single optional tip, added as a learning item rather than a revenue item.
+
+- **Product type:** a **consumable** with a few price tiers, matching common OSS tip-jar practice. This choice picks the APIs below: `Transaction.currentEntitlements` returns a consumable only while it is unfinished, and a tip is finished as soon as it verifies — so neither entitlement queries nor a restore flow apply here. (The one case it does surface is a transaction left unfinished after failing verification; see `docs/specs/020-tip-jar.md`.)
+- **New OS boundary:** StoreKit 2 — `Product.products(for:)`, `purchase()`, `Transaction.updates`, and `transaction.finish()`, verified on-device through JWS so the "no backend" non-goal holds.
+- **Product value:** none in revenue terms. Installs are zero, so the bottleneck is distribution, not price; this item is sized so its worth does not depend on earning anything.
+- **Fact-only guardrail:** a tip grants nothing in-game, so no entitlement reaches the derivation layer and nothing new lands on `Quest`.
+- **Constraints:** the live listing promises `no account, no login, no ads` in both locales, and `DESIGN.md`'s shame-free voice forbids gating core task management. A tip is additive, never a gate, and it stays out of the miss-to-revive flow.
+- **Deferred siblings:** environment-surface pixel art, palette theming, and theme/skin products are all on hold — they are a product line for an audience that does not exist yet.
+
 ## Secondary tracks
 
 - **Mob visual tiers (slime → skeleton → dragon):** resolves a BLUEPRINT open question and realizes the `DESIGN.md` monster mapping by rendering `mobLevel` as evolving sprites. More visual polish than OS boundary; pairs with replacing SF Symbol placeholders with real pixel art.
