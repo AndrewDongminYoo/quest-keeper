@@ -126,15 +126,18 @@ Resolve the UDID at run time rather than pinning a literal, and prefer an alread
 ```bash
 # Picks the first available simulator, which is correct while only one exists.
 # With several installed, read the list and substitute the id you want.
-SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for v in json.load(sys.stdin)["devices"].values() for d in v))')
+SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys
+ds=[d for k,v in json.load(sys.stdin)["devices"].items() if "SimRuntime.iOS-" in k for d in v]
+print(next((d["udid"] for d in ds if d["state"]=="Booted"), ds[0]["udid"] if ds else ""))')
 
 xcodebuild test -scheme QuestKeeper \
   -destination "platform=iOS Simulator,id=$SIM_ID" \
   -only-testing:QuestKeeperTests
 ```
 
-Run `bash scripts/test-localization.sh` alongside `-only-testing:QuestKeeperTests` whenever a change touches user-facing strings — it checks the `Localizable.xcstrings` catalogs for missing/empty `ko`/`en` values, fails on a stray Korean literal outside a `defaultValue:` or a comment, and cross-checks that every key a string resource declares has a catalog entry.
-`QuestKeeperShared` compiles into both bundles, so its keys must exist in both catalogs.
+Run `bash scripts/test-localization.sh` alongside `-only-testing:QuestKeeperTests` whenever a change touches user-facing strings — it checks the `Localizable.xcstrings` catalogs for missing/empty `ko`/`en` values, fails on a stray Korean literal outside a `defaultValue:` or a comment, and cross-checks the keys declared in the three namespace files it owns — `AppStrings`, `WidgetStrings`, and `SharedStrings` — against the catalogs.
+`QuestKeeperShared` compiles into both bundles, so its keys must exist in both.
+**The cross-check does not reach `LocalizedStringResource` declared directly elsewhere**, which the App Intents files do (`CreateQuestIntent`, `QuestKeeperAppShortcuts`, `CompleteQuestIntent`); a renamed key there can go missing from its catalog with this gate still green.
 
 Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or raw `xcodebuild` (elsewhere) for headless verification.
 
@@ -156,6 +159,6 @@ Day-to-day, building/running in Xcode is expected; use XcodeBuildMCP (Codex) or 
 - **Language:** user-facing strings live in the `Localizable.xcstrings` String Catalogs under semantic keys (`AppStrings` / `WidgetStrings` / `SharedStrings`), with Korean as each resource's `defaultValue` and English as a peer locale — do not hardcode a literal at a call site instead of adding a catalog key.
   Korean comments stay untranslated.
   Code identifiers and commit messages are English.
-  `scripts/test-localization.sh` gates the catalogs (no missing/empty `ko`/`en` value), stray Korean literals outside a `defaultValue:` or a comment, and declared-key coverage across both bundles.
+  `scripts/test-localization.sh` gates the catalogs (no missing/empty `ko`/`en` value), stray Korean literals outside a `defaultValue:` or a comment, and declared-key coverage for the three namespace files it owns — not for App Intents declarations, which it never scans.
 - **Voice:** quest-flavored but shame-free — `전투 추가`, `내일 도전하기`, `완료`; never `실패했습니다`, `무덤이 누적되었습니다`, `HP가 감소했습니다`.
   `DESIGN.md` (Voice) owns this.

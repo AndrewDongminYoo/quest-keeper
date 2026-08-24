@@ -97,13 +97,18 @@ QuestKeeperWidget
 Use the focused unit-test gate for normal development:
 
 ```bash
-SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for v in json.load(sys.stdin)["devices"].values() for d in v))')
+SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys
+ds=[d for k,v in json.load(sys.stdin)["devices"].items() if "SimRuntime.iOS-" in k for d in v]
+print(next((d["udid"] for d in ds if d["state"]=="Booted"), ds[0]["udid"] if ds else ""))')
 xcodebuild test -scheme QuestKeeper -destination "platform=iOS Simulator,id=$SIM_ID" -only-testing:QuestKeeperTests
 ```
 
 Use the build gate when target or signing wiring changes:
 
 ```bash
+SIM_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys
+ds=[d for k,v in json.load(sys.stdin)["devices"].items() if "SimRuntime.iOS-" in k for d in v]
+print(next((d["udid"] for d in ds if d["state"]=="Booted"), ds[0]["udid"] if ds else ""))')
 xcodebuild build -scheme QuestKeeper -destination "platform=iOS Simulator,id=$SIM_ID"
 ```
 
