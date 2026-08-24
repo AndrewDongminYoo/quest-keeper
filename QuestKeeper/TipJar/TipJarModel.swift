@@ -39,9 +39,11 @@ final class TipJarModel {
     var isThanking: Bool { purchaseNote == .thanks }
 
     private let store: TipJarStore
+    private let outcomeStream: AsyncStream<TipJarOutcome>
 
     init(store: TipJarStore) {
         self.store = store
+        outcomeStream = store.outcomes
     }
 
     func load() async {
@@ -62,7 +64,7 @@ final class TipJarModel {
     }
 
     func listenForOutcomes() async {
-        for await outcome in store.outcomes {
+        for await outcome in outcomeStream {
             apply(outcome)
         }
     }

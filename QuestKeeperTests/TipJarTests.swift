@@ -11,18 +11,26 @@ private final class FakeTipJarStore: TipJarStore {
     var signal: TipJarPurchaseSignal = .completed(verified: true)
     var listenerOutcome: TipJarOutcome?
     private(set) var purchasedTiers: [TipJarTier] = []
-    private let outcomeStream: AsyncStream<TipJarOutcome>
-    private let outcomeContinuation: AsyncStream<TipJarOutcome>.Continuation
+    private var outcomeContinuations: [UUID: AsyncStream<TipJarOutcome>.Continuation] = [:]
+    private var outcomesFinished = false
 
     struct LoadFailure: Error {}
 
-    init() {
+    var outcomes: AsyncStream<TipJarOutcome> {
+        let subscriptionID = UUID()
         let pair = AsyncStream<TipJarOutcome>.makeStream()
-        outcomeStream = pair.stream
-        outcomeContinuation = pair.continuation
+        if outcomesFinished {
+            pair.continuation.finish()
+        } else {
+            outcomeContinuations[subscriptionID] = pair.continuation
+            pair.continuation.onTermination = { @Sendable [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.outcomeContinuations.removeValue(forKey: subscriptionID)
+                }
+            }
+        }
+        return pair.stream
     }
-
-    var outcomes: AsyncStream<TipJarOutcome> { outcomeStream }
 
     func loadItems() async throws -> [TipJarItem] {
         if let loadError { throw loadError }
@@ -37,9 +45,15 @@ private final class FakeTipJarStore: TipJarStore {
 
     func listenForTransactions() async {
         if let listenerOutcome {
-            outcomeContinuation.yield(listenerOutcome)
+            for continuation in outcomeContinuations.values {
+                continuation.yield(listenerOutcome)
+            }
         }
-        outcomeContinuation.finish()
+        outcomesFinished = true
+        for continuation in outcomeContinuations.values {
+            continuation.finish()
+        }
+        outcomeContinuations.removeAll()
     }
 }
 
@@ -242,9 +256,8 @@ struct TipJarModelTests {
             store.listenerOutcome = outcome
             let model = TipJarModel(store: store)
 
-            async let observing: Void = model.listenForOutcomes()
             await store.listenForTransactions()
-            await observing
+            await model.listenForOutcomes()
 
             #expect(model.purchaseNote == note, "\(outcome) should map to \(note)")
         }
