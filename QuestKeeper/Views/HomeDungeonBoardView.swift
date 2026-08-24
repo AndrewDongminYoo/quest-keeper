@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeDungeonBoardView: View {
+    @Environment(\.tipJarStore) private var tipJarStore
     @AppStorage(HeroAppearance.StorageKey.gender) private var heroGenderRawValue = HeroAppearance.default.gender.rawValue
     @AppStorage(HeroAppearance.StorageKey.hairColor) private var heroHairColorRawValue = HeroAppearance.default.hairColor.rawValue
     @State private var presentedSheet: HomeDungeonSheet?
@@ -120,7 +121,9 @@ struct HomeDungeonBoardView: View {
             case .appearance:
                 HeroAppearanceSheet(gender: heroGenderBinding, hairColor: heroHairColorBinding)
             case .about:
-                AboutSheet(store: StoreKitTipJarStore())
+                if let tipJarStore {
+                    AboutSheet(store: tipJarStore)
+                }
             }
         }
     }
@@ -153,6 +156,17 @@ struct HomeDungeonBoardView: View {
     ) -> Quest? {
         guard case let .singleQuest(questID) = presentation else { return nil }
         return allQuests.first { $0.id == questID }
+    }
+}
+
+private struct TipJarStoreEnvironmentKey: EnvironmentKey {
+    static let defaultValue: TipJarStore? = nil
+}
+
+extension EnvironmentValues {
+    var tipJarStore: TipJarStore? {
+        get { self[TipJarStoreEnvironmentKey.self] }
+        set { self[TipJarStoreEnvironmentKey.self] = newValue }
     }
 }
 
