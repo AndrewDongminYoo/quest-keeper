@@ -8,7 +8,11 @@ dictionaries:
   - custom-dictionary
   - softwareTerms
   - software-tools
-words: []
+  - en-gb
+  - cpp
+  - cpp-legacy
+  - cpp-compound-words
+words: [questkeeper]
 ignoreWords: []
-allowCompoundWords: true
+allowCompoundWords: false
 import: []
