@@ -12,7 +12,9 @@ permissions:
 jobs:
   test:
     name: Swift tests
-    runs-on: macos-latest
+    runs-on: macos-26
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
 
     steps:
       - name: Check out repository
@@ -22,16 +24,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          SIM_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys
-          ds=[d for k,v in json.load(sys.stdin)["devices"].items() if "SimRuntime.iOS-" in k for d in v]
-          print(next((d["udid"] for d in ds if d["state"]=="Booted"), ds[0]["udid"] if ds else ""))')"
-
-          if [[ -z "$SIM_ID" ]]; then
-            echo "::error::No available iOS simulator found."
-            exit 1
-          fi
-
           xcodebuild test -scheme QuestKeeper \
-            -destination "platform=iOS Simulator,id=$SIM_ID" \
+            -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
             -only-testing:QuestKeeperTests \
             -parallel-testing-enabled NO
