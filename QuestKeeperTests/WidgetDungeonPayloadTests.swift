@@ -55,40 +55,43 @@ struct WidgetDungeonPayloadTests {
 
     @Test("derivation exposes active mobs, daily graves, and victories")
     func derivationBuildsWidgetState() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let sameDayNow = now.addingTimeInterval(12 * hour)
         let activeID = UUID()
         let dailyGraveID = UUID()
         let oldGraveID = UUID()
         let victoryID = UUID()
         let payload = WidgetDungeonPayload(
             schemaVersion: WidgetDungeonPayload.currentSchemaVersion,
-            generatedAt: now,
+            generatedAt: sameDayNow,
             quests: [
                 WidgetQuestPayload(
                     id: activeID,
                     title: "리뷰하기",
-                    deadline: now.addingTimeInterval(hour),
+                    deadline: sameDayNow.addingTimeInterval(hour),
                     completedAt: nil,
                     importanceRawValue: 3
                 ),
                 WidgetQuestPayload(
                     id: dailyGraveID,
                     title: "아침 산책",
-                    deadline: now.addingTimeInterval(-hour),
+                    deadline: sameDayNow.addingTimeInterval(-hour),
                     completedAt: nil,
                     importanceRawValue: 1
                 ),
                 WidgetQuestPayload(
                     id: oldGraveID,
                     title: "어제 운동",
-                    deadline: now.addingTimeInterval(-day),
+                    deadline: sameDayNow.addingTimeInterval(-day),
                     completedAt: nil,
                     importanceRawValue: 2
                 ),
                 WidgetQuestPayload(
                     id: victoryID,
                     title: "샤워하기",
-                    deadline: now.addingTimeInterval(hour),
-                    completedAt: now.addingTimeInterval(-hour),
+                    deadline: sameDayNow.addingTimeInterval(hour),
+                    completedAt: sameDayNow.addingTimeInterval(-hour),
                     importanceRawValue: 1
                 )
             ]
@@ -96,8 +99,8 @@ struct WidgetDungeonPayloadTests {
 
         let state = WidgetDungeonDerivation.derive(
             payload: payload,
-            at: now,
-            calendar: Calendar(identifier: .gregorian)
+            at: sameDayNow,
+            calendar: calendar
         )
 
         #expect(state.activeMobs.map(\.id) == [activeID])

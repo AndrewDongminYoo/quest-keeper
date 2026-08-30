@@ -19,6 +19,8 @@ struct HomeDungeonBoardView: View {
     let onboardingPresentation: OnboardingFlowPresentation
     let dailyFocusPresentation: DailyFocusPresentationState
     let recoveryPresentation: RecoveryCardPresentation?
+    let visibleRoutines: [RoutineRule]
+    let hasRoutineRules: Bool
     let onCreate: () -> Void
     let onStartGuidedQuest: () -> Void
     let onDeferOnboarding: () -> Void
@@ -32,6 +34,9 @@ struct HomeDungeonBoardView: View {
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
     let onOpenDetail: (Quest) -> Void
+    let onCreateRoutine: () -> Void
+    let onManageRoutines: () -> Void
+    let onCompleteRoutine: (RoutineRule) -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -44,7 +49,8 @@ struct HomeDungeonBoardView: View {
                         heroAppearance: heroAppearance,
                         onCreate: onCreate,
                         onEditAppearance: { presentedSheet = .appearance },
-                        onOpenAbout: { presentedSheet = .about }
+                        onOpenAbout: { presentedSheet = .about },
+                        onOpenHallOfFame: { presentedSheet = .hallOfFame }
                     )
                     if storeFailedToOpen {
                         StoreFailureBanner()
@@ -110,6 +116,14 @@ struct HomeDungeonBoardView: View {
                         .animation(.default, value: pending.map(\.id))
                         .animation(.default, value: dailyGraves.map(\.id))
                     }
+                    RoutineSection(
+                        routines: visibleRoutines,
+                        hasRoutineRules: hasRoutineRules,
+                        onCreate: onCreateRoutine,
+                        onManage: onManageRoutines,
+                        onComplete: onCompleteRoutine
+                    )
+                    .animation(.default, value: visibleRoutines.map(\.id))
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 18)
@@ -120,6 +134,8 @@ struct HomeDungeonBoardView: View {
             switch sheet {
             case .appearance:
                 HeroAppearanceSheet(gender: heroGenderBinding, hairColor: heroHairColorBinding)
+            case .hallOfFame:
+                HallOfFameSheet(quests: allQuests, now: now)
             case .about:
                 if let tipJarStore {
                     AboutSheet(store: tipJarStore)
@@ -172,6 +188,7 @@ extension EnvironmentValues {
 
 private enum HomeDungeonSheet: String, Identifiable {
     case appearance
+    case hallOfFame
     case about
 
     var id: String { rawValue }
@@ -294,6 +311,7 @@ private struct BoardHUD: View {
     let onCreate: () -> Void
     let onEditAppearance: () -> Void
     let onOpenAbout: () -> Void
+    let onOpenHallOfFame: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -322,7 +340,8 @@ private struct BoardHUD: View {
                 isMourning: isMourning,
                 appearance: heroAppearance,
                 onEditAppearance: onEditAppearance,
-                onOpenAbout: onOpenAbout
+                onOpenAbout: onOpenAbout,
+                onOpenHallOfFame: onOpenHallOfFame
             )
         }
         .padding(14)

@@ -81,6 +81,22 @@
         }
       }
     },
+    "a11y.routine.complete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ complete"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 완료"
+          }
+        }
+      }
+    },
     "about.doneAction" : {
       "localizations" : {
         "en" : {
@@ -892,6 +908,40 @@
         }
       }
     },
+    "debug.fixture.hallOfFameLongTitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish the long Hall of Fame accessibility verification before the review"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마감 전에 마무리한 아주 긴 전리품 정리 퀘스트 제목입니다"
+          }
+        }
+      }
+    },
+    "debug.fixture.hallOfFameRecentVictory" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A small win today"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘 지켜낸 작은 승리"
+          }
+        }
+      }
+    },
     "debug.fixture.recoveryLeftoverQuest" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -956,6 +1006,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "지켜낸 승리"
+          }
+        }
+      }
+    },
+    "debug.fixture.routineOne" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drink water"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "물 마시기"
+          }
+        }
+      }
+    },
+    "debug.fixture.routineThree" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidy the desk"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "책상 정리"
+          }
+        }
+      }
+    },
+    "debug.fixture.routineTwo" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the window"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "창문 열기"
           }
         }
       }
@@ -1440,6 +1541,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "머리색"
+          }
+        }
+      }
+    },
+    "hallOfFame.emptyBody" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed quests will appear here."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료한 퀘스트가 여기에 쌓입니다."
+          }
+        }
+      }
+    },
+    "hallOfFame.navigationTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hall of Fame"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전리품 창고"
+          }
+        }
+      }
+    },
+    "hallOfFame.openAccessibility" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View wins"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "승리 기록 보기"
+          }
+        }
+      }
+    },
+    "hallOfFame.openHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens completed quests."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료한 퀘스트를 엽니다."
           }
         }
       }
@@ -2546,6 +2711,150 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "다시 와서 반가워요"
+          }
+        }
+      }
+    },
+    "routine.action.add" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add routine"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "루틴 추가"
+          }
+        }
+      }
+    },
+    "routine.action.manage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "관리"
+          }
+        }
+      }
+    },
+    "routine.completedToday.body" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All routine quests are complete for today."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘의 루틴을 모두 마쳤어요."
+          }
+        }
+      }
+    },
+    "routine.editor.editTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit routine"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "루틴 편집"
+          }
+        }
+      }
+    },
+    "routine.editor.newTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New routine"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새 루틴"
+          }
+        }
+      }
+    },
+    "routine.editor.titleField" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Routine name"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "루틴 이름"
+          }
+        }
+      }
+    },
+    "routine.empty.body" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a small task that returns every day."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매일 반복할 작은 일을 추가해보세요."
+          }
+        }
+      }
+    },
+    "routine.manager.navigationTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Routine manager"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "루틴 관리"
+          }
+        }
+      }
+    },
+    "routine.section.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily routines"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "루틴"
           }
         }
       }

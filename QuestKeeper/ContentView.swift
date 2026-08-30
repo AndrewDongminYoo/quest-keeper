@@ -13,6 +13,8 @@ struct ContentView: View {
     @Query(sort: \Quest.deadline) private var quests: [Quest]
     @Query(sort: \RetentionEvent.occurredAt) private var retentionEvents: [RetentionEvent]
     @Query(sort: \DailyFocusSelection.recordedAt) private var dailyFocusSelections: [DailyFocusSelection]
+    @Query(sort: \RoutineRule.createdAt) private var routineRules: [RoutineRule]
+    @Query(sort: \RoutineCompletion.completedAt) private var routineCompletions: [RoutineCompletion]
 
     /// Transient: the deaths to mourn this activation. Drives the "꿱" frame, then resets.
     @State private var pendingDeaths: Set<UUID> = []
@@ -20,6 +22,7 @@ struct ContentView: View {
     @State private var escalatedQuestIDs: Set<UUID> = []
     @State private var route: QuestSheetRoute?
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
+    @State private var routineSheet: RoutineSheetRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization?
     @State private var mourningTask: Task<Void, Never>?
     @Binding private var hasDeferredOnboardingThisRun: Bool
@@ -103,6 +106,13 @@ struct ContentView: View {
                     now: now,
                     calendar: localCalendar
                 )
+                let routineRulesByID = Dictionary(uniqueKeysWithValues: routineRules.map { ($0.id, $0) })
+                let visibleRoutines = RoutineState.visibleRoutineIDs(
+                    rules: routineRules.map(\.snapshot),
+                    completions: routineCompletions.map(\.snapshot),
+                    now: now,
+                    calendar: localCalendar
+                ).compactMap { routineRulesByID[$0] }
 
                 HomeDungeonBoardView(
                     state: state,
@@ -120,6 +130,8 @@ struct ContentView: View {
                     onboardingPresentation: onboardingPresentation,
                     dailyFocusPresentation: dailyFocusPresentation,
                     recoveryPresentation: recoveryPresentation,
+                    visibleRoutines: visibleRoutines,
+                    hasRoutineRules: !routineRules.isEmpty,
                     onCreate: { beginQuestCreation(draft: nil) },
                     onStartGuidedQuest: {
                         beginQuestCreation(draft: .guided(at: .now))
@@ -145,7 +157,10 @@ struct ContentView: View {
                     onResolveNotificationPermission: resolveNotificationPermission,
                     onComplete: complete,
                     onDelete: delete,
-                    onOpenDetail: { route = .detail($0) }
+                    onOpenDetail: { route = .detail($0) },
+                    onCreateRoutine: { routineSheet = .create },
+                    onManageRoutines: { routineSheet = .manage },
+                    onCompleteRoutine: completeRoutine
                 )
             }
             .sheet(item: $route) { route in
@@ -213,6 +228,21 @@ struct ContentView: View {
                     return didSave
                 }
             }
+            .sheet(item: $routineSheet) { sheet in
+                switch sheet {
+                case .create:
+                    RoutineEditor(routine: nil, onSave: saveRoutine)
+                case .edit(let routine):
+                    RoutineEditor(routine: routine, onSave: saveRoutine)
+                case .manage:
+                    RoutineManagementSheet(
+                        routines: routineRules,
+                        onCreate: { routineSheet = .create },
+                        onEdit: { routineSheet = .edit($0) },
+                        onDelete: deleteRoutine
+                    )
+                }
+            }
             .onChange(of: recoveryOffer) { _, offer in
                 if offer == nil, dailyFocusEditor?.dismissesRecoveryOnSave == true {
                     dailyFocusEditor = nil
@@ -242,6 +272,12 @@ struct ContentView: View {
             case .background:
                 if case .detail = route {
                     route = nil
+                }
+                switch routineSheet {
+                case .edit?, .manage?:
+                    routineSheet = nil
+                case .create?, nil:
+                    break
                 }
             case .active:
                 refreshNotificationAuthorization()
@@ -391,6 +427,31 @@ struct ContentView: View {
         DailyFocusDay.gregorianCalendar(timeZone: .current)
     }
 
+    private func completeRoutine(_ routine: RoutineRule) {
+        _ = RoutineCompletionRecorder.record(
+            routineID: routine.id,
+            at: .now,
+            calendar: localCalendar,
+            in: modelContext
+        )
+    }
+
+    private func saveRoutine(_ routine: RoutineRule?, title: String) -> Bool {
+        let normalizedTitle = QuestTitlePolicy.normalized(title)
+        guard !normalizedTitle.isEmpty else { return false }
+        if let routine {
+            routine.title = normalizedTitle
+        } else {
+            modelContext.insert(RoutineRule(title: normalizedTitle, createdAt: .now))
+        }
+        return commitPendingChanges()
+    }
+
+    private func deleteRoutine(_ routine: RoutineRule) {
+        modelContext.delete(routine)
+        _ = commitPendingChanges()
+    }
+
     private func complete(_ quest: Quest, at completedAt: Date = .now) {
         let questID = quest.id
         QuestActions.complete(quest, at: completedAt)
@@ -498,6 +559,20 @@ enum QuestSheetRoute: Identifiable {
     }
 }
 
+enum RoutineSheetRoute: Identifiable {
+    case create
+    case edit(RoutineRule)
+    case manage
+
+    var id: String {
+        switch self {
+        case .create: "routine-create"
+        case .edit(let routine): "routine-edit-\(routine.id.uuidString)"
+        case .manage: "routine-manage"
+        }
+    }
+}
+
 struct DailyFocusEditorRoute: Identifiable {
     let id = UUID()
     let initialSelectedQuestIDs: [UUID]
@@ -508,5 +583,5 @@ struct DailyFocusEditorRoute: Identifiable {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Quest.self, inMemory: true)
+        .modelContainer(for: [Quest.self, RoutineRule.self, RoutineCompletion.self], inMemory: true)
 }

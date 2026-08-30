@@ -15,6 +15,8 @@ enum QuestModelContainer {
             RetentionEvent.self,
             ExperimentAssignment.self,
             DailyFocusSelection.self,
+            RoutineRule.self,
+            RoutineCompletion.self,
         ])
     }
 
