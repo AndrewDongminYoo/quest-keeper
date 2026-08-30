@@ -67,6 +67,47 @@ final class RoutineUITests: XCTestCase {
         XCTAssertTrue(app.buttons["routineHomeManageButton"].waitForExistence(timeout: 3))
     }
 
+    func testRoutineEditorClosesBeforeForegroundContainerRefresh() {
+        let app = launch(arguments: uiTestKoreanLocaleArguments + ["-uiTestingRoutineFixture"])
+        let manageButton = app.buttons["routineHomeManageButton"]
+
+        XCTAssertTrue(manageButton.waitForExistence(timeout: 3))
+        manageButton.tap()
+        let routine = app.buttons["routineManage-00000000-0000-0000-0000-000000000301"]
+        XCTAssertTrue(routine.waitForExistence(timeout: 3))
+        routine.tap()
+        let titleField = app.textFields["routineEditorTitleField"]
+        XCTAssertTrue(titleField.waitForExistence(timeout: 3))
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+
+        let dismissal = expectation(
+            for: NSPredicate(format: "exists == false"),
+            evaluatedWith: titleField
+        )
+        wait(for: [dismissal], timeout: 3)
+    }
+
+    func testRoutineManagementClosesBeforeForegroundContainerRefresh() {
+        let app = launch(arguments: uiTestKoreanLocaleArguments + ["-uiTestingRoutineFixture"])
+        let manageButton = app.buttons["routineHomeManageButton"]
+
+        XCTAssertTrue(manageButton.waitForExistence(timeout: 3))
+        manageButton.tap()
+        let routine = app.buttons["routineManage-00000000-0000-0000-0000-000000000301"]
+        XCTAssertTrue(routine.waitForExistence(timeout: 3))
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+
+        let dismissal = expectation(
+            for: NSPredicate(format: "exists == false"),
+            evaluatedWith: routine
+        )
+        wait(for: [dismissal], timeout: 3)
+    }
+
     private func completionButtons(in app: XCUIApplication) -> XCUIElementQuery {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "routineComplete-"))
     }

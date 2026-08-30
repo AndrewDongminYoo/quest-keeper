@@ -273,6 +273,12 @@ struct ContentView: View {
                 if case .detail = route {
                     route = nil
                 }
+                switch routineSheet {
+                case .edit?, .manage?:
+                    routineSheet = nil
+                case .create?, nil:
+                    break
+                }
             case .active:
                 refreshNotificationAuthorization()
             default:
