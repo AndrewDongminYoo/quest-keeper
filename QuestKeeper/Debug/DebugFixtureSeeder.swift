@@ -33,6 +33,13 @@ enum DebugFixtureSeeder {
         usesUITestingStore && arguments.contains("-uiTestingRecoveryFixture")
     }
 
+    nonisolated static func shouldSeedHallOfFameFixture(
+        usesUITestingStore: Bool,
+        arguments: [String]
+    ) -> Bool {
+        usesUITestingStore && arguments.contains("-uiTestingHallOfFameFixture")
+    }
+
     /// Seeds whichever fixture the launch arguments ask for. Each fixture is inert unless its own
     /// flag is present, and the quest-inserting ones only run against an empty store so a re-launch
     /// against a persistent UI-testing store does not stack duplicates.
@@ -68,6 +75,11 @@ enum DebugFixtureSeeder {
             try seedStoreScreenshotFixture(in: context)
         }
 
+        if shouldSeedHallOfFameFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
+           try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
+            try seedHallOfFameFixture(in: context)
+        }
+
         if shouldSeedRecoveryFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
            try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
             try seedRecoveryFixture(in: context, arguments: arguments)
@@ -89,6 +101,25 @@ enum DebugFixtureSeeder {
                 importance: importance
             ))
         }
+        try context.save()
+    }
+
+    private static func seedHallOfFameFixture(in context: ModelContext) throws {
+        let now = Date.now
+        context.insert(Quest(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000201")!,
+            title: AppStrings.resolve(AppStrings.debugFixtureHallOfFameRecentVictory, locale: .current),
+            deadline: now.addingTimeInterval(-600),
+            importance: .medium,
+            completedAt: now.addingTimeInterval(-1_200)
+        ))
+        context.insert(Quest(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000202")!,
+            title: AppStrings.resolve(AppStrings.debugFixtureHallOfFameLongTitle, locale: .current),
+            deadline: now.addingTimeInterval(-86_400),
+            importance: .high,
+            completedAt: now.addingTimeInterval(-172_800)
+        ))
         try context.save()
     }
 

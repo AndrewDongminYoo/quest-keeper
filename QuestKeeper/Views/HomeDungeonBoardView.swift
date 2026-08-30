@@ -44,7 +44,8 @@ struct HomeDungeonBoardView: View {
                         heroAppearance: heroAppearance,
                         onCreate: onCreate,
                         onEditAppearance: { presentedSheet = .appearance },
-                        onOpenAbout: { presentedSheet = .about }
+                        onOpenAbout: { presentedSheet = .about },
+                        onOpenHallOfFame: { presentedSheet = .hallOfFame }
                     )
                     if storeFailedToOpen {
                         StoreFailureBanner()
@@ -120,6 +121,8 @@ struct HomeDungeonBoardView: View {
             switch sheet {
             case .appearance:
                 HeroAppearanceSheet(gender: heroGenderBinding, hairColor: heroHairColorBinding)
+            case .hallOfFame:
+                HallOfFameSheet(quests: allQuests, now: now)
             case .about:
                 if let tipJarStore {
                     AboutSheet(store: tipJarStore)
@@ -172,6 +175,7 @@ extension EnvironmentValues {
 
 private enum HomeDungeonSheet: String, Identifiable {
     case appearance
+    case hallOfFame
     case about
 
     var id: String { rawValue }
@@ -294,6 +298,7 @@ private struct BoardHUD: View {
     let onCreate: () -> Void
     let onEditAppearance: () -> Void
     let onOpenAbout: () -> Void
+    let onOpenHallOfFame: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -322,7 +327,8 @@ private struct BoardHUD: View {
                 isMourning: isMourning,
                 appearance: heroAppearance,
                 onEditAppearance: onEditAppearance,
-                onOpenAbout: onOpenAbout
+                onOpenAbout: onOpenAbout,
+                onOpenHallOfFame: onOpenHallOfFame
             )
         }
         .padding(14)

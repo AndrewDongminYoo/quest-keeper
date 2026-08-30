@@ -203,6 +203,22 @@ nonisolated extension AppStrings {
         defaultValue: "용사 외형 설정"
     )
     static let heroStatVictoryLabel = LocalizedStringResource("hero.stat.victoryLabel", defaultValue: "승리")
+    static let hallOfFameNavigationTitle = LocalizedStringResource(
+        "hallOfFame.navigationTitle",
+        defaultValue: "전리품 창고"
+    )
+    static let hallOfFameEmptyBody = LocalizedStringResource(
+        "hallOfFame.emptyBody",
+        defaultValue: "완료한 퀘스트가 여기에 쌓입니다."
+    )
+    static let hallOfFameOpenAccessibility = LocalizedStringResource(
+        "hallOfFame.openAccessibility",
+        defaultValue: "승리 기록 보기"
+    )
+    static let hallOfFameOpenHint = LocalizedStringResource(
+        "hallOfFame.openHint",
+        defaultValue: "완료한 퀘스트를 엽니다."
+    )
 
     static let heroAppearanceGenderSection = LocalizedStringResource(
         "hero.appearance.genderSection",
@@ -368,6 +384,14 @@ nonisolated extension AppStrings {
     static let debugFixtureDailyFocusGraveTitle = LocalizedStringResource(
         "debug.fixture.dailyFocusGraveTitle",
         defaultValue: "어제의 퀘스트"
+    )
+    static let debugFixtureHallOfFameRecentVictory = LocalizedStringResource(
+        "debug.fixture.hallOfFameRecentVictory",
+        defaultValue: "오늘 지켜낸 작은 승리"
+    )
+    static let debugFixtureHallOfFameLongTitle = LocalizedStringResource(
+        "debug.fixture.hallOfFameLongTitle",
+        defaultValue: "마감 전에 마무리한 아주 긴 전리품 정리 퀘스트 제목입니다"
     )
     static let debugFixtureScreenshotPrepare = LocalizedStringResource(
         "debug.fixture.screenshotPrepare",

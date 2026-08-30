@@ -15,9 +15,11 @@ struct HeroHeader: View {
     var appearance: HeroAppearance = .default
     var onEditAppearance: () -> Void = {}
     var onOpenAbout: () -> Void = {}
+    var onOpenHallOfFame: () -> Void = {}
 
     @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 36
     @ScaledMetric(relativeTo: .caption) private var aboutIconSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .caption) private var statTapInset: CGFloat = 15
 
     /// 스프라이트가 44pt 최소 터치 타깃보다 작을 때 채워야 할 한쪽 여백.
     /// Dynamic Type으로 스프라이트가 44pt를 넘으면 0이 되어 패딩이 뒤집히지 않는다.
@@ -90,11 +92,21 @@ struct HeroHeader: View {
 
     // 승리만 남는다. 진행 중 퀘스트 수는 바로 아래 목록이 이미 말하고 있어 지웠다 — DESIGN.md HUD.
     private var stats: some View {
-        HeroStat(
-            icon: .victoryTrophy,
-            label: AppStrings.resolve(AppStrings.heroStatVictoryLabel, locale: .current),
-            value: state.totalVictories
-        )
+        Button(action: onOpenHallOfFame) {
+            HeroStat(
+                icon: .victoryTrophy,
+                label: AppStrings.resolve(AppStrings.heroStatVictoryLabel, locale: .current),
+                value: state.totalVictories
+            )
+            .padding(.vertical, statTapInset)
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, -statTapInset)
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppStrings.resolve(AppStrings.hallOfFameOpenAccessibility, locale: .current))
+        .accessibilityValue("\(state.totalVictories)")
+        .accessibilityHint(AppStrings.resolve(AppStrings.hallOfFameOpenHint, locale: .current))
+        .accessibilityIdentifier("hallOfFameButton")
     }
 }
 
@@ -112,10 +124,6 @@ private struct HeroStat: View {
                 .foregroundStyle(DungeonPalette.ink)
         }
         .fixedSize(horizontal: true, vertical: false)
-        .accessibilityElement(children: .combine)
-        // label은 이미 해석된 문자열이고 value는 숫자다. 보간된 리터럴을 그대로 넘기면
-        // LocalizedStringKey로 잡혀 카탈로그에 "%@ %lld"가 추출된다.
-        .accessibilityLabel(Text(verbatim: "\(label) \(value)"))
     }
 }
 

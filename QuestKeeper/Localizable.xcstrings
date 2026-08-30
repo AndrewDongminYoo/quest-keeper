@@ -892,6 +892,40 @@
         }
       }
     },
+    "debug.fixture.hallOfFameLongTitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish the long Hall of Fame accessibility verification before the review"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마감 전에 마무리한 아주 긴 전리품 정리 퀘스트 제목입니다"
+          }
+        }
+      }
+    },
+    "debug.fixture.hallOfFameRecentVictory" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A small win today"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘 지켜낸 작은 승리"
+          }
+        }
+      }
+    },
     "debug.fixture.recoveryLeftoverQuest" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1440,6 +1474,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "머리색"
+          }
+        }
+      }
+    },
+    "hallOfFame.emptyBody" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed quests will appear here."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료한 퀘스트가 여기에 쌓입니다."
+          }
+        }
+      }
+    },
+    "hallOfFame.navigationTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hall of Fame"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전리품 창고"
+          }
+        }
+      }
+    },
+    "hallOfFame.openAccessibility" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View wins"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "승리 기록 보기"
+          }
+        }
+      }
+    },
+    "hallOfFame.openHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens completed quests."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료한 퀘스트를 엽니다."
           }
         }
       }
