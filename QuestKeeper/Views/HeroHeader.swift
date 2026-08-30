@@ -19,7 +19,7 @@ struct HeroHeader: View {
 
     @ScaledMetric(relativeTo: .caption) private var heroSize: CGFloat = 36
     @ScaledMetric(relativeTo: .caption) private var aboutIconSize: CGFloat = 20
-    @ScaledMetric(relativeTo: .caption) private var statTapInset: CGFloat = 15
+    private let statTapInset: CGFloat = 15
 
     /// 스프라이트가 44pt 최소 터치 타깃보다 작을 때 채워야 할 한쪽 여백.
     /// Dynamic Type으로 스프라이트가 44pt를 넘으면 0이 되어 패딩이 뒤집히지 않는다.

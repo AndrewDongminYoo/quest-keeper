@@ -51,9 +51,18 @@ final class HallOfFameUITests: XCTestCase {
             "-uiTestingHallOfFameFixture",
         ])
         let entry = app.buttons["hallOfFameButton"]
+        let appearance = app.buttons["heroAppearanceButton"]
+        let about = app.buttons["aboutButton"]
+        let add = app.buttons["questAddButton"]
 
         XCTAssertTrue(entry.waitForExistence(timeout: 3))
         XCTAssertGreaterThanOrEqual(entry.frame.height, 44)
+        XCTAssertTrue(appearance.exists)
+        XCTAssertTrue(about.exists)
+        XCTAssertTrue(add.exists)
+        XCTAssertFalse(entry.frame.intersects(appearance.frame), "\(entry.frame) intersects \(appearance.frame)")
+        XCTAssertFalse(entry.frame.intersects(about.frame), "\(entry.frame) intersects \(about.frame)")
+        XCTAssertFalse(entry.frame.intersects(add.frame), "\(entry.frame) intersects \(add.frame)")
         entry.tap()
 
         XCTAssertTrue(app.navigationBars["전리품 창고"].waitForExistence(timeout: 3))
