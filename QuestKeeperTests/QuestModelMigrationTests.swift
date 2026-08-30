@@ -76,5 +76,7 @@ struct QuestModelMigrationTests {
         #expect(quests[0].deadline == deadline)
         #expect(quests[0].completedAt == completedAt)
         #expect(quests[0].importance == .high)
+        #expect(try current.mainContext.fetch(FetchDescriptor<RoutineRule>()).isEmpty)
+        #expect(try current.mainContext.fetch(FetchDescriptor<RoutineCompletion>()).isEmpty)
     }
 }

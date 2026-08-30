@@ -138,6 +138,31 @@ nonisolated extension AppStrings {
 }
 
 nonisolated extension AppStrings {
+    static let routineSectionTitle = LocalizedStringResource("routine.section.title", defaultValue: "루틴")
+    static let routineEmptyBody = LocalizedStringResource(
+        "routine.empty.body",
+        defaultValue: "매일 반복할 작은 일을 추가해보세요."
+    )
+    static let routineCompletedTodayBody = LocalizedStringResource(
+        "routine.completedToday.body",
+        defaultValue: "오늘의 루틴을 모두 마쳤어요."
+    )
+    static let routineAddAction = LocalizedStringResource("routine.action.add", defaultValue: "루틴 추가")
+    static let routineManageAction = LocalizedStringResource("routine.action.manage", defaultValue: "관리")
+    static let routineManagementNavigationTitle = LocalizedStringResource(
+        "routine.manager.navigationTitle",
+        defaultValue: "루틴 관리"
+    )
+    static let routineEditorTitleField = LocalizedStringResource("routine.editor.titleField", defaultValue: "루틴 이름")
+    static let routineEditorNewTitle = LocalizedStringResource("routine.editor.newTitle", defaultValue: "새 루틴")
+    static let routineEditorEditTitle = LocalizedStringResource("routine.editor.editTitle", defaultValue: "루틴 편집")
+
+    static func a11yRoutineComplete(_ title: String) -> LocalizedStringResource {
+        LocalizedStringResource("a11y.routine.complete", defaultValue: "\(title) 완료")
+    }
+}
+
+nonisolated extension AppStrings {
     /// 완료된 행에는 실행할 동작이 없다. 명령형이 아니라 상태를 읽어 준다.
     static func a11yQuestCompleted(_ title: String) -> LocalizedStringResource {
         LocalizedStringResource("a11y.quest.completed", defaultValue: "\(title) 완료됨")
@@ -384,6 +409,18 @@ nonisolated extension AppStrings {
     static let debugFixtureDailyFocusGraveTitle = LocalizedStringResource(
         "debug.fixture.dailyFocusGraveTitle",
         defaultValue: "어제의 퀘스트"
+    )
+    static let debugFixtureRoutineOne = LocalizedStringResource(
+        "debug.fixture.routineOne",
+        defaultValue: "물 마시기"
+    )
+    static let debugFixtureRoutineTwo = LocalizedStringResource(
+        "debug.fixture.routineTwo",
+        defaultValue: "창문 열기"
+    )
+    static let debugFixtureRoutineThree = LocalizedStringResource(
+        "debug.fixture.routineThree",
+        defaultValue: "책상 정리"
     )
     static let debugFixtureHallOfFameRecentVictory = LocalizedStringResource(
         "debug.fixture.hallOfFameRecentVictory",

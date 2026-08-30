@@ -40,6 +40,13 @@ enum DebugFixtureSeeder {
         usesUITestingStore && arguments.contains("-uiTestingHallOfFameFixture")
     }
 
+    nonisolated static func shouldSeedRoutineFixture(
+        usesUITestingStore: Bool,
+        arguments: [String]
+    ) -> Bool {
+        usesUITestingStore && arguments.contains("-uiTestingRoutineFixture")
+    }
+
     /// Seeds whichever fixture the launch arguments ask for. Each fixture is inert unless its own
     /// flag is present, and the quest-inserting ones only run against an empty store so a re-launch
     /// against a persistent UI-testing store does not stack duplicates.
@@ -78,6 +85,11 @@ enum DebugFixtureSeeder {
         if shouldSeedHallOfFameFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
            try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
             try seedHallOfFameFixture(in: context)
+        }
+
+        if shouldSeedRoutineFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
+           try context.fetchCount(FetchDescriptor<RoutineRule>()) == 0 {
+            try seedRoutineFixture(in: context)
         }
 
         if shouldSeedRecoveryFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
@@ -119,6 +131,26 @@ enum DebugFixtureSeeder {
             deadline: now.addingTimeInterval(-86_400),
             importance: .high,
             completedAt: now.addingTimeInterval(-172_800)
+        ))
+        try context.save()
+    }
+
+    private static func seedRoutineFixture(in context: ModelContext) throws {
+        let createdAt = Date.now.addingTimeInterval(-60)
+        context.insert(RoutineRule(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000301")!,
+            title: AppStrings.resolve(AppStrings.debugFixtureRoutineOne, locale: .current),
+            createdAt: createdAt
+        ))
+        context.insert(RoutineRule(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000302")!,
+            title: AppStrings.resolve(AppStrings.debugFixtureRoutineTwo, locale: .current),
+            createdAt: createdAt
+        ))
+        context.insert(RoutineRule(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000303")!,
+            title: AppStrings.resolve(AppStrings.debugFixtureRoutineThree, locale: .current),
+            createdAt: createdAt
         ))
         try context.save()
     }

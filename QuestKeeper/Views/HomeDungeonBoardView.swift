@@ -19,6 +19,8 @@ struct HomeDungeonBoardView: View {
     let onboardingPresentation: OnboardingFlowPresentation
     let dailyFocusPresentation: DailyFocusPresentationState
     let recoveryPresentation: RecoveryCardPresentation?
+    let visibleRoutines: [RoutineRule]
+    let hasRoutineRules: Bool
     let onCreate: () -> Void
     let onStartGuidedQuest: () -> Void
     let onDeferOnboarding: () -> Void
@@ -32,6 +34,9 @@ struct HomeDungeonBoardView: View {
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
     let onOpenDetail: (Quest) -> Void
+    let onCreateRoutine: () -> Void
+    let onManageRoutines: () -> Void
+    let onCompleteRoutine: (RoutineRule) -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -111,6 +116,14 @@ struct HomeDungeonBoardView: View {
                         .animation(.default, value: pending.map(\.id))
                         .animation(.default, value: dailyGraves.map(\.id))
                     }
+                    RoutineSection(
+                        routines: visibleRoutines,
+                        hasRoutineRules: hasRoutineRules,
+                        onCreate: onCreateRoutine,
+                        onManage: onManageRoutines,
+                        onComplete: onCompleteRoutine
+                    )
+                    .animation(.default, value: visibleRoutines.map(\.id))
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 18)
