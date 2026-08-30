@@ -81,6 +81,43 @@ struct RoutineCompletionRecorderTests {
         #expect(try context.fetch(FetchDescriptor<RoutineCompletion>()).isEmpty)
     }
 
+    @Test("a routine that rotated out at midnight cannot receive today's completion")
+    func refusesRoutineThatRotatedOutAtMidnight() throws {
+        let container = QuestModelContainer.makeEphemeralFallback()
+        let context = ModelContext(container)
+        let yesterday = date(year: 2026, month: 8, day: 29, hour: 23)
+        let today = date(year: 2026, month: 8, day: 30, hour: 0)
+        let firstID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let secondID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let thirdID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+        let rules = [firstID, secondID, thirdID].map {
+            RoutineRule(id: $0, title: "Routine \($0.uuidString)", createdAt: yesterday.addingTimeInterval(-60))
+        }
+        rules.forEach(context.insert)
+        try context.save()
+
+        #expect(RoutineState.visibleRoutineIDs(
+            rules: rules.map(\.snapshot),
+            completions: [],
+            now: yesterday,
+            calendar: calendar
+        ) == [thirdID, firstID])
+        #expect(RoutineState.visibleRoutineIDs(
+            rules: rules.map(\.snapshot),
+            completions: [],
+            now: today,
+            calendar: calendar
+        ) == [firstID, secondID])
+
+        #expect(RoutineCompletionRecorder.record(
+            routineID: thirdID,
+            at: today,
+            calendar: calendar,
+            in: context
+        ) == .failed)
+        #expect(try context.fetch(FetchDescriptor<RoutineCompletion>()).isEmpty)
+    }
+
     private func date(year: Int, month: Int, day: Int, hour: Int) -> Date {
         calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
     }

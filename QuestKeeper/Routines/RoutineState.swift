@@ -15,7 +15,11 @@ nonisolated enum RoutineState {
             .sorted { $0.uuidString.lowercased() < $1.uuidString.lowercased() }
         guard !orderedRuleIDs.isEmpty else { return [] }
 
-        let dayOrdinal = calendar.ordinality(of: .day, in: .era, for: now) ?? 0
+        let dayOrdinal = calendar.ordinality(
+            of: .day,
+            in: .era,
+            for: calendar.startOfDay(for: now)
+        ) ?? 0
         let roster = (0..<min(maximumVisibleRoutines, orderedRuleIDs.count)).map {
             orderedRuleIDs[(dayOrdinal + $0) % orderedRuleIDs.count]
         }

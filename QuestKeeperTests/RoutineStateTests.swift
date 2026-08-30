@@ -18,17 +18,9 @@ struct RoutineStateTests {
             rule(id: firstID, createdAt: now.addingTimeInterval(-60)),
             rule(id: secondID, createdAt: now.addingTimeInterval(-60)),
         ]
-        let sortedIDs = [firstID, secondID, thirdID]
-        let dayOrdinal = seoulCalendar.ordinality(of: .day, in: .era, for: now)!
-        let expectedToday = [
-            sortedIDs[dayOrdinal % sortedIDs.count],
-            sortedIDs[(dayOrdinal + 1) % sortedIDs.count],
-        ]
+        let expectedToday = [firstID, secondID]
         let tomorrow = seoulCalendar.date(byAdding: .day, value: 1, to: now)!
-        let expectedTomorrow = [
-            sortedIDs[(dayOrdinal + 1) % sortedIDs.count],
-            sortedIDs[(dayOrdinal + 2) % sortedIDs.count],
-        ]
+        let expectedTomorrow = [secondID, thirdID]
 
         #expect(RoutineState.visibleRoutineIDs(
             rules: rules,
@@ -73,6 +65,31 @@ struct RoutineStateTests {
             now: now,
             calendar: seoulCalendar
         ) == [initialRoster[1]])
+    }
+
+    @Test("daily roster rotates at the local midnight boundary")
+    func rotatesAtLocalMidnight() {
+        let beforeMidnight = date(year: 2026, month: 8, day: 29, hour: 23, calendar: seoulCalendar)
+        let afterMidnight = date(year: 2026, month: 8, day: 30, hour: 0, calendar: seoulCalendar)
+        let firstID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let secondID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let thirdID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+        let rules = [firstID, secondID, thirdID].map {
+            rule(id: $0, createdAt: beforeMidnight.addingTimeInterval(-60))
+        }
+
+        #expect(RoutineState.visibleRoutineIDs(
+            rules: rules,
+            completions: [],
+            now: beforeMidnight,
+            calendar: seoulCalendar
+        ) == [thirdID, firstID])
+        #expect(RoutineState.visibleRoutineIDs(
+            rules: rules,
+            completions: [],
+            now: afterMidnight,
+            calendar: seoulCalendar
+        ) == [firstID, secondID])
     }
 
     @Test("a completion hides only its current local day")

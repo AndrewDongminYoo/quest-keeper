@@ -26,6 +26,14 @@ enum RoutineCompletionRecorder {
             }) {
                 return .unchanged(existing.snapshot)
             }
+            guard RoutineState.visibleRoutineIDs(
+                rules: rules.map(\.snapshot),
+                completions: completions.map(\.snapshot),
+                now: completedAt,
+                calendar: calendar
+            ).contains(routineID) else {
+                return .failed
+            }
 
             let completion = RoutineCompletion(
                 routineID: routineID,
