@@ -226,6 +226,10 @@ struct QuestKeeperApp: App {
                 didBackground = true
                 retentionActivationSessionID = UUID()
             case .active:
+                // Every `.active` path below goes through here, including the fallback-run early
+                // return, so this is the one place that can tell the route store a foreground has
+                // genuinely begun.
+                notificationRouteStore.beginForeground()
                 // A fallback run stops here. Its container holds none of the user's facts, and
                 // everything below treats the container as the truth — `syncActivation` would cancel
                 // every pending reminder the real quests still need and publish an empty widget

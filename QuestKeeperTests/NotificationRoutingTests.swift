@@ -155,6 +155,90 @@ struct NotificationRoutingTests {
         #expect(store.takeReengagementAttribution()?.questID == questID)
     }
 
+    @Test("an unresolved reengagement route loses its attribution across a foreground boundary")
+    func unresolvedAttributionDoesNotCrossForegrounds() throws {
+        let container = try reminderContainer()
+        let questID = try #require(reminderQuestID(in: container))
+        let store = NotificationRouteStore()
+        store.beginForeground()
+        store.resume(for: container)
+
+        // Tapped during this foreground and never resolved before the app went away — the quest was
+        // not visible yet, which is the case spec 023's one-execution boundary is about.
+        store.route(userInfo: reminderUserInfo(questID))
+        store.pause()
+        store.beginForeground()
+        store.resume(for: container)
+
+        // The tap still opens its quest. Bounding the navigation is what swallowed valid taps.
+        #expect(store.takeRoutedQuest(in: container.mainContext)?.id == questID)
+        #expect(store.takeReengagementAttribution() == nil)
+    }
+
+    @Test("a reengagement tap that cold-starts the app keeps its attribution")
+    func coldStartTapKeepsItsAttribution() throws {
+        let container = try reminderContainer()
+        let questID = try #require(reminderQuestID(in: container))
+        let store = NotificationRouteStore()
+
+        // `didReceive` runs before anything else on a cold start.
+        store.route(userInfo: reminderUserInfo(questID))
+        store.pause()
+        store.beginForeground()
+        store.resume(for: container)
+
+        #expect(store.takeRoutedQuest(in: container.mainContext)?.id == questID)
+        #expect(store.takeReengagementAttribution()?.questID == questID)
+    }
+
+    @Test("a tap after the container observer but before the first activation keeps its attribution")
+    func tapBeforeFirstActivationKeepsItsAttribution() throws {
+        let container = try reminderContainer()
+        let questID = try #require(reminderQuestID(in: container))
+        let store = NotificationRouteStore()
+
+        // `ContentView` resumes from `onChange(of: container, initial: true)`, which can run before
+        // the scene phase has ever been `.active`. Reading that as "a foreground is under way" is
+        // what made a generation-stamped draft discard this tap — see
+        // docs/plans/2026-09-01-reengagement-route-generation.md.
+        store.resume(for: container)
+        store.route(userInfo: reminderUserInfo(questID))
+        store.pause()
+        store.beginForeground()
+        store.resume(for: container)
+
+        #expect(store.takeRoutedQuest(in: container.mainContext)?.id == questID)
+        #expect(store.takeReengagementAttribution()?.questID == questID)
+    }
+
+    private func reminderContainer() throws -> ModelContainer {
+        let schema = Schema([Quest.self])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+        container.mainContext.insert(Quest(
+            id: UUID(uuidString: "0000FEED-0000-0000-0000-000000000001")!,
+            title: "Reminder target",
+            deadline: Date.now.addingTimeInterval(60 * 60),
+            importance: .medium,
+            details: ""
+        ))
+        try container.mainContext.save()
+        return container
+    }
+
+    private func reminderQuestID(in container: ModelContainer) -> UUID? {
+        try? container.mainContext.fetch(FetchDescriptor<Quest>()).first?.id
+    }
+
+    private func reminderUserInfo(_ questID: UUID) -> [AnyHashable: Any] {
+        [
+            "questID": questID.uuidString,
+            "kind": ReengagementReminderPlanner.notificationKind,
+        ]
+    }
+
     @Test("reengagement route falls back when its target is no longer pending")
     func reengagementRouteFallsBackForResolvedQuest() throws {
         let schema = Schema([Quest.self])
