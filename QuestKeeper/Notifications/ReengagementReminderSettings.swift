@@ -84,13 +84,24 @@ final class ReengagementReminderSettingsStore {
     static let storageKey = "reengagementReminderSettingsV1"
     static let shared = ReengagementReminderSettingsStore()
 
-    private let defaults: UserDefaults
+    private let defaults: UserDefaults?
+    private var ephemeralSettings: ReengagementReminderSettings?
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults? = .standard) {
         self.defaults = defaults
     }
 
+    /// 스토어가 열리지 않은 fallback 실행과 UI 테스트용. 이 실행에서 바꾼 설정은 프로세스와 함께
+    /// 사라진다. 그 실행의 퀘스트는 살아남지 못하는데 설정만 남으면, 스토어가 복구된 뒤
+    /// 무관한 퀘스트에 알림이 예약된다.
+    static func ephemeral() -> ReengagementReminderSettingsStore {
+        ReengagementReminderSettingsStore(defaults: nil)
+    }
+
     func load() -> ReengagementReminderSettings {
+        guard let defaults else {
+            return ephemeralSettings ?? ReengagementReminderSettings()
+        }
         guard let data = defaults.data(forKey: Self.storageKey),
               let settings = try? JSONDecoder().decode(ReengagementReminderSettings.self, from: data) else {
             return ReengagementReminderSettings()
@@ -99,6 +110,10 @@ final class ReengagementReminderSettingsStore {
     }
 
     func save(_ settings: ReengagementReminderSettings) {
+        guard let defaults else {
+            ephemeralSettings = settings
+            return
+        }
         guard let data = try? JSONEncoder().encode(settings) else { return }
         defaults.set(data, forKey: Self.storageKey)
     }

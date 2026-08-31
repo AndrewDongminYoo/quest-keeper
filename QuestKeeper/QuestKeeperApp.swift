@@ -34,6 +34,7 @@ struct QuestKeeperApp: App {
     @State private var tipJarStore = StoreKitTipJarStore()
     private let notificationDelegate: NotificationDelegate
     private let notificationService: QuestNotificationService
+    private let reengagementSettingsStore: ReengagementReminderSettingsStore
     private let shortcutCreationCoordinator: QuestShortcutCreationCoordinator
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     private let retentionBaselineWriter: RetentionBaselineWriter?
@@ -116,11 +117,17 @@ struct QuestKeeperApp: App {
             usesUITestingStore: usesUITestingStore,
             storeFailedToOpen: storeFailedToOpen
         )
+        // 이 실행의 퀘스트는 프로세스와 함께 사라지는데 알림 설정만 실제 저장소에 남으면,
+        // 복구된 다음 실행에서 살아남은 무관한 퀘스트에 알림이 예약된다.
+        let reengagementSettingsStore: ReengagementReminderSettingsStore =
+            usesInertSideEffects ? .ephemeral() : .shared
+        self.reengagementSettingsStore = reengagementSettingsStore
         let notificationService = usesInertSideEffects
             ? QuestNotificationService(
                 center: InertQuestNotificationCenter(
                     authorizationStatus: deniesNotificationAuthorization ? .denied : .authorized
-                )
+                ),
+                reengagementSettingsStore: reengagementSettingsStore
             )
             : QuestNotificationService.shared
         let snapshotWriter = usesInertSideEffects
@@ -197,6 +204,7 @@ struct QuestKeeperApp: App {
             ContentView(
                 notificationService: notificationService,
                 notificationRouteStore: notificationRouteStore,
+                reengagementSettingsStore: reengagementSettingsStore,
                 widgetSnapshotWriter: widgetSnapshotWriter,
                 onboardingAssignment: onboardingAssignment,
                 onboardingMeasurementAvailable: onboardingMeasurementAvailable,
