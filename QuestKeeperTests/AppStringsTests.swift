@@ -35,11 +35,11 @@ struct AppStringsTests {
     func notificationPermissionRecoveryLocalizes() {
         #expect(
             AppStrings.resolve(AppStrings.notificationPermissionRequestBody, locale: ko)
-                == "마감 알림을 받으려면 알림을 허용하세요."
+                == "마감 알림을 받으려면 재방문 알림 설정에서 켜세요."
         )
         #expect(
             AppStrings.resolve(AppStrings.notificationPermissionRequestBody, locale: en)
-                == "Allow notifications to receive deadline reminders."
+                == "Enable notifications in return reminder settings for deadline alerts."
         )
         #expect(
             AppStrings.resolve(AppStrings.notificationPermissionBannerBody, locale: ko)

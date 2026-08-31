@@ -91,9 +91,41 @@ struct RetentionEventRecorderTests {
             at: now.addingTimeInterval(1),
             in: context
         ) == .duplicate)
+        #expect(RetentionEventRecorder.recordReengagementPermissionRequested(
+            actionID: actionID,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementPermissionGranted(
+            actionID: actionID,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementReminderEnabled(
+            actionID: actionID,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementReminderDisabled(
+            actionID: actionID,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementNotificationOpened(
+            questID: questID,
+            actionID: actionID,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementNotificationCompleted(
+            questID: questID,
+            actionID: actionID,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .inserted)
 
         let events = try context.fetch(FetchDescriptor<RetentionEvent>())
-        #expect(events.count == 6)
+        #expect(events.count == 12)
         #expect(Set(events.map(\.installationID)) == [installationID])
         let experimentEvents = events.filter {
             [.experimentExposed, .questCreationStarted, .onboardingDeferred].contains($0.snapshot.name)
@@ -199,6 +231,41 @@ struct RetentionEventRecorderTests {
             "quest_retried:\(installationID):\(questID):\(actionID)",
             "quest_retried:\(installationID):\(questID):\(sessionID)",
         ])
+    }
+
+    @Test("the first value boundary reads a recorded creation fact, not the current quest list")
+    func firstValueBoundaryReadsTheCreationFact() {
+        #expect(snapshot(name: .questCreated, source: .app, questID: questID).isFirstValueQuestCreation)
+        #expect(snapshot(name: .questCreated, source: .shortcut, questID: questID).isFirstValueQuestCreation)
+
+        // 위젯은 퀘스트를 만들지 않는다. `RetentionReport`의 `.questCreated` 유효 조합과 같은 판정이다.
+        #expect(!snapshot(name: .questCreated, source: .widget, questID: questID).isFirstValueQuestCreation)
+        #expect(!snapshot(name: .questCreated, source: .app, questID: nil).isFirstValueQuestCreation)
+        #expect(!snapshot(name: .questCompleted, source: .app, questID: questID).isFirstValueQuestCreation)
+        #expect(!snapshot(
+            name: .questCreated,
+            source: .app,
+            questID: questID,
+            schemaVersion: RetentionEvent.currentSchemaVersion + 1
+        ).isFirstValueQuestCreation)
+    }
+
+    private func snapshot(
+        name: RetentionEventName,
+        source: RetentionEventSource,
+        questID: UUID?,
+        schemaVersion: Int = RetentionEvent.currentSchemaVersion
+    ) -> RetentionEventSnapshot {
+        RetentionEventSnapshot(
+            id: UUID(),
+            schemaVersion: schemaVersion,
+            nameRawValue: name.rawValue,
+            installationID: installationID,
+            occurredAt: now,
+            sourceRawValue: source.rawValue,
+            questID: questID,
+            deduplicationKey: "\(name.rawValue):\(installationID):\(questID?.uuidString ?? "-")"
+        )
     }
 
     private func measurementContainer() throws -> ModelContainer {

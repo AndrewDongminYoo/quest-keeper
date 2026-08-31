@@ -9,6 +9,13 @@ nonisolated enum RetentionEventName: String, Codable, CaseIterable, Sendable {
     case experimentExposed = "experiment_exposed"
     case questCreationStarted = "quest_creation_started"
     case onboardingDeferred = "onboarding_deferred"
+    case reengagementPermissionRequested = "reengagement_permission_requested"
+    case reengagementPermissionGranted = "reengagement_permission_granted"
+    case reengagementPermissionDenied = "reengagement_permission_denied"
+    case reengagementReminderEnabled = "reengagement_reminder_enabled"
+    case reengagementReminderDisabled = "reengagement_reminder_disabled"
+    case reengagementNotificationOpened = "reengagement_notification_opened"
+    case reengagementNotificationCompleted = "reengagement_notification_completed"
 }
 
 nonisolated enum RetentionEventSource: String, Codable, CaseIterable, Sendable {
@@ -140,8 +147,47 @@ extension RetentionEventName {
         switch self {
         case .experimentExposed, .questCreationStarted, .questCreated, .questCompleted, .onboardingDeferred:
             true
-        case .appActivated, .questRetried:
+        case .appActivated,
+             .questRetried,
+             .reengagementPermissionRequested,
+             .reengagementPermissionGranted,
+             .reengagementPermissionDenied,
+             .reengagementReminderEnabled,
+             .reengagementReminderDisabled,
+             .reengagementNotificationOpened,
+             .reengagementNotificationCompleted:
             false
         }
+    }
+
+    nonisolated var isReengagement: Bool {
+        switch self {
+        case .reengagementPermissionRequested,
+             .reengagementPermissionGranted,
+             .reengagementPermissionDenied,
+             .reengagementReminderEnabled,
+             .reengagementReminderDisabled,
+             .reengagementNotificationOpened,
+             .reengagementNotificationCompleted:
+            true
+        default:
+            false
+        }
+    }
+}
+
+extension RetentionEventSnapshot {
+    /// 스펙 012가 정의한 첫 가치 경험의 사실: 유효하게 기록된 `quest_created`.
+    ///
+    /// 현재 퀘스트 목록이 아니라 이 사실을 읽기 때문에, 사용자가 퀘스트를 모두 지워도 경계는 다시 닫히지 않는다.
+    /// 유효 조합은 `RetentionReport`가 `.questCreated`에 적용하는 것과 같게 손으로 맞춰 두었다. 그쪽을 고칠 때 여기도 함께 봐야 한다.
+    nonisolated var isFirstValueQuestCreation: Bool {
+        guard schemaVersion == RetentionEvent.currentSchemaVersion,
+              name == .questCreated,
+              let source else {
+            return false
+        }
+        // `RetentionReport`의 `.questCreated` 유효 조합과 같은 조건이다. 한쪽만 고치면 두 곳이 조용히 어긋난다.
+        return (source == .app || source == .shortcut) && questID != nil
     }
 }

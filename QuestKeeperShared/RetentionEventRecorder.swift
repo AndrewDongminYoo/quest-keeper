@@ -235,6 +235,119 @@ nonisolated enum RetentionEventRecorder {
         )
     }
 
+    static func recordReengagementPermissionRequested(
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        recordReengagementAction(
+            name: .reengagementPermissionRequested,
+            actionID: actionID,
+            at: occurredAt,
+            in: context
+        )
+    }
+
+    static func recordReengagementPermissionGranted(
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        recordReengagementAction(
+            name: .reengagementPermissionGranted,
+            actionID: actionID,
+            at: occurredAt,
+            in: context
+        )
+    }
+
+    static func recordReengagementPermissionDenied(
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        recordReengagementAction(
+            name: .reengagementPermissionDenied,
+            actionID: actionID,
+            at: occurredAt,
+            in: context
+        )
+    }
+
+    static func recordReengagementReminderEnabled(
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        recordReengagementAction(
+            name: .reengagementReminderEnabled,
+            actionID: actionID,
+            at: occurredAt,
+            in: context
+        )
+    }
+
+    static func recordReengagementReminderDisabled(
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        recordReengagementAction(
+            name: .reengagementReminderDisabled,
+            actionID: actionID,
+            at: occurredAt,
+            in: context
+        )
+    }
+
+    static func recordReengagementNotificationOpened(
+        questID: UUID,
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        record(
+            name: .reengagementNotificationOpened,
+            source: .app,
+            occurredAt: occurredAt,
+            questID: questID,
+            keyComponent: "\(questID.uuidString):\(actionID.uuidString)",
+            in: context
+        )
+    }
+
+    static func recordReengagementNotificationCompleted(
+        questID: UUID,
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        record(
+            name: .reengagementNotificationCompleted,
+            source: .app,
+            occurredAt: occurredAt,
+            questID: questID,
+            keyComponent: "\(questID.uuidString):\(actionID.uuidString)",
+            in: context
+        )
+    }
+
+    private static func recordReengagementAction(
+        name: RetentionEventName,
+        actionID: UUID,
+        at occurredAt: Date,
+        in context: ModelContext
+    ) -> RetentionRecordResult {
+        record(
+            name: name,
+            source: .app,
+            occurredAt: occurredAt,
+            questID: nil,
+            keyComponent: actionID.uuidString,
+            in: context
+        )
+    }
+
     private static func record(
         name: RetentionEventName,
         source: RetentionEventSource,
@@ -252,7 +365,14 @@ nonisolated enum RetentionEventRecorder {
              (.questRetried, .app),
              (.experimentExposed, .app),
              (.questCreationStarted, .app),
-             (.onboardingDeferred, .app):
+             (.onboardingDeferred, .app),
+             (.reengagementPermissionRequested, .app),
+             (.reengagementPermissionGranted, .app),
+             (.reengagementPermissionDenied, .app),
+             (.reengagementReminderEnabled, .app),
+             (.reengagementReminderDisabled, .app),
+             (.reengagementNotificationOpened, .app),
+             (.reengagementNotificationCompleted, .app):
             break
         default:
             return .failed

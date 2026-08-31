@@ -9,36 +9,64 @@ import Foundation
 import Observation
 import SwiftData
 
+nonisolated struct ReengagementNotificationAttribution: Equatable, Sendable {
+    let questID: UUID
+    let actionID: UUID
+}
+
 @MainActor
 @Observable
 final class NotificationRouteStore {
     var pendingQuestID: UUID?
     private var readyContainerIdentity: ObjectIdentifier?
+    private var pendingReengagementActionID: UUID?
+    private var resolvedReengagementAttribution: ReengagementNotificationAttribution?
     private(set) var readyGeneration = 0
 
     nonisolated static func questIDString(from userInfo: [AnyHashable: Any]) -> String? {
         userInfo["questID"] as? String
     }
 
+    nonisolated static func isReengagement(userInfo: [AnyHashable: Any]) -> Bool {
+        userInfo["kind"] as? String == ReengagementReminderPlanner.notificationKind
+    }
+
     func route(userInfo: [AnyHashable: Any]) {
-        route(questIDString: Self.questIDString(from: userInfo))
+        route(
+            questIDString: Self.questIDString(from: userInfo),
+            isReengagement: Self.isReengagement(userInfo: userInfo)
+        )
     }
 
     func route(questIDString: String?) {
+        route(questIDString: questIDString, isReengagement: false)
+    }
+
+    func route(questIDString: String?, isReengagement: Bool) {
         guard
             let rawQuestID = questIDString,
             let questID = UUID(uuidString: rawQuestID)
         else { return }
 
         pendingQuestID = questID
+        pendingReengagementActionID = isReengagement ? UUID() : nil
     }
 
     func clear() {
         pendingQuestID = nil
+        pendingReengagementActionID = nil
+        resolvedReengagementAttribution = nil
     }
 
     func pause() {
         readyContainerIdentity = nil
+        // 스펙 023의 귀속 경계는 같은 포그라운드 실행이므로, 이미 해결된 귀속은 여기서 버린다.
+        //
+        // 아직 해결되지 않은 라우트는 일부러 남긴다. `didReceive`와 scene phase 전환의 순서는
+        // 보장되지 않아서, 알림 탭으로 콜드 스타트할 때 `onChange(initial: true)`의 `.background`가
+        // 방금 도착한 유효한 탭보다 나중에 오면 그 탭을 삼키게 된다. 드문 완료율 부풀림보다
+        // 사용자가 누른 알림이 아무 일도 하지 않는 쪽이 나쁘다.
+        resolvedReengagementAttribution = nil
     }
 
     func resume(for container: ModelContainer) {
@@ -64,7 +92,24 @@ final class NotificationRouteStore {
             predicate: #Predicate { $0.id == questID }
         )
         guard let quest = try? context.fetch(descriptor).first else { return nil }
-        clear()
+        guard pendingReengagementActionID == nil || quest.snapshot.outcome(at: .now) == .pending else {
+            pendingQuestID = nil
+            pendingReengagementActionID = nil
+            return nil
+        }
+        if let actionID = pendingReengagementActionID {
+            resolvedReengagementAttribution = ReengagementNotificationAttribution(
+                questID: questID,
+                actionID: actionID
+            )
+        }
+        pendingQuestID = nil
+        pendingReengagementActionID = nil
         return quest
+    }
+
+    func takeReengagementAttribution() -> ReengagementNotificationAttribution? {
+        defer { resolvedReengagementAttribution = nil }
+        return resolvedReengagementAttribution
     }
 }

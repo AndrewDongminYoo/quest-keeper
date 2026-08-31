@@ -69,6 +69,113 @@ nonisolated extension AppStrings {
         "notification.deadline.body",
         defaultValue: "퀘스트 마감 시간이 되었습니다"
     )
+    static let reengagementFinishTitle = LocalizedStringResource(
+        "reengagement.finish.title",
+        defaultValue: "오늘의 퀘스트"
+    )
+    static let reengagementFinishBody = LocalizedStringResource(
+        "reengagement.finish.body",
+        defaultValue: "남은 퀘스트 하나를 확인해보세요."
+    )
+    static let reengagementReviewTitle = LocalizedStringResource(
+        "reengagement.review.title",
+        defaultValue: "오늘의 계획"
+    )
+    static let reengagementReviewBody = LocalizedStringResource(
+        "reengagement.review.body",
+        defaultValue: "오늘의 계획을 확인해보세요."
+    )
+}
+
+nonisolated extension AppStrings {
+    static let reengagementSettingsNavigationTitle = LocalizedStringResource(
+        "reengagement.settings.navigationTitle",
+        defaultValue: "재방문 알림"
+    )
+    static let reengagementSettingsEnabled = LocalizedStringResource(
+        "reengagement.settings.enabled",
+        defaultValue: "알림 받기"
+    )
+    static let reengagementSettingsFirstQuestRequired = LocalizedStringResource(
+        "reengagement.settings.firstQuestRequired",
+        defaultValue: "첫 퀘스트를 저장하면 알림을 켤 수 있어요."
+    )
+    static let reengagementSettingsScheduleSection = LocalizedStringResource(
+        "reengagement.settings.scheduleSection",
+        defaultValue: "일정"
+    )
+    static let reengagementSettingsTime = LocalizedStringResource(
+        "reengagement.settings.time",
+        defaultValue: "알림 시각"
+    )
+    static let reengagementSettingsFrequency = LocalizedStringResource(
+        "reengagement.settings.frequency",
+        defaultValue: "반복"
+    )
+    static let reengagementSettingsFrequencyDaily = LocalizedStringResource(
+        "reengagement.settings.frequency.daily",
+        defaultValue: "매일"
+    )
+    static let reengagementSettingsFrequencyWeekdays = LocalizedStringResource(
+        "reengagement.settings.frequency.weekdays",
+        defaultValue: "평일"
+    )
+    static let reengagementSettingsQuietHoursSection = LocalizedStringResource(
+        "reengagement.settings.quietHoursSection",
+        defaultValue: "방해 금지 시간"
+    )
+    static let reengagementSettingsQuietHoursEnabled = LocalizedStringResource(
+        "reengagement.settings.quietHoursEnabled",
+        defaultValue: "방해 금지 시간 사용"
+    )
+    static let reengagementSettingsQuietHoursStart = LocalizedStringResource(
+        "reengagement.settings.quietHoursStart",
+        defaultValue: "시작"
+    )
+    static let reengagementSettingsQuietHoursEnd = LocalizedStringResource(
+        "reengagement.settings.quietHoursEnd",
+        defaultValue: "종료"
+    )
+    static let reengagementSettingsPurposeSection = LocalizedStringResource(
+        "reengagement.settings.purposeSection",
+        defaultValue: "알림 목적"
+    )
+    static let reengagementSettingsPurpose = LocalizedStringResource(
+        "reengagement.settings.purpose",
+        defaultValue: "목적"
+    )
+    static let reengagementSettingsPurposeFinishOneQuest = LocalizedStringResource(
+        "reengagement.settings.purpose.finishOneQuest",
+        defaultValue: "퀘스트 하나 끝내기"
+    )
+    static let reengagementSettingsPurposeReviewPlan = LocalizedStringResource(
+        "reengagement.settings.purpose.reviewPlan",
+        defaultValue: "오늘의 계획 확인"
+    )
+    static let reengagementSettingsQuietHoursConflict = LocalizedStringResource(
+        "reengagement.settings.quietHoursConflict",
+        defaultValue: "알림 시각이 방해 금지 시간 안에 있습니다. 알림 시각이나 방해 금지 시간을 바꾸면 알림이 예약됩니다."
+    )
+    static let reengagementSettingsPermissionSection = LocalizedStringResource(
+        "reengagement.settings.permissionSection",
+        defaultValue: "알림 권한"
+    )
+    static let reengagementSettingsPermissionRequestExplanation = LocalizedStringResource(
+        "reengagement.settings.permissionRequestExplanation",
+        defaultValue: "유효한 알림을 켜고 저장하면 알림 권한을 요청합니다."
+    )
+    static let reengagementSettingsPermissionDeniedExplanation = LocalizedStringResource(
+        "reengagement.settings.permissionDeniedExplanation",
+        defaultValue: "알림을 받으려면 시스템 설정에서 알림을 켜세요."
+    )
+    static let reengagementSettingsOpenSystemSettings = LocalizedStringResource(
+        "reengagement.settings.openSystemSettings",
+        defaultValue: "설정 열기"
+    )
+    static let reengagementSettingsButtonAccessibility = LocalizedStringResource(
+        "reengagement.settings.buttonAccessibility",
+        defaultValue: "재방문 알림 설정"
+    )
 }
 
 nonisolated extension AppStrings {
@@ -188,7 +295,7 @@ nonisolated extension AppStrings {
     )
     static let notificationPermissionRequestBody = LocalizedStringResource(
         "notification.permissionBanner.requestBody",
-        defaultValue: "마감 알림을 받으려면 알림을 허용하세요."
+        defaultValue: "마감 알림을 받으려면 재방문 알림 설정에서 켜세요."
     )
 }
 

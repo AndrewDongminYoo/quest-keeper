@@ -308,6 +308,14 @@ private nonisolated func isValidCombination(
         (source == .app || source == .widget) && questID != nil
     case .experimentExposed, .questCreationStarted, .onboardingDeferred:
         source == .app && questID == nil
+    case .reengagementPermissionRequested,
+         .reengagementPermissionGranted,
+         .reengagementPermissionDenied,
+         .reengagementReminderEnabled,
+         .reengagementReminderDisabled:
+        source == .app && questID == nil
+    case .reengagementNotificationOpened, .reengagementNotificationCompleted:
+        source == .app && questID != nil
     }
 }
 

@@ -138,12 +138,20 @@ final class QuestNotificationService {
 
     private let center: QuestNotificationCenter
     private let calendar: Calendar
+    private let reengagementSettingsStore: ReengagementReminderSettingsStore
     private var operationTail: Task<Void, Never>?
     private var operationVersion = 0
 
-    init(center: QuestNotificationCenter = SystemQuestNotificationCenter(), calendar: Calendar = .current) {
+    init(
+        center: QuestNotificationCenter = SystemQuestNotificationCenter(),
+        // `.current`는 초기화 시점의 시간대를 스냅샷으로 굳힌다. `shared`는 앱 수명 내내 살아 있어서,
+        // 여행으로 시간대가 바뀌면 반복 재방문 트리거가 옛 지역의 20:00에 고정된다.
+        calendar: Calendar = .autoupdatingCurrent,
+        reengagementSettingsStore: ReengagementReminderSettingsStore = .shared
+    ) {
         self.center = center
         self.calendar = calendar
+        self.reengagementSettingsStore = reengagementSettingsStore
     }
 
     func authorizationStatus() async -> QuestNotificationAuthorization {
@@ -171,7 +179,7 @@ final class QuestNotificationService {
             snapshot: quest.snapshot,
             now: now,
             locale: locale,
-            authorizationRequestPolicy: .ifNeeded
+            authorizationRequestPolicy: .never
         )
     }
 
@@ -226,18 +234,29 @@ final class QuestNotificationService {
         locale: Locale,
         authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
-        let plans = QuestNotificationPlanner.plans(
-            for: quests.map(\.snapshot),
+        let settings = reengagementSettingsStore.load()
+        let snapshots = quests.map(\.snapshot)
+        let reengagementPlans = ReengagementReminderPlanner.plans(
+            for: snapshots,
+            settings: settings,
             now: now,
+            calendar: calendar,
+            locale: locale
+        )
+        let plans = QuestNotificationPlanner.plans(
+            for: snapshots,
+            now: now,
+            maximumCount: QuestNotificationPlanner.maximumScheduledNotifications - reengagementPlans.count,
             locale: locale
         )
         let deliveredIdentifiersToRemove = quests.flatMap { quest in
             QuestNotificationPlanner.identifiers(for: quest.id)
-        }
+        } + ReengagementReminderPlanner.allIdentifiers
 
         return await enqueue {
             await self.performReconcile(
                 plans: plans,
+                reengagementPlans: reengagementPlans,
                 deliveredIdentifiersToRemove: deliveredIdentifiersToRemove,
                 authorizationRequestPolicy: authorizationRequestPolicy
             )
@@ -266,7 +285,9 @@ final class QuestNotificationService {
         }
         guard authorization.canSchedule else { return authorization }
 
-        let (admitted, evicted) = await admit(plans, locale: locale)
+        let capacity = QuestNotificationPlanner.maximumScheduledNotifications
+            - reengagementSettingsStore.load().scheduledRequestCount
+        let (admitted, evicted) = await admit(plans, capacity: capacity, locale: locale)
         for plan in admitted {
             do {
                 try await center.add(request(for: plan))
@@ -306,9 +327,10 @@ final class QuestNotificationService {
     /// simply not scheduled, and the next reconcile reconsiders them once they are near enough.
     private func admit(
         _ plans: [QuestNotificationPlan],
+        capacity: Int,
         locale: Locale
     ) async -> (admitted: [QuestNotificationPlan], evicted: [QuestNotificationPlan]) {
-        let cap = QuestNotificationPlanner.maximumScheduledNotifications
+        let cap = max(0, capacity)
         let pending = await center.pendingQuestNotifications()
             .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0.identifier) }
         guard pending.count + plans.count > cap else { return (plans, []) }
@@ -367,12 +389,16 @@ final class QuestNotificationService {
 
     private func performReconcile(
         plans: [QuestNotificationPlan],
+        reengagementPlans: [ReengagementReminderPlan],
         deliveredIdentifiersToRemove: [String],
         authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
         let pendingIdentifiers = await center.pendingNotificationIdentifiers()
         let questKeeperIdentifiers = pendingIdentifiers
-            .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0) }
+            .filter {
+                QuestNotificationPlanner.isQuestNotificationIdentifier($0)
+                    || ReengagementReminderPlanner.isReengagementNotificationIdentifier($0)
+            }
 
         if !questKeeperIdentifiers.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: questKeeperIdentifiers)
@@ -387,10 +413,17 @@ final class QuestNotificationService {
         case .never:
             await authorizationStatus()
         }
-        guard !plans.isEmpty else { return authorization }
+        guard !plans.isEmpty || !reengagementPlans.isEmpty else { return authorization }
         guard authorization.canSchedule else { return authorization }
 
         for plan in plans {
+            do {
+                try await center.add(request(for: plan))
+            } catch {
+                return .unavailable
+            }
+        }
+        for plan in reengagementPlans {
             do {
                 try await center.add(request(for: plan))
             } catch {
@@ -435,6 +468,23 @@ final class QuestNotificationService {
             from: plan.fireDate
         )
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        return UNNotificationRequest(identifier: plan.identifier, content: content, trigger: trigger)
+    }
+
+    private func request(for plan: ReengagementReminderPlan) -> UNNotificationRequest {
+        let content = UNMutableNotificationContent()
+        content.title = plan.title
+        content.body = plan.body
+        content.sound = .default
+        content.userInfo = [
+            "questID": plan.questID.uuidString,
+            "kind": ReengagementReminderPlanner.notificationKind,
+        ]
+
+        let trigger = UNCalendarNotificationTrigger(
+            dateMatching: plan.dateComponents,
+            repeats: plan.repeats
+        )
         return UNNotificationRequest(identifier: plan.identifier, content: content, trigger: trigger)
     }
 

@@ -501,6 +501,14 @@ private nonisolated func validCombination(
         source == .app && questID != nil
     case .questCompleted:
         (source == .app || source == .widget) && questID != nil
+    case .reengagementPermissionRequested,
+         .reengagementPermissionGranted,
+         .reengagementPermissionDenied,
+         .reengagementReminderEnabled,
+         .reengagementReminderDisabled:
+        source == .app && questID == nil
+    case .reengagementNotificationOpened, .reengagementNotificationCompleted:
+        source == .app && questID != nil
     }
 }
 
