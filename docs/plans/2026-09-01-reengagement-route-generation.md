@@ -44,23 +44,24 @@ The tap is then stamped with the current generation, the initial `.background` c
 
 The code was not kept. A green suite here means the tests do not cover that ordering, not that the ordering does not happen.
 
-## Direction That Would Work
+## Implemented: An Explicit Foreground Signal
 
-Stop inferring the foreground execution and have the scene phase say so.
+The store stops inferring the foreground execution; the scene phase says so.
 
-`QuestKeeperApp` already owns both transitions: `pause()` runs only from the `.background` branch, and the `.active` branch is the only place a foreground genuinely begins.
-Give the store a second, explicit signal from that branch — separate from `resume(for:)`, which both `ContentView` and the scene phase call for container readiness — and let `pause()` mark a pending action ID stale only when a foreground execution had actually begun.
+`NotificationRouteStore.beginForeground()` is called from the `.active` branch and only from there, separate from `resume(for:)`, which both `ContentView` and the scene phase call for container readiness.
+`pause()` then expires a pending action ID only when a foreground execution had actually begun, and `takeRoutedQuest` drops an expired one while always returning the quest.
 
-The initial `.background` from `onChange(initial: true)` then cannot mark anything stale, because no `.active` has run, and that is true regardless of how `didReceive` interleaves with either callback.
+The initial `.background` from `onChange(initial: true)` cannot expire anything, because no `.active` has run, and that holds regardless of how `didReceive` interleaves with either callback.
+**This is the property the rejected attempt lacked: nothing here reads one signal as a proxy for another.**
 
-Costs to weigh before starting: it adds a call in both `.active` paths in `QuestKeeperApp` (the fallback-run branch and the normal one), which is the lifecycle code the reverted fix already destabilised once.
+The predicted cost was a call in each `.active` path in `QuestKeeperApp`, the lifecycle code the reverted fix already destabilised once. In practice one line at the top of `case .active:` covers all three paths, since the fallback branch's early return passes through it.
 
 ## Verification a Fix Needs
 
 1. A route recorded before the first `resume` keeps its attribution after that `resume`.
 2. A route recorded while resumed, left unresolved across `pause` then `resume`, resolves its quest and yields no attribution.
 3. **A route recorded after `ContentView`'s container observer has resumed the store but before the first `.active` keeps its attribution.**
-   This is the ordering the rejected attempt fails, and no existing test covers it.
+   This is the ordering the rejected attempt fails, and no existing test covered it — `tapBeforeFirstActivationKeepsItsAttribution` does now.
 4. The existing `pauseClearsResolvedAttributionOnly` and `reengagementRoutesRetainOneAttributionOnlyAfterTheQuestResolves` stay green.
 5. Each new test proved able to fail before being trusted.
 6. `xcodebuild test -only-testing:QuestKeeperTests` with `-parallel-testing-enabled NO`.
