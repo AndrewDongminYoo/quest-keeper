@@ -2062,13 +2062,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allow notifications to receive deadline reminders."
+            "value" : "Enable notifications in return reminder settings for deadline alerts."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "마감 알림을 받으려면 알림을 허용하세요."
+            "value" : "마감 알림을 받으려면 재방문 알림 설정에서 켜세요."
           }
         }
       }

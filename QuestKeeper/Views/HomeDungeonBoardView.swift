@@ -60,7 +60,10 @@ struct HomeDungeonBoardView: View {
                     if storeFailedToOpen {
                         StoreFailureBanner()
                     }
-                    if let notificationPermissionAction {
+                    // 권한 안내는 재방문 알림 설정 시트로 보내는데, 첫 퀘스트 전에는 그 시트의 토글이
+                    // 비활성이라 안내대로 할 수 있는 일이 없다. 거부 상태의 시스템 설정 경로는 그대로 둔다.
+                    if let notificationPermissionAction,
+                       notificationPermissionAction == .openSettings || hasCreatedQuest {
                         NotificationPermissionBanner(action: notificationPermissionAction) {
                             switch notificationPermissionAction {
                             case .requestAuthorization:

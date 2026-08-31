@@ -295,7 +295,7 @@ nonisolated extension AppStrings {
     )
     static let notificationPermissionRequestBody = LocalizedStringResource(
         "notification.permissionBanner.requestBody",
-        defaultValue: "마감 알림을 받으려면 알림을 허용하세요."
+        defaultValue: "마감 알림을 받으려면 재방문 알림 설정에서 켜세요."
     )
 }
 
