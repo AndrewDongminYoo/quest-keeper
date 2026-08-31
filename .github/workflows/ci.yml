@@ -22,23 +22,46 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Report the runner's simulator state
+        run: |
+          uname -m
+          xcode-select --print-path
+          xcrun simctl list runtimes
+          xcrun simctl list devices available
+
       - name: Run unit tests
         run: |
-          # -showdestinations already filters by IPHONEOS_DEPLOYMENT_TARGET, so a
-          # destination it lists is one this scheme can actually build for. Printing
-          # it keeps the runner's device set visible when an image rotation breaks
-          # the match, which is how the pinned 'iPhone 17, OS=26.5' died.
+          # -showdestinations already filters by IPHONEOS_DEPLOYMENT_TARGET, so a destination it
+          # lists is one this scheme can actually build for. A pinned 'name=…,OS=…' cannot survive
+          # a runner image that ships a different device set, which is how the previous pin died.
           destinations=$(xcodebuild -showdestinations -scheme QuestKeeper 2>&1)
           printf '%s\n' "$destinations"
 
+          # -showdestinations also prints an "Ineligible destinations" section, whose entries the
+          # scheme cannot build for. Read only the eligible half.
           simulator_id=$(printf '%s\n' "$destinations" \
+            | awk '/Ineligible destinations/ { exit } /Available destinations/ { eligible = 1; next } eligible' \
             | grep 'platform:iOS Simulator' \
             | grep 'name:iPhone' \
             | sed -n 's/.*id:\([^,}]*\).*/\1/p' \
             | tr -d ' ' \
             | head -1)
+
+          # Some runner images arrive with the iOS runtime installed but no devices created, so
+          # -showdestinations reports only placeholders. Create one rather than failing the job.
           if [ -z "$simulator_id" ]; then
-            echo "::error::No iPhone simulator destination available for the QuestKeeper scheme."
+            echo "No pre-created iPhone simulator; creating one from the newest installed iOS runtime."
+            runtime=$(xcrun simctl list runtimes --json \
+              | jq -r '[.runtimes[] | select(.isAvailable and .platform == "iOS")]
+                       | sort_by(.version | split(".") | map(tonumber))
+                       | map(.identifier) | last // ""')
+            if [ -n "$runtime" ]; then
+              simulator_id=$(xcrun simctl create ci-iphone "iPhone 17" "$runtime") || simulator_id=""
+            fi
+          fi
+
+          if [ -z "$simulator_id" ]; then
+            echo "::error::No iPhone simulator destination is available and none could be created."
             exit 1
           fi
           echo "Testing on simulator $simulator_id"
