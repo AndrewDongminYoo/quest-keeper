@@ -24,7 +24,26 @@ jobs:
 
       - name: Run unit tests
         run: |
+          # -showdestinations already filters by IPHONEOS_DEPLOYMENT_TARGET, so a
+          # destination it lists is one this scheme can actually build for. Printing
+          # it keeps the runner's device set visible when an image rotation breaks
+          # the match, which is how the pinned 'iPhone 17, OS=26.5' died.
+          destinations=$(xcodebuild -showdestinations -scheme QuestKeeper 2>&1)
+          printf '%s\n' "$destinations"
+
+          simulator_id=$(printf '%s\n' "$destinations" \
+            | grep 'platform:iOS Simulator' \
+            | grep 'name:iPhone' \
+            | sed -n 's/.*id:\([^,}]*\).*/\1/p' \
+            | tr -d ' ' \
+            | head -1)
+          if [ -z "$simulator_id" ]; then
+            echo "::error::No iPhone simulator destination available for the QuestKeeper scheme."
+            exit 1
+          fi
+          echo "Testing on simulator $simulator_id"
+
           xcodebuild test -scheme QuestKeeper \
-            -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -destination "platform=iOS Simulator,id=$simulator_id" \
             -only-testing:QuestKeeperTests \
             -parallel-testing-enabled NO
