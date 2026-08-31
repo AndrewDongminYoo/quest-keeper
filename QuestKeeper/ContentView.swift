@@ -24,12 +24,15 @@ struct ContentView: View {
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
     @State private var routineSheet: RoutineSheetRoute?
     @State private var notificationAuthorization: QuestNotificationAuthorization?
+    @State private var reengagementSettings: ReengagementReminderSettings
+    @State private var reengagementAttribution: ReengagementNotificationAttribution?
     @State private var mourningTask: Task<Void, Never>?
     @Binding private var hasDeferredOnboardingThisRun: Bool
     @Binding private var recoveryOffer: RecoveryActivationOffer?
 
     private let notificationService: QuestNotificationService
     private let notificationRouteStore: NotificationRouteStore
+    private let reengagementSettingsStore: ReengagementReminderSettingsStore
     private let widgetSnapshotWriter: WidgetDungeonSnapshotWriter
     private let onboardingAssignment: ExperimentAssignmentSnapshot?
     private let onboardingMeasurementAvailable: Bool
@@ -41,6 +44,7 @@ struct ContentView: View {
     init(
         notificationService: QuestNotificationService = .shared,
         notificationRouteStore: NotificationRouteStore = NotificationRouteStore(),
+        reengagementSettingsStore: ReengagementReminderSettingsStore = .shared,
         widgetSnapshotStore: WidgetDungeonSnapshotStore = WidgetDungeonSnapshotStore(),
         widgetSnapshotWriter: WidgetDungeonSnapshotWriter? = nil,
         onboardingAssignment: ExperimentAssignmentSnapshot? = nil,
@@ -54,6 +58,8 @@ struct ContentView: View {
     ) {
         self.notificationService = notificationService
         self.notificationRouteStore = notificationRouteStore
+        self.reengagementSettingsStore = reengagementSettingsStore
+        _reengagementSettings = State(initialValue: reengagementSettingsStore.load())
         self.widgetSnapshotWriter = widgetSnapshotWriter
             ?? WidgetDungeonSnapshotWriter(snapshotStore: widgetSnapshotStore)
         self.onboardingAssignment = onboardingAssignment
@@ -127,6 +133,8 @@ struct ContentView: View {
                     notificationPermissionAction: QuestNotificationPermissionAction.make(
                         authorization: notificationAuthorization
                     ),
+                    notificationAuthorization: notificationAuthorization,
+                    reengagementSettings: reengagementSettings,
                     onboardingPresentation: onboardingPresentation,
                     dailyFocusPresentation: dailyFocusPresentation,
                     recoveryPresentation: recoveryPresentation,
@@ -154,7 +162,8 @@ struct ContentView: View {
                         route = .recoveryCreate(.guided(at: .now))
                     },
                     onDismissRecovery: { recoveryOffer = nil },
-                    onResolveNotificationPermission: resolveNotificationPermission,
+                    onSaveReengagementSettings: saveReengagementSettings,
+                    onOpenNotificationSettings: openNotificationSettings,
                     onComplete: complete,
                     onDelete: delete,
                     onOpenDetail: { route = .detail($0) },
@@ -171,7 +180,7 @@ struct ContentView: View {
                         draft: draft,
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
-                        onSaved: writeWidgetSnapshot(including:)
+                        onSaved: handleQuestSaved
                     )
                 case .recoveryCreate(let draft):
                     QuestEditor(
@@ -181,7 +190,7 @@ struct ContentView: View {
                         onAuthorizationChange: { notificationAuthorization = $0 },
                         onSaved: { quest in
                             recoveryOffer = nil
-                            writeWidgetSnapshot(including: quest)
+                            handleQuestSaved(quest)
                         }
                     )
                 case .detail(let quest):
@@ -191,7 +200,7 @@ struct ContentView: View {
                             now: context.date,
                             notificationService: notificationService,
                             onAuthorizationChange: { notificationAuthorization = $0 },
-                            onSaved: writeWidgetSnapshot(including:),
+                            onSaved: handleQuestSaved,
                             onRetryTomorrow: {
                                 retryTomorrow(quest)
                                 self.route = nil
@@ -270,6 +279,7 @@ struct ContentView: View {
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
             case .background:
+                reengagementAttribution = nil
                 if case .detail = route {
                     route = nil
                 }
@@ -306,21 +316,6 @@ struct ContentView: View {
     private func refreshNotificationAuthorization() {
         Task { @MainActor in
             notificationAuthorization = await notificationService.authorizationStatus()
-        }
-    }
-
-    private func resolveNotificationPermission(_ action: QuestNotificationPermissionAction) {
-        switch action {
-        case .requestAuthorization:
-            let currentQuests = quests
-            Task { @MainActor in
-                notificationAuthorization = await notificationService.requestAuthorizationAndReconcile(
-                    quests: currentQuests,
-                    now: .now
-                )
-            }
-        case .openSettings:
-            openNotificationSettings()
         }
     }
 
@@ -454,6 +449,7 @@ struct ContentView: View {
 
     private func complete(_ quest: Quest, at completedAt: Date = .now) {
         let questID = quest.id
+        let attribution = reengagementAttribution?.questID == questID ? reengagementAttribution : nil
         QuestActions.complete(quest, at: completedAt)
         _ = RetentionEventRecorder.recordQuestCompleted(
             questID: questID,
@@ -461,12 +457,27 @@ struct ContentView: View {
             source: .app,
             in: modelContext
         )
+        if let attribution {
+            _ = RetentionEventRecorder.recordReengagementNotificationCompleted(
+                questID: attribution.questID,
+                actionID: attribution.actionID,
+                at: completedAt,
+                in: modelContext
+            )
+        }
         // Commit before publishing: the widget snapshot must never claim a fact the store has not
         // taken. Autosave would get here on its own, but not before the snapshot is already on disk.
         guard commitPendingChanges() else { return }
+        if attribution != nil {
+            reengagementAttribution = nil
+        }
         writeWidgetSnapshot(including: quest)
-        Task { @MainActor in
-            await notificationService.cancel(questID: questID)
+        if reengagementSettings.isEnabled {
+            reconcileNotifications(at: completedAt)
+        } else {
+            Task { @MainActor in
+                await notificationService.cancel(questID: questID)
+            }
         }
     }
 
@@ -499,9 +510,16 @@ struct ContentView: View {
         )
         guard commitPendingChanges() else { return }
         writeWidgetSnapshot(including: quest)
-        Task { @MainActor in
-            let authorization = await notificationService.sync(quest: quest, now: now)
-            notificationAuthorization = authorization
+        if reengagementSettings.isEnabled {
+            reconcileNotifications(at: now)
+        } else {
+            Task { @MainActor in
+                let authorization = await notificationService.syncWithoutRequestingAuthorization(
+                    snapshot: quest.snapshot,
+                    now: now
+                )
+                notificationAuthorization = authorization
+            }
         }
     }
 
@@ -514,15 +532,104 @@ struct ContentView: View {
         let payload = WidgetDungeonPayload.make(from: quests, excluding: questID)
         modelContext.delete(quest)
         guard commitPendingChanges() else { return }
+        if reengagementAttribution?.questID == questID {
+            reengagementAttribution = nil
+        }
         persistWidgetSnapshot(payload)
-        Task { @MainActor in
-            await notificationService.cancel(questID: questID)
+        if reengagementSettings.isEnabled {
+            reconcileNotifications(at: .now)
+        } else {
+            Task { @MainActor in
+                await notificationService.cancel(questID: questID)
+            }
         }
     }
 
     private func writeWidgetSnapshot(including quest: Quest) {
         let payload = WidgetDungeonPayload.make(from: quests, including: quest)
         persistWidgetSnapshot(payload)
+    }
+
+    private func handleQuestSaved(_ quest: Quest) {
+        writeWidgetSnapshot(including: quest)
+        if reengagementSettings.isEnabled {
+            reconcileNotifications(at: .now)
+        }
+    }
+
+    private func saveReengagementSettings(_ settings: ReengagementReminderSettings) {
+        guard !settings.isEnabled || !quests.isEmpty else { return }
+        let previousSettings = reengagementSettingsStore.load()
+        reengagementSettingsStore.save(settings)
+        reengagementSettings = settings
+
+        let now = Date.now
+        if previousSettings.isEnabled != settings.isEnabled {
+            if settings.isEnabled {
+                _ = RetentionEventRecorder.recordReengagementReminderEnabled(
+                    actionID: UUID(),
+                    at: now,
+                    in: modelContext
+                )
+            } else {
+                _ = RetentionEventRecorder.recordReengagementReminderDisabled(
+                    actionID: UUID(),
+                    at: now,
+                    in: modelContext
+                )
+            }
+            _ = commitPendingChanges()
+        }
+
+        let currentQuests = quests
+        Task { @MainActor in
+            let status = await notificationService.authorizationStatus()
+            if settings.canRequestAuthorization(hasCreatedQuest: !currentQuests.isEmpty), status == .notDetermined {
+                let actionID = UUID()
+                _ = RetentionEventRecorder.recordReengagementPermissionRequested(
+                    actionID: actionID,
+                    at: now,
+                    in: modelContext
+                )
+                _ = commitPendingChanges()
+                let authorization = await notificationService.requestAuthorizationAndReconcile(
+                    quests: currentQuests,
+                    now: now
+                )
+                switch authorization {
+                case .allowed:
+                    _ = RetentionEventRecorder.recordReengagementPermissionGranted(
+                        actionID: actionID,
+                        at: .now,
+                        in: modelContext
+                    )
+                case .denied:
+                    _ = RetentionEventRecorder.recordReengagementPermissionDenied(
+                        actionID: actionID,
+                        at: .now,
+                        in: modelContext
+                    )
+                case .notDetermined, .unavailable:
+                    break
+                }
+                _ = commitPendingChanges()
+                notificationAuthorization = authorization
+            } else {
+                notificationAuthorization = await notificationService.reconcile(
+                    quests: currentQuests,
+                    now: now
+                )
+            }
+        }
+    }
+
+    private func reconcileNotifications(at now: Date) {
+        Task { @MainActor in
+            guard let currentQuests = try? modelContext.fetch(
+                FetchDescriptor<Quest>(sortBy: [SortDescriptor(\.deadline)])
+            ) else { return }
+            notificationAuthorization = await notificationService.reconcile(quests: currentQuests, now: now)
+        }
     }
 
     private func persistWidgetSnapshot(_ payload: WidgetDungeonPayload) {
@@ -537,6 +644,15 @@ struct ContentView: View {
         guard let quest = notificationRouteStore.takeRoutedQuest(in: modelContext) else { return }
 
         route = .detail(quest)
+        guard let attribution = notificationRouteStore.takeReengagementAttribution() else { return }
+        _ = RetentionEventRecorder.recordReengagementNotificationOpened(
+            questID: attribution.questID,
+            actionID: attribution.actionID,
+            at: .now,
+            in: modelContext
+        )
+        guard commitPendingChanges() else { return }
+        reengagementAttribution = attribution
     }
 
     private func openNotificationSettings() {

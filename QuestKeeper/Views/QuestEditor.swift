@@ -134,7 +134,10 @@ struct QuestEditor: View {
         dismiss()
 
         Task { @MainActor in
-            let authorization = await notificationService.sync(quest: savedQuest, now: .now)
+            let authorization = await notificationService.syncWithoutRequestingAuthorization(
+                snapshot: savedQuest.snapshot,
+                now: .now
+            )
             onAuthorizationChange(authorization)
         }
     }

@@ -16,6 +16,8 @@ struct HomeDungeonBoardView: View {
     let now: Date
     let storeFailedToOpen: Bool
     let notificationPermissionAction: QuestNotificationPermissionAction?
+    let notificationAuthorization: QuestNotificationAuthorization?
+    let reengagementSettings: ReengagementReminderSettings
     let onboardingPresentation: OnboardingFlowPresentation
     let dailyFocusPresentation: DailyFocusPresentationState
     let recoveryPresentation: RecoveryCardPresentation?
@@ -30,7 +32,8 @@ struct HomeDungeonBoardView: View {
     let onChooseRecoveryFocus: () -> Void
     let onCreateRecoveryQuest: () -> Void
     let onDismissRecovery: () -> Void
-    let onResolveNotificationPermission: (QuestNotificationPermissionAction) -> Void
+    let onSaveReengagementSettings: (ReengagementReminderSettings) -> Void
+    let onOpenNotificationSettings: () -> Void
     let onComplete: (Quest, Date) -> Void
     let onDelete: (Quest) -> Void
     let onOpenDetail: (Quest) -> Void
@@ -50,14 +53,20 @@ struct HomeDungeonBoardView: View {
                         onCreate: onCreate,
                         onEditAppearance: { presentedSheet = .appearance },
                         onOpenAbout: { presentedSheet = .about },
-                        onOpenHallOfFame: { presentedSheet = .hallOfFame }
+                        onOpenHallOfFame: { presentedSheet = .hallOfFame },
+                        onOpenReengagementSettings: { presentedSheet = .reengagement }
                     )
                     if storeFailedToOpen {
                         StoreFailureBanner()
                     }
                     if let notificationPermissionAction {
                         NotificationPermissionBanner(action: notificationPermissionAction) {
-                            onResolveNotificationPermission(notificationPermissionAction)
+                            switch notificationPermissionAction {
+                            case .requestAuthorization:
+                                presentedSheet = .reengagement
+                            case .openSettings:
+                                onOpenNotificationSettings()
+                            }
                         }
                     }
                     if let recoveryPresentation {
@@ -140,6 +149,14 @@ struct HomeDungeonBoardView: View {
                 if let tipJarStore {
                     AboutSheet(store: tipJarStore)
                 }
+            case .reengagement:
+                ReengagementReminderSettingsSheet(
+                    settings: reengagementSettings,
+                    hasCreatedQuest: !allQuests.isEmpty,
+                    notificationAuthorization: notificationAuthorization,
+                    onSave: onSaveReengagementSettings,
+                    onOpenNotificationSettings: onOpenNotificationSettings
+                )
             }
         }
     }
@@ -190,6 +207,7 @@ private enum HomeDungeonSheet: String, Identifiable {
     case appearance
     case hallOfFame
     case about
+    case reengagement
 
     var id: String { rawValue }
 }
@@ -312,6 +330,7 @@ private struct BoardHUD: View {
     let onEditAppearance: () -> Void
     let onOpenAbout: () -> Void
     let onOpenHallOfFame: () -> Void
+    let onOpenReengagementSettings: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -320,6 +339,19 @@ private struct BoardHUD: View {
                     .font(.title3.weight(.black).monospaced())
                     .foregroundStyle(DungeonPalette.ink)
                 Spacer(minLength: 8)
+                Button(action: onOpenReengagementSettings) {
+                    Image(systemName: "bell")
+                        .font(.headline.weight(.black))
+                        .frame(width: 36, height: 36)
+                        .background(DungeonPalette.stone, in: RoundedRectangle(cornerRadius: PixelStyle.corner))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PixelStyle.corner)
+                                .stroke(DungeonPalette.ink.opacity(0.25), lineWidth: PixelStyle.border)
+                        )
+                        .foregroundStyle(DungeonPalette.ink)
+                }
+                .accessibilityLabel(AppStrings.reengagementSettingsButtonAccessibility)
+                .accessibilityIdentifier("reengagementReminderSettingsButton")
                 Button(action: onCreate) {
                     Image(systemName: "plus")
                         .font(.headline.weight(.black))
