@@ -413,6 +413,33 @@ struct QuestNotificationServiceTests {
         #expect(center.removedPendingIdentifiers.contains { $0.contains("reengagement.daily") })
     }
 
+    @Test("a snapshot reconcile after a single-quest sync schedules the configured reminder")
+    func snapshotReconcileSchedulesReengagementAfterSync() async {
+        let center = FakeQuestNotificationCenter()
+        let settings = ReengagementReminderSettings(
+            isEnabled: true,
+            minuteOfDay: 20 * 60,
+            frequency: .daily,
+            quietHours: nil,
+            purpose: .finishOneQuest
+        )
+        let service = makeService(center: center, settings: settings)
+        let questID = UUID(uuidString: "EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE")!
+        let snapshot = quest(id: questID, deadlineOffset: 3 * hour).snapshot
+
+        // What the shortcut path used to do on its own: reserve the reminder's capacity, never plan it.
+        await service.syncWithoutRequestingAuthorization(snapshot: snapshot, now: now)
+        #expect(!center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
+
+        await service.reconcile(snapshots: [snapshot], now: now)
+
+        #expect(center.pendingRequestsList.map(\.identifier) == [
+            QuestNotificationKind.dueSoon.identifier(for: questID),
+            QuestNotificationKind.deadline.identifier(for: questID),
+            "reengagement.daily",
+        ])
+    }
+
     private func makeRequest(identifier: String) -> UNNotificationRequest {
         UNNotificationRequest(identifier: identifier, content: UNMutableNotificationContent(), trigger: nil)
     }

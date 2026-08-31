@@ -32,10 +32,16 @@ final class QuestShortcutCreationCoordinator: Sendable {
         Date,
         Locale
     ) async -> QuestNotificationAuthorization
+    typealias ReconcileNotifications = @MainActor @Sendable (
+        [QuestSnapshot],
+        Date,
+        Locale
+    ) async -> QuestNotificationAuthorization
     typealias UpdateWidgetSnapshot = @MainActor @Sendable (WidgetDungeonPayload) async -> Bool
 
     private var modelContainer: ModelContainer
     private let scheduleNotifications: ScheduleNotifications
+    private let reconcileNotifications: ReconcileNotifications
     private let updateWidgetSnapshot: UpdateWidgetSnapshot
     private let logger = Logger(
         subsystem: "kr.donminzzi.QuestKeeper",
@@ -45,10 +51,12 @@ final class QuestShortcutCreationCoordinator: Sendable {
     init(
         modelContainer: ModelContainer,
         scheduleNotifications: @escaping ScheduleNotifications,
+        reconcileNotifications: @escaping ReconcileNotifications,
         updateWidgetSnapshot: @escaping UpdateWidgetSnapshot
     ) {
         self.modelContainer = modelContainer
         self.scheduleNotifications = scheduleNotifications
+        self.reconcileNotifications = reconcileNotifications
         self.updateWidgetSnapshot = updateWidgetSnapshot
     }
 
@@ -62,6 +70,13 @@ final class QuestShortcutCreationCoordinator: Sendable {
             scheduleNotifications: { snapshot, now, locale in
                 await notificationService.syncWithoutRequestingAuthorization(
                     snapshot: snapshot,
+                    now: now,
+                    locale: locale
+                )
+            },
+            reconcileNotifications: { snapshots, now, locale in
+                await notificationService.reconcile(
+                    snapshots: snapshots,
                     now: now,
                     locale: locale
                 )
@@ -90,7 +105,19 @@ final class QuestShortcutCreationCoordinator: Sendable {
             importance: persisted.importance
         )
 
-        let authorization = await scheduleNotifications(snapshot, now, locale)
+        // Reconcile the whole board rather than syncing the new quest alone: a single-quest sync
+        // reserves the configured reengagement requests' capacity without planning them, and this
+        // path runs without an app activation, so nothing would plan them afterwards.
+        let board = try? await store.snapshots()
+        let authorization: QuestNotificationAuthorization
+        if let board {
+            authorization = await reconcileNotifications(board, now, locale)
+        } else {
+            // Reconciling a board we failed to read would remove every pending request and re-add
+            // only this quest's. Fall back to the single-quest sync, which touches nothing else.
+            logger.error("Quest persisted but the board read for notification reconciliation failed")
+            authorization = await scheduleNotifications(snapshot, now, locale)
+        }
         let didUpdateWidget: Bool
         do {
             let payload = try await store.snapshotPayload(generatedAt: .now)

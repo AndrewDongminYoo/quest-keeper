@@ -1,6 +1,6 @@
 //
 //  QuestSnapshot.swift
-//  QuestKeeper
+//  QuestKeeperShared
 //
 //  Phase 1 — the derivation seam. See docs/specs/002-data-model-derivation.md.
 //

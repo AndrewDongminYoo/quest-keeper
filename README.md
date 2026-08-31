@@ -115,10 +115,10 @@ xcodebuild build -scheme QuestKeeper -destination "platform=iOS Simulator,id=$SI
 Target the simulator by UDID, never by `name`: a name destination clones a fresh ephemeral simulator per run and wedges the runtime.
 Simulator UDIDs are recreated over time, so the commands above resolve one instead of pinning a literal. Run `xcrun simctl list devices available` yourself when more than one device is present, and substitute the id you want.
 
-Use this guard when changing persistence — it must cover both paths, since `Quest` lives in `QuestKeeperShared/` and a guard pointed only at `QuestKeeper/Models/` scans no `@Model` at all:
+Use this guard when changing persistence — it must cover all three paths, since `Quest` and `QuestSnapshot` both live in `QuestKeeperShared/` and a guard pointed only at `QuestKeeper/Models/` scans neither:
 
 ```bash
-! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/ QuestKeeperShared/Quest.swift
+! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/ QuestKeeperShared/Quest.swift QuestKeeperShared/QuestSnapshot.swift
 ```
 
 ## Manual QA

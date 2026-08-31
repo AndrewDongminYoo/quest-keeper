@@ -9,12 +9,16 @@ struct QuestShortcutCreationCoordinatorTests {
     func createsAndRunsFollowUps() async throws {
         let container = try makeContainer()
         let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
-        var scheduledSnapshot: QuestSnapshot?
+        var reconciledSnapshots: [QuestSnapshot]?
         var updatedPayload: WidgetDungeonPayload?
         let coordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { snapshot, _, _ in
-                scheduledSnapshot = snapshot
+            scheduleNotifications: { _, _, _ in
+                Issue.record("The shortcut path must reconcile the board, not sync one quest")
+                return .allowed
+            },
+            reconcileNotifications: { snapshots, _, _ in
+                reconciledSnapshots = snapshots
                 return .allowed
             },
             updateWidgetSnapshot: { payload in
@@ -34,7 +38,7 @@ struct QuestShortcutCreationCoordinatorTests {
             locale: Locale(identifier: "ko")
         )
 
-        #expect(scheduledSnapshot?.id == outcome.questID)
+        #expect(reconciledSnapshots?.map(\.id) == [outcome.questID])
         #expect(updatedPayload?.quests.contains { $0.id == outcome.questID } == true)
         #expect(outcome.requiresNotificationPermission == false)
         #expect(outcome.followUpFailures.isEmpty)
@@ -89,7 +93,8 @@ struct QuestShortcutCreationCoordinatorTests {
         var competingSubmissionAccepted = false
         let coordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, _, _ in
+            scheduleNotifications: { _, _, _ in .allowed },
+            reconcileNotifications: { _, _, _ in
                 competingSubmissionAccepted = await writer.submit(competingPayload)
                 return .allowed
             },
@@ -145,6 +150,35 @@ struct QuestShortcutCreationCoordinatorTests {
         #expect(try ModelContext(container).fetchCount(FetchDescriptor<Quest>()) == 2)
     }
 
+    @Test("the reconcile closure receives the whole board, not only the created Quest")
+    func reconcilesTheWholeBoard() async throws {
+        let container = try makeContainer()
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let existingID = UUID()
+        container.mainContext.insert(Quest(
+            id: existingID,
+            title: "이미 있던 퀘스트",
+            deadline: now.addingTimeInterval(7_200),
+            importance: .low
+        ))
+        try container.mainContext.save()
+
+        var reconciledSnapshots: [QuestSnapshot]?
+        let coordinator = QuestShortcutCreationCoordinator(
+            modelContainer: container,
+            scheduleNotifications: { _, _, _ in .allowed },
+            reconcileNotifications: { snapshots, _, _ in
+                reconciledSnapshots = snapshots
+                return .allowed
+            },
+            updateWidgetSnapshot: { _ in true }
+        )
+
+        let outcome = try await coordinator.create(input: try shortcutInput(now: now), now: now)
+
+        #expect(Set(reconciledSnapshots?.map(\.id) ?? []) == [existingID, outcome.questID])
+    }
+
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([Quest.self, RetentionInstallation.self, RetentionEvent.self])
         let container = try ModelContainer(
@@ -167,6 +201,7 @@ struct QuestShortcutCreationCoordinatorTests {
         QuestShortcutCreationCoordinator(
             modelContainer: container,
             scheduleNotifications: { _, _, _ in authorization },
+            reconcileNotifications: { _, _, _ in authorization },
             updateWidgetSnapshot: { _ in widgetUpdated }
         )
     }

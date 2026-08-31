@@ -207,7 +207,26 @@ final class QuestNotificationService {
     @discardableResult
     func reconcile(quests: [Quest], now: Date, locale: Locale = .current) async -> QuestNotificationAuthorization {
         await reconcile(
-            quests: quests,
+            snapshots: quests.map(\.snapshot),
+            now: now,
+            locale: locale,
+            authorizationRequestPolicy: .never
+        )
+    }
+
+    /// The `@Model`-free entry point. `CreateQuestIntent` reaches the store through `QuestStoreActor`
+    /// and cannot hand over `Quest` instances, but it still has to reconcile the whole board: a
+    /// single-quest sync reserves the reengagement requests' capacity without ever planning them,
+    /// so a quest created from a shortcut would otherwise leave the configured reminder unscheduled
+    /// until the next app activation.
+    @discardableResult
+    func reconcile(
+        snapshots: [QuestSnapshot],
+        now: Date,
+        locale: Locale = .current
+    ) async -> QuestNotificationAuthorization {
+        await reconcile(
+            snapshots: snapshots,
             now: now,
             locale: locale,
             authorizationRequestPolicy: .never
@@ -221,7 +240,7 @@ final class QuestNotificationService {
         locale: Locale = .current
     ) async -> QuestNotificationAuthorization {
         await reconcile(
-            quests: quests,
+            snapshots: quests.map(\.snapshot),
             now: now,
             locale: locale,
             authorizationRequestPolicy: .ifNeeded
@@ -229,13 +248,12 @@ final class QuestNotificationService {
     }
 
     private func reconcile(
-        quests: [Quest],
+        snapshots: [QuestSnapshot],
         now: Date,
         locale: Locale,
         authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
         let settings = reengagementSettingsStore.load()
-        let snapshots = quests.map(\.snapshot)
         let reengagementPlans = ReengagementReminderPlanner.plans(
             for: snapshots,
             settings: settings,
@@ -249,8 +267,8 @@ final class QuestNotificationService {
             maximumCount: QuestNotificationPlanner.maximumScheduledNotifications - reengagementPlans.count,
             locale: locale
         )
-        let deliveredIdentifiersToRemove = quests.flatMap { quest in
-            QuestNotificationPlanner.identifiers(for: quest.id)
+        let deliveredIdentifiersToRemove = snapshots.flatMap { snapshot in
+            QuestNotificationPlanner.identifiers(for: snapshot.id)
         } + ReengagementReminderPlanner.allIdentifiers
 
         return await enqueue {
