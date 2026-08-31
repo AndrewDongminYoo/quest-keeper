@@ -31,11 +31,12 @@ nonisolated enum QuestNotificationPlanner {
     static func plans(
         for snapshots: [QuestSnapshot],
         now: Date,
+        maximumCount: Int = maximumScheduledNotifications,
         locale: Locale = .current
     ) -> [QuestNotificationPlan] {
         let all = snapshots.flatMap { plans(for: $0, now: now, locale: locale) }
         let ordered = all.sorted(by: firesEarlier)
-        return Array(ordered.prefix(maximumScheduledNotifications))
+        return Array(ordered.prefix(min(max(0, maximumCount), maximumScheduledNotifications)))
     }
 
     /// Total order over the desired set. Ties break on the identifier so the cap stays deterministic

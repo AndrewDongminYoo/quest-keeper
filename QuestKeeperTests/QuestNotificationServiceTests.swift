@@ -19,8 +19,24 @@ struct QuestNotificationServiceTests {
     let now = Date(timeIntervalSinceReferenceDate: 700_000_000)
     let hour: TimeInterval = 60 * 60
 
-    private func makeService(center: FakeQuestNotificationCenter) -> QuestNotificationService {
-        QuestNotificationService(center: center, calendar: Calendar(identifier: .gregorian))
+    private func makeService(
+        center: FakeQuestNotificationCenter,
+        settings: ReengagementReminderSettings = ReengagementReminderSettings()
+    ) -> QuestNotificationService {
+        QuestNotificationService(
+            center: center,
+            calendar: Calendar(identifier: .gregorian),
+            reengagementSettingsStore: makeSettingsStore(settings)
+        )
+    }
+
+    private func makeSettingsStore(
+        _ settings: ReengagementReminderSettings
+    ) -> ReengagementReminderSettingsStore {
+        let defaults = UserDefaults(suiteName: "QuestKeeperTests.\(UUID().uuidString)")!
+        let store = ReengagementReminderSettingsStore(defaults: defaults)
+        store.save(settings)
+        return store
     }
 
     func quest(
@@ -192,7 +208,7 @@ struct QuestNotificationServiceTests {
 
         await service.reconcile(quests: [quest(id: questID, deadlineOffset: -hour)], now: now)
 
-        #expect(center.removedDeliveredIdentifiers == [identifiers])
+        #expect(center.removedDeliveredIdentifiers == [identifiers + ReengagementReminderPlanner.allIdentifiers])
     }
 
     @Test("reconcile does not request authorization when status is not determined")
@@ -309,6 +325,92 @@ struct QuestNotificationServiceTests {
         #expect(authorization == .denied)
         #expect(center.addedRequests.isEmpty)
         #expect(center.removedPendingIdentifiers.count == 1)
+    }
+
+    @Test("single-quest sync never requests undetermined notification permission")
+    func editorSyncDoesNotPrompt() async {
+        let center = FakeQuestNotificationCenter(status: .notDetermined)
+        let service = makeService(center: center)
+
+        let authorization = await service.sync(quest: quest(deadlineOffset: 3 * hour), now: now)
+
+        #expect(authorization == .notDetermined)
+        #expect(center.addedRequests.isEmpty)
+        #expect(!center.events.contains("requestAuthorization"))
+    }
+
+    @Test("reconcile adds one repeating daily reengagement request beside deadline requests")
+    func reconcileAddsDailyReengagementRequest() async {
+        let center = FakeQuestNotificationCenter()
+        let settings = ReengagementReminderSettings(
+            isEnabled: true,
+            minuteOfDay: 20 * 60,
+            frequency: .daily,
+            quietHours: nil,
+            purpose: .finishOneQuest
+        )
+        let service = makeService(center: center, settings: settings)
+        let questID = UUID(uuidString: "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC")!
+
+        await service.reconcile(quests: [quest(id: questID, deadlineOffset: 3 * hour)], now: now)
+
+        let reminder = center.pendingRequestsList.first { $0.identifier == "reengagement.daily" }
+        #expect(center.pendingRequestsList.map(\.identifier) == [
+            QuestNotificationKind.dueSoon.identifier(for: questID),
+            QuestNotificationKind.deadline.identifier(for: questID),
+            "reengagement.daily",
+        ])
+        #expect((reminder?.trigger as? UNCalendarNotificationTrigger)?.repeats == true)
+        #expect(reminder?.content.userInfo["questID"] as? String == questID.uuidString)
+        #expect(reminder?.content.userInfo["kind"] as? String == ReengagementReminderPlanner.notificationKind)
+    }
+
+    @Test("weekday reminders reserve five slots before deadline planning")
+    func weekdayRemindersReserveCapacity() async {
+        let center = FakeQuestNotificationCenter()
+        let settings = ReengagementReminderSettings(
+            isEnabled: true,
+            minuteOfDay: 20 * 60,
+            frequency: .weekdays,
+            quietHours: nil,
+            purpose: .finishOneQuest
+        )
+        let service = makeService(center: center, settings: settings)
+        let quests = (0..<QuestNotificationPlanner.maximumScheduledNotifications).map { index in
+            quest(deadlineOffset: Double(2 + index) * hour)
+        }
+
+        await service.reconcile(quests: quests, now: now)
+
+        let reminderIdentifiers = Set(ReengagementReminderPlanner.allIdentifiers)
+        #expect(center.pendingRequestsList.count == QuestNotificationPlanner.maximumScheduledNotifications)
+        #expect(center.pendingRequestsList.filter { reminderIdentifiers.contains($0.identifier) }.count == 5)
+        #expect(center.pendingRequestsList.filter { $0.identifier.hasPrefix(QuestNotificationKind.identifierPrefix) }.count == 59)
+    }
+
+    @Test("repeated reconciliation replaces reengagement requests instead of duplicating them")
+    func repeatedReconciliationDoesNotDuplicateReengagementRequests() async {
+        let center = FakeQuestNotificationCenter()
+        let settings = ReengagementReminderSettings(
+            isEnabled: true,
+            minuteOfDay: 20 * 60,
+            frequency: .daily,
+            quietHours: nil,
+            purpose: .reviewPlan
+        )
+        let service = makeService(center: center, settings: settings)
+        let questID = UUID(uuidString: "DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD")!
+        let quests = [quest(id: questID, deadlineOffset: 3 * hour)]
+
+        await service.reconcile(quests: quests, now: now)
+        await service.reconcile(quests: quests, now: now.addingTimeInterval(60))
+
+        #expect(center.pendingRequestsList.map(\.identifier) == [
+            QuestNotificationKind.dueSoon.identifier(for: questID),
+            QuestNotificationKind.deadline.identifier(for: questID),
+            "reengagement.daily",
+        ])
+        #expect(center.removedPendingIdentifiers.contains { $0.contains("reengagement.daily") })
     }
 
     private func makeRequest(identifier: String) -> UNNotificationRequest {
