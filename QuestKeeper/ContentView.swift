@@ -135,6 +135,7 @@ struct ContentView: View {
                     ),
                     notificationAuthorization: notificationAuthorization,
                     reengagementSettings: reengagementSettings,
+                    hasCreatedQuest: hasCreatedQuest,
                     onboardingPresentation: onboardingPresentation,
                     dailyFocusPresentation: dailyFocusPresentation,
                     recoveryPresentation: recoveryPresentation,
@@ -298,6 +299,15 @@ struct ContentView: View {
     }
 
     // MARK: - Lifecycle
+
+    /// 스펙 012의 첫 가치 경계. 현재 퀘스트 수가 아니라 기록된 `quest_created` 사실을 읽으므로,
+    /// 사용자가 퀘스트를 모두 지워도 한 번 열린 경계는 다시 닫히지 않는다.
+    ///
+    /// `retentionEvents`는 append-only에 무한히 자라고 이 프로퍼티는 매 틱 다시 계산되지만,
+    /// `contains`는 첫 일치에서 멈추고 `occurredAt` 오름차순 정렬이라 생성 사실은 앞쪽에 있다.
+    private var hasCreatedQuest: Bool {
+        retentionEvents.contains { $0.snapshot.isFirstValueQuestCreation }
+    }
 
     private func applyActivationReplay() {
         escalatedQuestIDs = Set(activationReplay?.escalations ?? [])

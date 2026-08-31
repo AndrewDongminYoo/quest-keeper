@@ -40,6 +40,13 @@ enum DebugFixtureSeeder {
         usesUITestingStore && arguments.contains("-uiTestingHallOfFameFixture")
     }
 
+    nonisolated static func shouldSeedCreationFactFixture(
+        usesUITestingStore: Bool,
+        arguments: [String]
+    ) -> Bool {
+        usesUITestingStore && arguments.contains("-uiTestingCreationFactWithoutQuest")
+    }
+
     nonisolated static func shouldSeedRoutineFixture(
         usesUITestingStore: Bool,
         arguments: [String]
@@ -90,6 +97,18 @@ enum DebugFixtureSeeder {
         if shouldSeedRoutineFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
            try context.fetchCount(FetchDescriptor<RoutineRule>()) == 0 {
             try seedRoutineFixture(in: context)
+        }
+
+        // 퀘스트를 만들었다가 전부 지운 뒤의 사실 상태다. 게이트가 읽는 `quest_created`를
+        // 프로덕션과 같은 기록 경로로 남기므로, 픽스처가 자기 사정으로 상태를 꾸며내지 않는다.
+        if shouldSeedCreationFactFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
+           try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
+            _ = RetentionEventRecorder.recordQuestCreated(
+                questID: UUID(uuidString: "00000000-0000-0000-0000-000000000401")!,
+                at: Date.now.addingTimeInterval(-3_600),
+                in: context
+            )
+            try context.save()
         }
 
         if shouldSeedRecoveryFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),

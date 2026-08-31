@@ -30,6 +30,17 @@ final class ReengagementReminderUITests: XCTestCase {
         XCTAssertTrue(unlocked.isEnabled)
     }
 
+    /// 퀘스트가 하나도 없어도 기록된 생성 사실이 있으면 첫 가치 경계는 열린 채다.
+    /// 게이트가 현재 퀘스트 수를 읽던 시절에는 이 테스트가 실패한다.
+    func testGateStaysOpenWithoutAnyQuestWhenACreationFactExists() {
+        let app = launch(arguments: uiTestKoreanLocaleArguments + ["-uiTestingCreationFactWithoutQuest"])
+
+        openSettings(in: app)
+        let toggle = app.switches["reengagementReminderEnabledToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3))
+        XCTAssertTrue(toggle.isEnabled, "퀘스트가 없어도 기록된 생성 사실이 있으면 경계는 열려 있어야 한다")
+    }
+
     /// 시각, 반복, 방해 금지 시간, 목적 컨트롤이 모두 노출되고, 저장한 변경이 다시 열었을 때 남아 있다.
     func testScheduleControlsAreExposedAndSurviveASave() {
         let app = launch(arguments: uiTestKoreanLocaleArguments)

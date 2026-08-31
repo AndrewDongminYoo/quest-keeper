@@ -233,6 +233,41 @@ struct RetentionEventRecorderTests {
         ])
     }
 
+    @Test("the first value boundary reads a recorded creation fact, not the current quest list")
+    func firstValueBoundaryReadsTheCreationFact() {
+        #expect(snapshot(name: .questCreated, source: .app, questID: questID).isFirstValueQuestCreation)
+        #expect(snapshot(name: .questCreated, source: .shortcut, questID: questID).isFirstValueQuestCreation)
+
+        // 위젯은 퀘스트를 만들지 않는다. `RetentionReport`의 `.questCreated` 유효 조합과 같은 판정이다.
+        #expect(!snapshot(name: .questCreated, source: .widget, questID: questID).isFirstValueQuestCreation)
+        #expect(!snapshot(name: .questCreated, source: .app, questID: nil).isFirstValueQuestCreation)
+        #expect(!snapshot(name: .questCompleted, source: .app, questID: questID).isFirstValueQuestCreation)
+        #expect(!snapshot(
+            name: .questCreated,
+            source: .app,
+            questID: questID,
+            schemaVersion: RetentionEvent.currentSchemaVersion + 1
+        ).isFirstValueQuestCreation)
+    }
+
+    private func snapshot(
+        name: RetentionEventName,
+        source: RetentionEventSource,
+        questID: UUID?,
+        schemaVersion: Int = RetentionEvent.currentSchemaVersion
+    ) -> RetentionEventSnapshot {
+        RetentionEventSnapshot(
+            id: UUID(),
+            schemaVersion: schemaVersion,
+            nameRawValue: name.rawValue,
+            installationID: installationID,
+            occurredAt: now,
+            sourceRawValue: source.rawValue,
+            questID: questID,
+            deduplicationKey: "\(name.rawValue):\(installationID):\(questID?.uuidString ?? "-")"
+        )
+    }
+
     private func measurementContainer() throws -> ModelContainer {
         let schema = Schema([Quest.self, RetentionInstallation.self, RetentionEvent.self])
         return try ModelContainer(

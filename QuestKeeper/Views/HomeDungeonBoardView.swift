@@ -18,6 +18,7 @@ struct HomeDungeonBoardView: View {
     let notificationPermissionAction: QuestNotificationPermissionAction?
     let notificationAuthorization: QuestNotificationAuthorization?
     let reengagementSettings: ReengagementReminderSettings
+    let hasCreatedQuest: Bool
     let onboardingPresentation: OnboardingFlowPresentation
     let dailyFocusPresentation: DailyFocusPresentationState
     let recoveryPresentation: RecoveryCardPresentation?
@@ -152,7 +153,7 @@ struct HomeDungeonBoardView: View {
             case .reengagement:
                 ReengagementReminderSettingsSheet(
                     settings: reengagementSettings,
-                    hasCreatedQuest: !allQuests.isEmpty,
+                    hasCreatedQuest: hasCreatedQuest,
                     notificationAuthorization: notificationAuthorization,
                     onSave: onSaveReengagementSettings,
                     onOpenNotificationSettings: onOpenNotificationSettings
