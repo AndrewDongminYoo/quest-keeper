@@ -52,7 +52,7 @@ jobs:
           if [ -z "$simulator_id" ]; then
             echo "No pre-created iPhone simulator; creating one from the newest installed iOS runtime."
             runtime=$(xcrun simctl list runtimes --json \
-              | jq -r '[.runtimes[] | select(.isAvailable and .platform == "iOS")]
+              | jq -r '[.runtimes[] | select(.isAvailable and (.identifier | contains("SimRuntime.iOS-")))]
                        | sort_by(.version | split(".") | map(tonumber))
                        | map(.identifier) | last // ""')
             if [ -n "$runtime" ]; then
