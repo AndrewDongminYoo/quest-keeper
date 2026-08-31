@@ -424,7 +424,7 @@ struct QuestNotificationServiceTests {
         // The capacity for it is already reserved at this point, but nothing plans it.
         #expect(!center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
 
-        await service.syncAndRefreshReengagement(snapshot: snapshot, board: [snapshot], now: now)
+        await service.syncAndRefreshReengagement(snapshot: snapshot, readBoard: { [snapshot] }, now: now)
 
         #expect(center.pendingRequestsList.map(\.identifier) == [
             QuestNotificationKind.dueSoon.identifier(for: questID),
@@ -446,7 +446,7 @@ struct QuestNotificationServiceTests {
 
         await service.syncAndRefreshReengagement(
             snapshot: created,
-            board: [created],
+            readBoard: { [created] },
             now: now
         )
 
@@ -472,7 +472,7 @@ struct QuestNotificationServiceTests {
         ]
         let created = quest(deadlineOffset: 3 * hour).snapshot
 
-        await service.syncAndRefreshReengagement(snapshot: created, board: nil, now: now)
+        await service.syncAndRefreshReengagement(snapshot: created, readBoard: { nil }, now: now)
 
         // Rewriting the reminder from a board that failed to load would aim it at a partial view.
         #expect(center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
@@ -494,9 +494,9 @@ struct QuestNotificationServiceTests {
 
         let authorization = await service.syncAndRefreshReengagement(
             snapshot: created,
-            board: [created],
+            readBoard: { [created] },
             now: now
-        )
+        ).authorization
 
         // Removing the reminder up front and only then failing to replace it would leave the user
         // with no reminder at all until the app is next opened.
@@ -521,9 +521,9 @@ struct QuestNotificationServiceTests {
 
         let authorization = await service.syncAndRefreshReengagement(
             snapshot: created,
-            board: [created],
+            readBoard: { [created] },
             now: now
-        )
+        ).authorization
 
         let scheduled = Set(center.pendingRequestsList.map(\.identifier))
         let reminders = ReengagementReminderPlanner.allIdentifiers.filter { scheduled.contains($0) }
@@ -545,7 +545,7 @@ struct QuestNotificationServiceTests {
         }
         let created = quest(deadlineOffset: 3 * hour).snapshot
 
-        await service.syncAndRefreshReengagement(snapshot: created, board: [created], now: now)
+        await service.syncAndRefreshReengagement(snapshot: created, readBoard: { [created] }, now: now)
 
         let freed = center.events.firstIndex {
             $0.hasPrefix("removePending:") && $0.contains("reengagement.weekday")
@@ -560,6 +560,33 @@ struct QuestNotificationServiceTests {
         #expect((freed ?? .max) < (firstQuestAdd ?? 0))
         #expect(center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
         #expect(!center.pendingRequestsList.contains { $0.identifier.hasPrefix("reengagement.weekday") })
+    }
+
+    @Test("overlapping shortcut refreshes do not read the board before each other's writes")
+    func overlappingRefreshesSerializeTheBoardRead() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        let first = quest(deadlineOffset: 3 * hour).snapshot
+        let second = quest(deadlineOffset: 2 * hour).snapshot
+
+        async let firstRefresh = service.syncAndRefreshReengagement(
+            snapshot: first,
+            readBoard: { center.events.append("read"); return [first] },
+            now: now
+        )
+        async let secondRefresh = service.syncAndRefreshReengagement(
+            snapshot: second,
+            readBoard: { center.events.append("read"); return [first, second] },
+            now: now
+        )
+        _ = await (firstRefresh, secondRefresh)
+
+        // Reading outside the queue lets both reads land first, and the later refresh then writes a
+        // reminder planned from the older board. Serialized, every read is followed by its own
+        // writes before the next one begins.
+        let reads = center.events.indices.filter { center.events[$0] == "read" }
+        #expect(reads.count == 2)
+        #expect(center.events[(reads[0] + 1)..<reads[1]].contains { $0.hasPrefix("add:") })
     }
 
     private var enabledDailyReminder: ReengagementReminderSettings {

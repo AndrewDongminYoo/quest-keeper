@@ -52,6 +52,12 @@ Removing every pending reengagement request before adding would delete a working
 The sync and the refresh also run inside a single `enqueue`: releasing the queue between them would let a second shortcut creation interleave, and the later refresh could then write a reminder planned from the older board.
 Both were found by a local review round before the change was pushed.
 
+**The board is read inside the service's serialization, not before it.**
+The read was originally done in the coordinator and handed over as a value.
+Two overlapping shortcut creations could then each read the board before entering the queue, and the later refresh would write a reminder planned from the older one — the target quest of a creation that had already finished would be lost.
+The coordinator passes a provider instead, and `syncAndRefreshReengagement` returns `ReengagementRefreshOutcome` because its caller can no longer observe whether the read succeeded.
+Raised as issue #58 after this feature merged, and fixed separately.
+
 **A failed board read leaves the reengagement requests alone.**
 `board` is optional. Rewriting the reminder from a board that failed to load would aim it at a partial view, and removing the pending requests without replacing them is worse than leaving a slightly stale target.
 The created quest's own notifications are still synced, which is exactly today's behaviour.
