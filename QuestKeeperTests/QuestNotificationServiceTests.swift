@@ -479,6 +479,31 @@ struct QuestNotificationServiceTests {
         #expect(!center.removedPendingIdentifiers.contains { $0.contains("reengagement.daily") })
     }
 
+    @Test("a failed reminder add leaves the request that was already scheduled in place")
+    func failedReminderAddKeepsTheExistingRequest() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        let existing = makeScheduledRequest(
+            identifier: "reengagement.daily",
+            fireDate: now.addingTimeInterval(8 * hour)
+        )
+        center.pendingRequestsList = [existing]
+        let created = quest(deadlineOffset: 3 * hour).snapshot
+        // The two quest requests land first, so the reminder is the third add.
+        center.addErrorOnAttempt = 3
+
+        let authorization = await service.syncAndRefreshReengagement(
+            snapshot: created,
+            board: [created],
+            now: now
+        )
+
+        // Removing the reminder up front and only then failing to replace it would leave the user
+        // with no reminder at all until the app is next opened.
+        #expect(authorization == .unavailable)
+        #expect(center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
+    }
+
     private var enabledDailyReminder: ReengagementReminderSettings {
         ReengagementReminderSettings(
             isEnabled: true,
@@ -675,6 +700,13 @@ private final class FakeQuestNotificationCenter: QuestNotificationCenter {
         if let addError { throw addError }
         events.append("add:\(request.identifier)")
         addedRequests.append(request)
+        // `UNUserNotificationCenter` drops a pending request that shares an identifier and keeps
+        // the new one. A fake that appends instead reports a duplicate where the platform has a
+        // replacement, and it hides whether a failed add left the previous request intact.
+        if let existing = pendingRequestsList.firstIndex(where: { $0.identifier == request.identifier }) {
+            pendingRequestsList[existing] = request
+            return
+        }
         guard pendingRequestsList.count < QuestNotificationPlanner.maximumScheduledNotifications else {
             events.append("droppedByPlatform:\(request.identifier)")
             return

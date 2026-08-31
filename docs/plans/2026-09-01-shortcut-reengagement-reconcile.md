@@ -42,6 +42,12 @@ It removes no delivered notification and touches no other quest's requests.
 The first draft of this change did call `reconcile` from the shortcut path.
 Both regressions were raised as P2 findings on PR #55 and are the reason for the narrower entry point.
 
+**Only obsolete reminder identifiers are removed, and the sync and the refresh share one queue slot.**
+Removing every pending reengagement request before adding would delete a working reminder whenever the replacing `add` then failed, which is the same defect the paragraph above rejects one level down.
+`UNUserNotificationCenter` drops a pending request that shares an identifier, so the identifiers the new plan covers are replaced by the add itself and only the uncovered ones need removing.
+The sync and the refresh also run inside a single `enqueue`: releasing the queue between them would let a second shortcut creation interleave, and the later refresh could then write a reminder planned from the older board.
+Both were found by a local review round before the change was pushed.
+
 **A failed board read leaves the reengagement requests alone.**
 `board` is optional. Rewriting the reminder from a board that failed to load would aim it at a partial view, and removing the pending requests without replacing them is worse than leaving a slightly stale target.
 The created quest's own notifications are still synced, which is exactly today's behaviour.

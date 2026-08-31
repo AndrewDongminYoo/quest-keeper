@@ -235,24 +235,29 @@ final class QuestNotificationService {
         now: Date,
         locale: Locale = .current
     ) async -> QuestNotificationAuthorization {
-        let authorization = await sync(
-            questID: snapshot.id,
-            snapshot: snapshot,
-            now: now,
-            locale: locale,
-            authorizationRequestPolicy: .never
-        )
-        guard let board, authorization.canSchedule else { return authorization }
+        // One enqueue, not two. Releasing the queue between the sync and the refresh would let a
+        // second shortcut creation interleave, and the later refresh could then write a reminder
+        // planned from the older `board`.
+        await enqueue {
+            let authorization = await self.performSync(
+                questID: snapshot.id,
+                snapshot: snapshot,
+                now: now,
+                locale: locale,
+                authorizationRequestPolicy: .never
+            )
+            guard let board, authorization.canSchedule else { return authorization }
 
-        let plans = ReengagementReminderPlanner.plans(
-            for: board,
-            settings: reengagementSettingsStore.load(),
-            now: now,
-            calendar: calendar,
-            locale: locale
-        )
-        return await enqueue {
-            await self.performReengagementRefresh(plans: plans, authorization: authorization)
+            return await self.performReengagementRefresh(
+                plans: ReengagementReminderPlanner.plans(
+                    for: board,
+                    settings: self.reengagementSettingsStore.load(),
+                    now: now,
+                    calendar: self.calendar,
+                    locale: locale
+                ),
+                authorization: authorization
+            )
         }
     }
 
@@ -423,19 +428,29 @@ final class QuestNotificationService {
         }
     }
 
-    /// Remove-before-add, scoped to the reengagement identifiers alone. It touches no quest
-    /// request and removes no delivered notification, so a background caller cannot disturb the
-    /// rest of the board. An empty plan set still clears the pending requests: the planner returns
-    /// nothing when reminders are off or no quest is pending, and a request pointing at a resolved
-    /// quest is worse than none.
+    /// Scoped to the reengagement identifiers alone: it touches no quest request and removes no
+    /// delivered notification, so a background caller cannot disturb the rest of the board.
+    ///
+    /// Only the *obsolete* identifiers are removed first — the ones the new plan set does not
+    /// cover, which is how a daily reminder's leftover request disappears after a switch to
+    /// weekdays. The identifiers the plan does cover are replaced by the add itself, since
+    /// `UNUserNotificationCenter` drops a pending request that shares an identifier. Removing them
+    /// up front instead would leave a working reminder deleted whenever an `add` then failed.
+    ///
+    /// An empty plan set therefore clears everything, which is intended: the planner returns
+    /// nothing when reminders are off or no quest is pending, and a reminder pointing at a
+    /// resolved quest is worse than none.
     private func performReengagementRefresh(
         plans: [ReengagementReminderPlan],
         authorization: QuestNotificationAuthorization
     ) async -> QuestNotificationAuthorization {
-        let pending = await center.pendingNotificationIdentifiers()
-            .filter(ReengagementReminderPlanner.isReengagementNotificationIdentifier)
-        if !pending.isEmpty {
-            center.removePendingNotificationRequests(withIdentifiers: pending)
+        let planned = Set(plans.map(\.identifier))
+        let obsolete = await center.pendingNotificationIdentifiers().filter {
+            ReengagementReminderPlanner.isReengagementNotificationIdentifier($0)
+                && !planned.contains($0)
+        }
+        if !obsolete.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: obsolete)
         }
 
         for plan in plans {
