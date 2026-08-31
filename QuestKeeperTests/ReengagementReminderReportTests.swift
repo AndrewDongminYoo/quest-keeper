@@ -110,6 +110,24 @@ struct ReengagementReminderReportTests {
         #expect(orphaned.dataQuality.status == .partial)
     }
 
+    @Test("each enable is consumed by one disable, so a lost enable still shows as an orphan")
+    func oneEnableSatisfiesOnlyOneDisable() {
+        let report = makeReport(events: [
+            event(1, .reengagementReminderEnabled, action: "action-enable-1", offset: -4),
+            event(2, .reengagementReminderDisabled, action: "action-disable-1", offset: -3),
+            // The second cycle's enable was never recorded. Reusing the first one would report this
+            // disable as matched and leave the status `.complete`, hiding the loss.
+            event(3, .reengagementReminderDisabled, action: "action-disable-2", offset: -1),
+        ])
+
+        #expect(report.reminderDisableRate == RetentionRate(achieved: 1, eligible: 1))
+        #expect(
+            report.dataQuality
+                .orphanCountsByEvent[RetentionEventName.reengagementReminderDisabled.rawValue] == 1
+        )
+        #expect(report.dataQuality.status == .partial)
+    }
+
     @Test("a completion is matched only by an opening of the same quest")
     func completionMatchesTheOpeningOfItsOwnQuest() {
         let report = makeReport(events: [

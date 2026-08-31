@@ -177,36 +177,62 @@ nonisolated struct ReengagementReminderStore: Sendable {
     }
 }
 
-/// `make` pools installations rather than grouping by them, unlike `RetentionReport`, so both
-/// rules carry `installationID` in the predicate instead of relying on an enclosing loop.
-/// "Earlier" means earlier in the `eventOrdering` sort, so events sharing an instant stay
-/// deterministic — the same rule `RetentionReport` uses for orphan completions.
+/// `make` pools installations rather than grouping by them, unlike `RetentionReport`, so the match
+/// key always carries `installationID` instead of relying on an enclosing per-installation loop.
+///
+/// Each predecessor is consumed by at most one successor. Letting a single enable satisfy every
+/// later disable would hide exactly the loss this counting exists to find: `enable → disable →
+/// disable` would report two matched disables and leave the status `.complete`, even though the
+/// second cycle's enable was never recorded.
+///
+/// The pool is per call, so it is not shared between the two permission outcomes and one request
+/// could in principle satisfy both a grant and a denial. `saveReengagementSettings` switches on the
+/// resolved authorization and records exactly one of them per request, so the recorder cannot write
+/// that shape.
+///
+/// One forward pass, so "earlier" means earlier in the `eventOrdering` sort — events sharing an
+/// instant stay deterministic, the same rule `RetentionReport` uses for orphan completions.
 private nonisolated func pairCounts(
     in ordered: [RetentionEventSnapshot],
     predecessor: RetentionEventName,
     successor: RetentionEventName,
     link: ReengagementPairLink
 ) -> (matched: Int, orphaned: Int) {
+    var available: [String: Int] = [:]
     var matched = 0
     var orphaned = 0
-    for (index, event) in ordered.enumerated() where event.name == successor {
-        let hasPredecessor = ordered[..<index].contains { candidate in
-            guard candidate.name == predecessor,
-                  candidate.installationID == event.installationID else { return false }
-            switch link {
-            case .anyEarlier:
-                return true
-            case .actionID(let matchesQuestID):
-                guard !matchesQuestID || candidate.questID == event.questID else { return false }
-                guard let candidateAction = RetentionEventRecorder
-                    .actionIDComponent(of: candidate.deduplicationKey) else { return false }
-                return candidateAction == RetentionEventRecorder
-                    .actionIDComponent(of: event.deduplicationKey)
-            }
+    for event in ordered where event.name == predecessor || event.name == successor {
+        guard let key = matchKey(for: event, link: link) else {
+            // An unparseable key cannot link anything. A predecessor simply goes unregistered,
+            // which correctly leaves its successor without one.
+            if event.name == successor { orphaned += 1 }
+            continue
         }
-        if hasPredecessor { matched += 1 } else { orphaned += 1 }
+        if event.name == predecessor {
+            available[key, default: 0] += 1
+        } else if let remaining = available[key], remaining > 0 {
+            available[key] = remaining - 1
+            matched += 1
+        } else {
+            orphaned += 1
+        }
     }
     return (matched, orphaned)
+}
+
+private nonisolated func matchKey(
+    for event: RetentionEventSnapshot,
+    link: ReengagementPairLink
+) -> String? {
+    switch link {
+    case .anyEarlier:
+        return event.installationID.uuidString
+    case .actionID(let matchesQuestID):
+        guard let action = RetentionEventRecorder
+            .actionIDComponent(of: event.deduplicationKey) else { return nil }
+        let quest = matchesQuestID ? (event.questID?.uuidString ?? "") : ""
+        return "\(event.installationID.uuidString):\(quest):\(action)"
+    }
 }
 
 private nonisolated func isValidCombination(
