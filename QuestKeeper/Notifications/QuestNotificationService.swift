@@ -144,7 +144,9 @@ final class QuestNotificationService {
 
     init(
         center: QuestNotificationCenter = SystemQuestNotificationCenter(),
-        calendar: Calendar = .current,
+        // `.current`는 초기화 시점의 시간대를 스냅샷으로 굳힌다. `shared`는 앱 수명 내내 살아 있어서,
+        // 여행으로 시간대가 바뀌면 반복 재방문 트리거가 옛 지역의 20:00에 고정된다.
+        calendar: Calendar = .autoupdatingCurrent,
         reengagementSettingsStore: ReengagementReminderSettingsStore = .shared
     ) {
         self.center = center
