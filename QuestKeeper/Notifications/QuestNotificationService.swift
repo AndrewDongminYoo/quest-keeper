@@ -437,6 +437,11 @@ final class QuestNotificationService {
     /// `UNUserNotificationCenter` drops a pending request that shares an identifier. Removing them
     /// up front instead would leave a working reminder deleted whenever an `add` then failed.
     ///
+    /// An obsolete request is dropped even when the replacing adds then fail, and that is
+    /// deliberate: it is obsolete because the stored settings no longer describe it, so keeping it
+    /// alive would fire at a cadence the user has switched off. Preservation applies to the
+    /// reminder the settings still ask for, not to one they have retired.
+    ///
     /// An empty plan set therefore clears everything, which is intended: the planner returns
     /// nothing when reminders are off or no quest is pending, and a reminder pointing at a
     /// resolved quest is worse than none.
