@@ -33,15 +33,16 @@ nonisolated struct QuestShortcutCreationOutcome: Equatable, Sendable {
 
 @MainActor
 final class QuestShortcutCreationCoordinator: Sendable {
-    /// The board is every quest, which the reengagement planner needs to choose its target.
-    /// It is optional because the read can fail after the quest is already persisted, and a
-    /// partial view is worse than none — see `QuestNotificationService.syncAndRefreshReengagement`.
+    /// The second parameter reads the whole quest set, which the reengagement planner needs to
+    /// choose its target, and returns `nil` when it could not be read. It is a provider rather
+    /// than a value so the service can run it inside its own serialization — see
+    /// `QuestNotificationService.syncAndRefreshReengagement`.
     typealias ScheduleNotifications = @MainActor @Sendable (
         QuestSnapshot,
-        [QuestSnapshot]?,
+        @escaping @MainActor @Sendable () async -> [QuestSnapshot]?,
         Date,
         Locale
-    ) async -> QuestNotificationAuthorization
+    ) async -> ReengagementRefreshOutcome
     typealias UpdateWidgetSnapshot = @MainActor @Sendable (WidgetDungeonPayload) async -> Bool
 
     private var modelContainer: ModelContainer
@@ -69,10 +70,10 @@ final class QuestShortcutCreationCoordinator: Sendable {
     ) {
         self.init(
             modelContainer: modelContainer,
-            scheduleNotifications: { snapshot, board, now, locale in
+            scheduleNotifications: { snapshot, readBoard, now, locale in
                 await notificationService.syncAndRefreshReengagement(
                     snapshot: snapshot,
-                    board: board,
+                    readBoard: readBoard,
                     now: now,
                     locale: locale
                 )
@@ -104,11 +105,20 @@ final class QuestShortcutCreationCoordinator: Sendable {
         // The reengagement reminder targets a quest chosen from the whole board, and a single-quest
         // sync reserves its capacity without planning it. This path runs without an app activation,
         // so nothing would plan it afterwards.
-        let board = try? await store.snapshots()
-        if board == nil {
+        //
+        // The read is handed over rather than performed here: two overlapping shortcut creations
+        // that each read the board before entering the service's queue can land out of order, and
+        // the later refresh would write a reminder planned from the older board.
+        let refresh = await scheduleNotifications(
+            snapshot,
+            { try? await store.snapshots() },
+            now,
+            locale
+        )
+        if !refresh.didReadBoard {
             logger.error("Quest persisted but the board read for the reengagement refresh failed")
         }
-        let authorization = await scheduleNotifications(snapshot, board, now, locale)
+        let authorization = refresh.authorization
         let didUpdateWidget: Bool
         do {
             let payload = try await store.snapshotPayload(generatedAt: .now)
@@ -123,7 +133,7 @@ final class QuestShortcutCreationCoordinator: Sendable {
             questID: persisted.questID,
             retentionRecordResult: persisted.retentionRecordResult,
             notificationAuthorization: authorization,
-            didReadBoard: board != nil,
+            didReadBoard: refresh.didReadBoard,
             didUpdateWidgetSnapshot: didUpdateWidget
         )
     }

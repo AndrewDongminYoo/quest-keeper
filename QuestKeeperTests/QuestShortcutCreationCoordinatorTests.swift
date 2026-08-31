@@ -15,7 +15,7 @@ struct QuestShortcutCreationCoordinatorTests {
             modelContainer: container,
             scheduleNotifications: { snapshot, _, _, _ in
                 scheduledSnapshot = snapshot
-                return .allowed
+                return ReengagementRefreshOutcome(authorization: .allowed, didReadBoard: true)
             },
             updateWidgetSnapshot: { payload in
                 updatedPayload = payload
@@ -91,7 +91,7 @@ struct QuestShortcutCreationCoordinatorTests {
             modelContainer: container,
             scheduleNotifications: { _, _, _, _ in
                 competingSubmissionAccepted = await writer.submit(competingPayload)
-                return .allowed
+                return ReengagementRefreshOutcome(authorization: .allowed, didReadBoard: true)
             },
             updateWidgetSnapshot: { payload in
                 await writer.submit(payload)
@@ -161,9 +161,10 @@ struct QuestShortcutCreationCoordinatorTests {
         var receivedBoard: [QuestSnapshot]??
         let coordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, board, _, _ in
+            scheduleNotifications: { _, readBoard, _, _ in
+                let board = await readBoard()
                 receivedBoard = .some(board)
-                return .allowed
+                return ReengagementRefreshOutcome(authorization: .allowed, didReadBoard: board != nil)
             },
             updateWidgetSnapshot: { _ in true }
         )
@@ -213,7 +214,9 @@ struct QuestShortcutCreationCoordinatorTests {
     ) -> QuestShortcutCreationCoordinator {
         QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, _, _, _ in authorization },
+            scheduleNotifications: { _, _, _, _ in
+                ReengagementRefreshOutcome(authorization: authorization, didReadBoard: true)
+            },
             updateWidgetSnapshot: { _ in widgetUpdated }
         )
     }

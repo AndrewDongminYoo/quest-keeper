@@ -41,6 +41,15 @@ nonisolated enum QuestNotificationPermissionAction: Equatable, Sendable {
     }
 }
 
+/// What `syncAndRefreshReengagement` reports back.
+///
+/// The board read runs inside the service's serialization, so the caller cannot observe on its own
+/// whether it succeeded — and it has to, because a failed read leaves the reminder untouched.
+nonisolated struct ReengagementRefreshOutcome: Equatable, Sendable {
+    let authorization: QuestNotificationAuthorization
+    let didReadBoard: Bool
+}
+
 /// A scheduled request reduced to what the cap needs to choose survivors.
 nonisolated struct PendingQuestNotification: Equatable, Sendable {
     let identifier: String
@@ -225,20 +234,25 @@ final class QuestNotificationService {
     /// would leave the rest of the board unscheduled until the app is next opened.
     ///
     /// So sync the created quest through the same capacity-reserving path the app uses, then
-    /// rewrite only the reengagement requests. `board` is the whole quest set, which the
-    /// reengagement planner needs to choose its target; pass `nil` when it could not be read, and
-    /// the existing reengagement requests are left alone rather than rewritten from a partial view.
+    /// rewrite only the reengagement requests.
+    ///
+    /// `readBoard` returns the whole quest set, which the reengagement planner needs to choose its
+    /// target, and `nil` when it could not be read — the existing requests are then left alone
+    /// rather than rewritten from a partial view. It is a provider rather than a value because it
+    /// has to run *inside* the serialization: two overlapping shortcut creations that each read the
+    /// board before entering the queue can otherwise land out of order, and the later refresh
+    /// writes a reminder planned from the older board.
     @discardableResult
     func syncAndRefreshReengagement(
         snapshot: QuestSnapshot,
-        board: [QuestSnapshot]?,
+        readBoard: @escaping @MainActor @Sendable () async -> [QuestSnapshot]?,
         now: Date,
         locale: Locale = .current
-    ) async -> QuestNotificationAuthorization {
+    ) async -> ReengagementRefreshOutcome {
         // One enqueue, not two. Releasing the queue between the sync and the refresh would let a
-        // second shortcut creation interleave, and the later refresh could then write a reminder
-        // planned from the older `board`.
+        // second shortcut creation interleave the same way.
         await enqueue {
+            let board = await readBoard()
             // Plan before syncing. `performSync` reserves capacity for the reminder the *settings*
             // describe, so a reminder set left over from an older frequency occupies slots that
             // reservation does not know about. Freeing them first keeps the quest adds inside the
@@ -263,9 +277,17 @@ final class QuestNotificationService {
                 locale: locale,
                 authorizationRequestPolicy: .never
             )
-            guard let plans, authorization.canSchedule else { return authorization }
+            guard let plans, authorization.canSchedule else {
+                return ReengagementRefreshOutcome(
+                    authorization: authorization,
+                    didReadBoard: board != nil
+                )
+            }
 
-            return await self.addReengagementRequests(plans, authorization: authorization)
+            return ReengagementRefreshOutcome(
+                authorization: await self.addReengagementRequests(plans, authorization: authorization),
+                didReadBoard: true
+            )
         }
     }
 
