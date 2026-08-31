@@ -38,21 +38,22 @@ This is about gamification state on `Quest`. The other `@Model`s in `QuestKeeper
 The derivation entry point `HeroDerivation.state(quests:now:lastOpened:calendar:)` must stay a pure function — same inputs, same output (deterministic).
 
 Whenever the quest persistence or snapshot types change, this guard must return nothing.
-Its scope must cover **both** paths — `Quest` (`@Model`) lives in `QuestKeeperShared/`, so a guard pointed only at `QuestKeeper/Models/` scans no `@Model` at all and passes vacuously:
+Its scope must cover all three paths — both `Quest` (`@Model`) and `QuestSnapshot` live in `QuestKeeperShared/`, so a guard pointed only at `QuestKeeper/Models/` scans neither and passes vacuously:
 
 ```bash
-! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/ QuestKeeperShared/Quest.swift
+! rg -n '(var|let) +(hp|isDead|mobLevel|urgency|victories|graves|outcome|retry|monster|notificationID|isNotificationScheduled|reminderEnabled|lastNotificationFiredAt|widgetID)' QuestKeeper/Models/ QuestKeeperShared/Quest.swift QuestKeeperShared/QuestSnapshot.swift
 ```
 
-Scope it to those two paths, not to `QuestKeeperShared/` as a whole: `WidgetDungeonDerivation` and `RetentionEventRecorder` legitimately hold local `urgency`/`mobLevel`/`retry` bindings that the pattern would flag.
-If `Quest` moves again, move the guard with it.
+Scope it to those three paths, not to `QuestKeeperShared/` as a whole: `WidgetDungeonDerivation` and `RetentionEventRecorder` legitimately hold local `urgency`/`mobLevel`/`retry` bindings that the pattern would flag.
+If `Quest` or `QuestSnapshot` moves again, move the guard with it.
 
 ## Source Map
 
 Feature code is grouped by role under `QuestKeeper/`; the widget and the code it shares with the app live in sibling targets.
 
-- `Models/` — the app-side value types: `QuestSnapshot` (what derivation operates on, never the `@Model` class, and intentionally without `title` or `details`).
-  The `Quest` `@Model` itself and the `Importance` enum live in `QuestKeeperShared/Quest.swift`, and `QuestTitlePolicy` lives in `QuestKeeperShared/`, because the widget extension needs those shared model rules too.
+- `Models/` — the app-side value types, currently `HeroAppearance`.
+  The `Quest` `@Model` itself and the `Importance` enum live in `QuestKeeperShared/Quest.swift`, and `QuestTitlePolicy` and `QuestSnapshot` live in `QuestKeeperShared/`, because the widget extension needs those shared model rules too.
+  `QuestSnapshot` is what derivation operates on, never the `@Model` class, and intentionally carries neither `title` nor `details`.
 - `Derivation/` — the pure layer. New gamification rules belong here, never as stored state.
   - `QuestOutcome.swift`: the `QuestOutcome` enum (per-quest derived status) plus the `QuestSnapshot` methods that read it — `outcome(at:)`, `urgency(at:)` (0…1, rising as the deadline nears within `GameBalance.urgencyHorizon`, and 0 unless `.pending`), `mobLevel(at:)` (`importance` × `urgency`, mapped into `0…GameBalance.maxMobLevel`), and `isVisibleDailyGrave(at:calendar:)`.
     A grave is visible **only while its `deadline` falls on the same local calendar day as `now`** (`Calendar.isDate(_:inSameDayAs:)`) — misses outside that day are hidden by derivation, never deleted from the store.
@@ -66,7 +67,7 @@ Feature code is grouped by role under `QuestKeeper/`; the widget and the code it
 - `Intents/` — the App Intents surface: `CreateQuestIntent`, `QuestShortcutCreationCoordinator`, `QuestKeeperAppShortcuts` (see the notifications section below for how the coordinator is injected).
 - `Debug/` — `DebugFixtureSeeder`, the UI-test and store-screenshot fixtures. The whole file is inside `#if DEBUG`, so it does not exist in a Release build; keep launch-argument fixtures here rather than inlining them into `QuestKeeperApp.init`.
 - `Notifications/` and `WidgetSupport/` — see the section below.
-- `QuestKeeperShared/` — everything both targets need. Beyond the widget payload trio (`WidgetDungeonPayload`, `WidgetDungeonDerivation`, `WidgetDungeonSnapshotStore`) it holds the `Quest`/`Importance` model, `QuestTitlePolicy`, `QuestModelContainer` (opens the App Group store), the `QuestStoreActor` (`@ModelActor`) the widget writes through, the pixel-art primitives (`PixelSprite`, `DungeonPalette`), and the measurement stack — retention, onboarding-experiment, and daily-focus models, recorders, and report types.
+- `QuestKeeperShared/` — everything both targets need. Beyond the widget payload trio (`WidgetDungeonPayload`, `WidgetDungeonDerivation`, `WidgetDungeonSnapshotStore`) it holds the `Quest`/`Importance` model, `QuestSnapshot`, `QuestTitlePolicy`, `QuestModelContainer` (opens the App Group store), the `QuestStoreActor` (`@ModelActor`) the widget writes through and reads the board's snapshots from, the pixel-art primitives (`PixelSprite`, `DungeonPalette`), and the measurement stack — retention, onboarding-experiment, and daily-focus models, recorders, and report types.
   The widget-side derivation is deliberately duplicated here so the widget can render derived state without the app running.
 - `QuestKeeperWidget/` — the WidgetKit extension; a Home Screen dungeon in `systemSmall` / `systemMedium`. Mostly a read view over the snapshot, plus `CompleteQuestIntent` for one-tap completion (see below).
 - `QuestKeeperTests/` — Swift Testing coverage, one `<Subject>Tests.swift` file per subject (`DerivationTests`, `QuestActionsTests`, `WidgetTimelinePolicyTests`, …); `Fixtures/` holds the shared builders. `QuestKeeperUITests/` is the XCTest target.
