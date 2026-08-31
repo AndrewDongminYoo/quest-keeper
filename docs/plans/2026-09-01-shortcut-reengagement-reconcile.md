@@ -30,23 +30,29 @@ The `Quest.snapshot` extension moves with it; the derivation extensions in `Ques
 
 ## Behavior Decisions
 
-**The shortcut path adopts `reconcile`'s denied-state wipe, deliberately.**
-`performReconcile` removes every pending QuestKeeper identifier before it reads the authorization status, and returns without re-adding when the status is not `.allowed`.
-Today's single-quest sync only touches the one quest's identifiers, so this is a behavior change for the shortcut path.
-It is the correct one: iOS delivers nothing while authorization is denied, so the removed requests were already inert, and the next app activation rebuilds them through the same reconcile.
-Making the shortcut path behave like activation is the point of the fix.
+**The shortcut path refreshes the reengagement requests; it does not run a full reconcile.**
+A full `reconcile` would plan the reminder, and it would also do two things that are wrong from a background caller.
+It prunes the whole board's _delivered_ notifications, so creating an unrelated quest from a shortcut would silently clear alerts the user has not opened.
+And it clears every pending request before re-adding, so one failed `add` would leave the rest of the board unscheduled until the app is next opened, where the single-quest sync's failure path restores what it evicted.
 
-**A failed snapshot read falls back to today's single-quest sync.**
-`reconcile(snapshots:)` with a partial set would remove the whole board's pending requests and re-add only the new quest, which is worse than not reconciling.
-So the coordinator keeps its existing single-snapshot closure and calls it when the board read throws.
+So the service gains `syncAndRefreshReengagement(snapshot:board:now:locale:)`, which syncs the created quest through the existing capacity-reserving `sync` and then rewrites only the reengagement identifiers.
+It removes no delivered notification and touches no other quest's requests.
+`reconcile` and `performReconcile` are unchanged; the app's activation path keeps its own semantics, which are correct for a foreground caller.
+
+The first draft of this change did call `reconcile` from the shortcut path.
+Both regressions were raised as P2 findings on PR #55 and are the reason for the narrower entry point.
+
+**A failed board read leaves the reengagement requests alone.**
+`board` is optional. Rewriting the reminder from a board that failed to load would aim it at a partial view, and removing the pending requests without replacing them is worse than leaving a slightly stale target.
+The created quest's own notifications are still synced, which is exactly today's behaviour.
 That failure is already visible to the caller: the same read backs the widget payload, so `didUpdateWidgetSnapshot` goes false and `followUpFailures` reports `.widgetSnapshot`.
 
 ## Touch Points
 
 1. `QuestKeeperShared/QuestSnapshot.swift` — moved from `QuestKeeper/Models/`.
 2. `QuestKeeperShared/QuestStoreActor.swift` — `snapshots()` returning the current quest snapshots.
-3. `QuestKeeper/Notifications/QuestNotificationService.swift` — a snapshot-based `reconcile` entry point; the existing `reconcile(quests:)` delegates to it.
-4. `QuestKeeper/Intents/QuestShortcutCreationCoordinator.swift` — a `ReconcileNotifications` closure taking the full set, plus its `convenience init` and the `QuestKeeperApp` call site.
+3. `QuestKeeper/Notifications/QuestNotificationService.swift` — `syncAndRefreshReengagement` and its `performReengagementRefresh`, both added; nothing existing changes.
+4. `QuestKeeper/Intents/QuestShortcutCreationCoordinator.swift` — the `ScheduleNotifications` closure gains the optional board, and its `convenience init` calls the new entry point.
 5. `QuestKeeperTests/QuestNotificationServiceTests.swift` and `QuestShortcutCreationCoordinatorTests.swift`.
 
 `QuestKeeper/Models/` still holds `HeroAppearance.swift` after the move, and it never held a `@Model`, so the persistence guard's first path was already scanning no `@Model` and its scope is unchanged by this work.
@@ -55,7 +61,9 @@ That failure is already visible to the caller: the same read backs the widget pa
 
 Written before the implementation, per the issue's own list.
 
-1. A service test: with reminders configured, a single-quest sync followed by a board reconcile leaves the configured reengagement request scheduled.
+1. A service test: with reminders configured, a single-quest sync leaves no reengagement request, and the shortcut entry point that follows schedules it.
    The fake notification center must be able to hold a reengagement identifier — a fake filtered to quest identifiers would pass without the fix.
-2. A coordinator test: the full snapshot set, not just the created quest, reaches the reconcile closure.
-3. `xcodebuild test -only-testing:QuestKeeperTests` with `-parallel-testing-enabled NO`, plus `bash scripts/test-localization.sh` if any string changes.
+2. A coordinator test: the full snapshot set, not just the created quest, reaches the notification closure.
+3. A service test that another quest's pending requests and delivered alerts both survive the shortcut path, which is the regression the first draft introduced.
+4. A service test that an unreadable board leaves an existing reengagement request in place rather than removing it.
+5. `xcodebuild test -only-testing:QuestKeeperTests` with `-parallel-testing-enabled NO`, plus `bash scripts/test-localization.sh` if any string changes.

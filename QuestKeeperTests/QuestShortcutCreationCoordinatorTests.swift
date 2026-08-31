@@ -9,16 +9,12 @@ struct QuestShortcutCreationCoordinatorTests {
     func createsAndRunsFollowUps() async throws {
         let container = try makeContainer()
         let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
-        var reconciledSnapshots: [QuestSnapshot]?
+        var scheduledSnapshot: QuestSnapshot?
         var updatedPayload: WidgetDungeonPayload?
         let coordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, _, _ in
-                Issue.record("The shortcut path must reconcile the board, not sync one quest")
-                return .allowed
-            },
-            reconcileNotifications: { snapshots, _, _ in
-                reconciledSnapshots = snapshots
+            scheduleNotifications: { snapshot, _, _, _ in
+                scheduledSnapshot = snapshot
                 return .allowed
             },
             updateWidgetSnapshot: { payload in
@@ -38,7 +34,7 @@ struct QuestShortcutCreationCoordinatorTests {
             locale: Locale(identifier: "ko")
         )
 
-        #expect(reconciledSnapshots?.map(\.id) == [outcome.questID])
+        #expect(scheduledSnapshot?.id == outcome.questID)
         #expect(updatedPayload?.quests.contains { $0.id == outcome.questID } == true)
         #expect(outcome.requiresNotificationPermission == false)
         #expect(outcome.followUpFailures.isEmpty)
@@ -93,8 +89,7 @@ struct QuestShortcutCreationCoordinatorTests {
         var competingSubmissionAccepted = false
         let coordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, _, _ in .allowed },
-            reconcileNotifications: { _, _, _ in
+            scheduleNotifications: { _, _, _, _ in
                 competingSubmissionAccepted = await writer.submit(competingPayload)
                 return .allowed
             },
@@ -150,8 +145,8 @@ struct QuestShortcutCreationCoordinatorTests {
         #expect(try ModelContext(container).fetchCount(FetchDescriptor<Quest>()) == 2)
     }
 
-    @Test("the reconcile closure receives the whole board, not only the created Quest")
-    func reconcilesTheWholeBoard() async throws {
+    @Test("the whole board reaches the notification closure, not only the created Quest")
+    func passesTheWholeBoardToNotifications() async throws {
         let container = try makeContainer()
         let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
         let existingID = UUID()
@@ -163,12 +158,11 @@ struct QuestShortcutCreationCoordinatorTests {
         ))
         try container.mainContext.save()
 
-        var reconciledSnapshots: [QuestSnapshot]?
+        var receivedBoard: [QuestSnapshot]??
         let coordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, _, _ in .allowed },
-            reconcileNotifications: { snapshots, _, _ in
-                reconciledSnapshots = snapshots
+            scheduleNotifications: { _, board, _, _ in
+                receivedBoard = .some(board)
                 return .allowed
             },
             updateWidgetSnapshot: { _ in true }
@@ -176,7 +170,9 @@ struct QuestShortcutCreationCoordinatorTests {
 
         let outcome = try await coordinator.create(input: try shortcutInput(now: now), now: now)
 
-        #expect(Set(reconciledSnapshots?.map(\.id) ?? []) == [existingID, outcome.questID])
+        // The reengagement planner picks its target from the whole board, so a board holding only
+        // the created quest would aim the reminder at the wrong one.
+        #expect(Set((receivedBoard ?? nil)?.map(\.id) ?? []) == [existingID, outcome.questID])
     }
 
     private func makeContainer() throws -> ModelContainer {
@@ -200,8 +196,7 @@ struct QuestShortcutCreationCoordinatorTests {
     ) -> QuestShortcutCreationCoordinator {
         QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, _, _ in authorization },
-            reconcileNotifications: { _, _, _ in authorization },
+            scheduleNotifications: { _, _, _, _ in authorization },
             updateWidgetSnapshot: { _ in widgetUpdated }
         )
     }

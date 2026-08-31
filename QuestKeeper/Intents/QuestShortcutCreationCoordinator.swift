@@ -27,13 +27,12 @@ nonisolated struct QuestShortcutCreationOutcome: Equatable, Sendable {
 
 @MainActor
 final class QuestShortcutCreationCoordinator: Sendable {
+    /// The board is every quest, which the reengagement planner needs to choose its target.
+    /// It is optional because the read can fail after the quest is already persisted, and a
+    /// partial view is worse than none — see `QuestNotificationService.syncAndRefreshReengagement`.
     typealias ScheduleNotifications = @MainActor @Sendable (
         QuestSnapshot,
-        Date,
-        Locale
-    ) async -> QuestNotificationAuthorization
-    typealias ReconcileNotifications = @MainActor @Sendable (
-        [QuestSnapshot],
+        [QuestSnapshot]?,
         Date,
         Locale
     ) async -> QuestNotificationAuthorization
@@ -41,7 +40,6 @@ final class QuestShortcutCreationCoordinator: Sendable {
 
     private var modelContainer: ModelContainer
     private let scheduleNotifications: ScheduleNotifications
-    private let reconcileNotifications: ReconcileNotifications
     private let updateWidgetSnapshot: UpdateWidgetSnapshot
     private let logger = Logger(
         subsystem: "kr.donminzzi.QuestKeeper",
@@ -51,12 +49,10 @@ final class QuestShortcutCreationCoordinator: Sendable {
     init(
         modelContainer: ModelContainer,
         scheduleNotifications: @escaping ScheduleNotifications,
-        reconcileNotifications: @escaping ReconcileNotifications,
         updateWidgetSnapshot: @escaping UpdateWidgetSnapshot
     ) {
         self.modelContainer = modelContainer
         self.scheduleNotifications = scheduleNotifications
-        self.reconcileNotifications = reconcileNotifications
         self.updateWidgetSnapshot = updateWidgetSnapshot
     }
 
@@ -67,16 +63,10 @@ final class QuestShortcutCreationCoordinator: Sendable {
     ) {
         self.init(
             modelContainer: modelContainer,
-            scheduleNotifications: { snapshot, now, locale in
-                await notificationService.syncWithoutRequestingAuthorization(
+            scheduleNotifications: { snapshot, board, now, locale in
+                await notificationService.syncAndRefreshReengagement(
                     snapshot: snapshot,
-                    now: now,
-                    locale: locale
-                )
-            },
-            reconcileNotifications: { snapshots, now, locale in
-                await notificationService.reconcile(
-                    snapshots: snapshots,
+                    board: board,
                     now: now,
                     locale: locale
                 )
@@ -105,19 +95,14 @@ final class QuestShortcutCreationCoordinator: Sendable {
             importance: persisted.importance
         )
 
-        // Reconcile the whole board rather than syncing the new quest alone: a single-quest sync
-        // reserves the configured reengagement requests' capacity without planning them, and this
-        // path runs without an app activation, so nothing would plan them afterwards.
+        // The reengagement reminder targets a quest chosen from the whole board, and a single-quest
+        // sync reserves its capacity without planning it. This path runs without an app activation,
+        // so nothing would plan it afterwards.
         let board = try? await store.snapshots()
-        let authorization: QuestNotificationAuthorization
-        if let board {
-            authorization = await reconcileNotifications(board, now, locale)
-        } else {
-            // Reconciling a board we failed to read would remove every pending request and re-add
-            // only this quest's. Fall back to the single-quest sync, which touches nothing else.
-            logger.error("Quest persisted but the board read for notification reconciliation failed")
-            authorization = await scheduleNotifications(snapshot, now, locale)
+        if board == nil {
+            logger.error("Quest persisted but the board read for the reengagement refresh failed")
         }
+        let authorization = await scheduleNotifications(snapshot, board, now, locale)
         let didUpdateWidget: Bool
         do {
             let payload = try await store.snapshotPayload(generatedAt: .now)

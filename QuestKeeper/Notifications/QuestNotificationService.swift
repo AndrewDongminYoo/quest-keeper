@@ -207,30 +207,53 @@ final class QuestNotificationService {
     @discardableResult
     func reconcile(quests: [Quest], now: Date, locale: Locale = .current) async -> QuestNotificationAuthorization {
         await reconcile(
-            snapshots: quests.map(\.snapshot),
+            quests: quests,
             now: now,
             locale: locale,
             authorizationRequestPolicy: .never
         )
     }
 
-    /// The `@Model`-free entry point. `CreateQuestIntent` reaches the store through `QuestStoreActor`
-    /// and cannot hand over `Quest` instances, but it still has to reconcile the whole board: a
-    /// single-quest sync reserves the reengagement requests' capacity without ever planning them,
-    /// so a quest created from a shortcut would otherwise leave the configured reminder unscheduled
-    /// until the next app activation.
+    /// The background-safe half of a reconcile, for `CreateQuestIntent`.
+    ///
+    /// A single-quest sync subtracts the configured reengagement requests from its capacity but
+    /// never plans them; only a reconcile does. The shortcut path runs without an app activation,
+    /// so nothing reconciles afterwards and the reminder stays unscheduled. Running a full
+    /// `reconcile` here would fix that and break two other things: it prunes the whole board's
+    /// *delivered* alerts, which from the background would silently clear notifications the user
+    /// has not opened, and it clears every pending request before re-adding, so one failed `add`
+    /// would leave the rest of the board unscheduled until the app is next opened.
+    ///
+    /// So sync the created quest through the same capacity-reserving path the app uses, then
+    /// rewrite only the reengagement requests. `board` is the whole quest set, which the
+    /// reengagement planner needs to choose its target; pass `nil` when it could not be read, and
+    /// the existing reengagement requests are left alone rather than rewritten from a partial view.
     @discardableResult
-    func reconcile(
-        snapshots: [QuestSnapshot],
+    func syncAndRefreshReengagement(
+        snapshot: QuestSnapshot,
+        board: [QuestSnapshot]?,
         now: Date,
         locale: Locale = .current
     ) async -> QuestNotificationAuthorization {
-        await reconcile(
-            snapshots: snapshots,
+        let authorization = await sync(
+            questID: snapshot.id,
+            snapshot: snapshot,
             now: now,
             locale: locale,
             authorizationRequestPolicy: .never
         )
+        guard let board, authorization.canSchedule else { return authorization }
+
+        let plans = ReengagementReminderPlanner.plans(
+            for: board,
+            settings: reengagementSettingsStore.load(),
+            now: now,
+            calendar: calendar,
+            locale: locale
+        )
+        return await enqueue {
+            await self.performReengagementRefresh(plans: plans, authorization: authorization)
+        }
     }
 
     @discardableResult
@@ -240,7 +263,7 @@ final class QuestNotificationService {
         locale: Locale = .current
     ) async -> QuestNotificationAuthorization {
         await reconcile(
-            snapshots: quests.map(\.snapshot),
+            quests: quests,
             now: now,
             locale: locale,
             authorizationRequestPolicy: .ifNeeded
@@ -248,12 +271,13 @@ final class QuestNotificationService {
     }
 
     private func reconcile(
-        snapshots: [QuestSnapshot],
+        quests: [Quest],
         now: Date,
         locale: Locale,
         authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
         let settings = reengagementSettingsStore.load()
+        let snapshots = quests.map(\.snapshot)
         let reengagementPlans = ReengagementReminderPlanner.plans(
             for: snapshots,
             settings: settings,
@@ -267,8 +291,8 @@ final class QuestNotificationService {
             maximumCount: QuestNotificationPlanner.maximumScheduledNotifications - reengagementPlans.count,
             locale: locale
         )
-        let deliveredIdentifiersToRemove = snapshots.flatMap { snapshot in
-            QuestNotificationPlanner.identifiers(for: snapshot.id)
+        let deliveredIdentifiersToRemove = quests.flatMap { quest in
+            QuestNotificationPlanner.identifiers(for: quest.id)
         } + ReengagementReminderPlanner.allIdentifiers
 
         return await enqueue {
@@ -397,6 +421,31 @@ final class QuestNotificationService {
                 authorizationRequestPolicy: authorizationRequestPolicy
             )
         }
+    }
+
+    /// Remove-before-add, scoped to the reengagement identifiers alone. It touches no quest
+    /// request and removes no delivered notification, so a background caller cannot disturb the
+    /// rest of the board. An empty plan set still clears the pending requests: the planner returns
+    /// nothing when reminders are off or no quest is pending, and a request pointing at a resolved
+    /// quest is worse than none.
+    private func performReengagementRefresh(
+        plans: [ReengagementReminderPlan],
+        authorization: QuestNotificationAuthorization
+    ) async -> QuestNotificationAuthorization {
+        let pending = await center.pendingNotificationIdentifiers()
+            .filter(ReengagementReminderPlanner.isReengagementNotificationIdentifier)
+        if !pending.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: pending)
+        }
+
+        for plan in plans {
+            do {
+                try await center.add(request(for: plan))
+            } catch {
+                return .unavailable
+            }
+        }
+        return authorization
     }
 
     private func performCancel(questID: UUID) {
