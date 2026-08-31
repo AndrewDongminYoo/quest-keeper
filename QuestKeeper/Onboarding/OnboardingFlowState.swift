@@ -124,6 +124,14 @@ nonisolated enum OnboardingFlowState {
             return source == .app && event.questID != nil
         case .questCompleted:
             return (source == .app || source == .widget) && event.questID != nil
+        case .reengagementPermissionRequested,
+             .reengagementPermissionGranted,
+             .reengagementPermissionDenied,
+             .reengagementReminderEnabled,
+             .reengagementReminderDisabled:
+            return source == .app && event.questID == nil
+        case .reengagementNotificationOpened, .reengagementNotificationCompleted:
+            return source == .app && event.questID != nil
         }
     }
 

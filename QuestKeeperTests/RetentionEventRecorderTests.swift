@@ -91,9 +91,41 @@ struct RetentionEventRecorderTests {
             at: now.addingTimeInterval(1),
             in: context
         ) == .duplicate)
+        #expect(RetentionEventRecorder.recordReengagementPermissionRequested(
+            actionID: actionID,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementPermissionGranted(
+            actionID: actionID,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementReminderEnabled(
+            actionID: actionID,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementReminderDisabled(
+            actionID: actionID,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementNotificationOpened(
+            questID: questID,
+            actionID: actionID,
+            at: now,
+            in: context
+        ) == .inserted)
+        #expect(RetentionEventRecorder.recordReengagementNotificationCompleted(
+            questID: questID,
+            actionID: actionID,
+            at: now.addingTimeInterval(1),
+            in: context
+        ) == .inserted)
 
         let events = try context.fetch(FetchDescriptor<RetentionEvent>())
-        #expect(events.count == 6)
+        #expect(events.count == 12)
         #expect(Set(events.map(\.installationID)) == [installationID])
         let experimentEvents = events.filter {
             [.experimentExposed, .questCreationStarted, .onboardingDeferred].contains($0.snapshot.name)

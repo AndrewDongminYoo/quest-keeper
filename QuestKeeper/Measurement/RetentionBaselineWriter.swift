@@ -6,6 +6,7 @@ import SwiftData
 final class RetentionBaselineWriter {
     private let store: RetentionBaselineStore
     private let onboardingStore: OnboardingExperimentStore
+    private let reengagementStore: ReengagementReminderStore
     private let logger = Logger(
         subsystem: "kr.donminzzi.QuestKeeper",
         category: "RetentionMeasurement"
@@ -13,10 +14,12 @@ final class RetentionBaselineWriter {
 
     init(
         store: RetentionBaselineStore = RetentionBaselineStore(),
-        onboardingStore: OnboardingExperimentStore = OnboardingExperimentStore()
+        onboardingStore: OnboardingExperimentStore = OnboardingExperimentStore(),
+        reengagementStore: ReengagementReminderStore = ReengagementReminderStore()
     ) {
         self.store = store
         self.onboardingStore = onboardingStore
+        self.reengagementStore = reengagementStore
     }
 
     func recordActivationAndWrite(
@@ -61,18 +64,30 @@ final class RetentionBaselineWriter {
                 let cohortAssignments = assignments.filter {
                     $0.experimentKey == OnboardingExperiment.key && $0.assignedAt < now
                 }
-                guard let cohortStart = cohortAssignments.first?.assignedAt else { return }
-                let experimentReport = OnboardingExperimentReport.make(
-                    assignments: assignments,
-                    installations: installations,
-                    events: events,
-                    asOf: now,
-                    calendar: calendar,
-                    cohort: DateInterval(start: cohortStart, end: now)
-                )
-                try onboardingStore.save(experimentReport)
+                if let cohortStart = cohortAssignments.first?.assignedAt {
+                    let experimentReport = OnboardingExperimentReport.make(
+                        assignments: assignments,
+                        installations: installations,
+                        events: events,
+                        asOf: now,
+                        calendar: calendar,
+                        cohort: DateInterval(start: cohortStart, end: now)
+                    )
+                    try onboardingStore.save(experimentReport)
+                }
             } catch {
                 logger.error("Failed to write onboarding experiment report: \(String(describing: error), privacy: .public)")
+            }
+
+            do {
+                let report = ReengagementReminderReport.make(
+                    events: events,
+                    asOf: now,
+                    calendar: calendar
+                )
+                try reengagementStore.save(report)
+            } catch {
+                logger.error("Failed to write reengagement reminder report: \(String(describing: error), privacy: .public)")
             }
         } catch {
             logger.error("Failed to write retention baseline: \(String(describing: error), privacy: .public)")

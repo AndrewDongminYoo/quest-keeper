@@ -9,6 +9,13 @@ nonisolated enum RetentionEventName: String, Codable, CaseIterable, Sendable {
     case experimentExposed = "experiment_exposed"
     case questCreationStarted = "quest_creation_started"
     case onboardingDeferred = "onboarding_deferred"
+    case reengagementPermissionRequested = "reengagement_permission_requested"
+    case reengagementPermissionGranted = "reengagement_permission_granted"
+    case reengagementPermissionDenied = "reengagement_permission_denied"
+    case reengagementReminderEnabled = "reengagement_reminder_enabled"
+    case reengagementReminderDisabled = "reengagement_reminder_disabled"
+    case reengagementNotificationOpened = "reengagement_notification_opened"
+    case reengagementNotificationCompleted = "reengagement_notification_completed"
 }
 
 nonisolated enum RetentionEventSource: String, Codable, CaseIterable, Sendable {
@@ -140,7 +147,30 @@ extension RetentionEventName {
         switch self {
         case .experimentExposed, .questCreationStarted, .questCreated, .questCompleted, .onboardingDeferred:
             true
-        case .appActivated, .questRetried:
+        case .appActivated,
+             .questRetried,
+             .reengagementPermissionRequested,
+             .reengagementPermissionGranted,
+             .reengagementPermissionDenied,
+             .reengagementReminderEnabled,
+             .reengagementReminderDisabled,
+             .reengagementNotificationOpened,
+             .reengagementNotificationCompleted:
+            false
+        }
+    }
+
+    nonisolated var isReengagement: Bool {
+        switch self {
+        case .reengagementPermissionRequested,
+             .reengagementPermissionGranted,
+             .reengagementPermissionDenied,
+             .reengagementReminderEnabled,
+             .reengagementReminderDisabled,
+             .reengagementNotificationOpened,
+             .reengagementNotificationCompleted:
+            true
+        default:
             false
         }
     }

@@ -23,7 +23,14 @@ struct RetentionBaselineStoreTests {
         let experimentStore = OnboardingExperimentStore(
             fileURL: temporaryDirectory().appending(path: OnboardingExperimentStore.fileName)
         )
-        let writer = RetentionBaselineWriter(store: store, onboardingStore: experimentStore)
+        let reengagementStore = ReengagementReminderStore(
+            fileURL: temporaryDirectory().appending(path: ReengagementReminderStore.fileName)
+        )
+        let writer = RetentionBaselineWriter(
+            store: store,
+            onboardingStore: experimentStore,
+            reengagementStore: reengagementStore
+        )
         let now = RetentionBaselineFixture.date("2026-07-08T01:00:00Z")
         let installationID = RetentionBaselineFixture.uuid(501)
         let assignedAt = now.addingTimeInterval(-1)
@@ -51,6 +58,7 @@ struct RetentionBaselineStoreTests {
         #expect(store.load()?.firstValue == RetentionRate(achieved: 0, eligible: 1))
         #expect(experimentStore.load()?.guided.funnel.exposed == 0)
         #expect(experimentStore.load()?.dataQuality.missingExposureCount == 1)
+        #expect(reengagementStore.load()?.permissionGrantRate == RetentionRate(achieved: 0, eligible: 0))
     }
 
     @MainActor
@@ -96,6 +104,44 @@ struct RetentionBaselineStoreTests {
 
         #expect(try container.mainContext.fetch(FetchDescriptor<RetentionEvent>()).count == 1)
         #expect(store.load()?.weeklyActiveInstallations == 1)
+    }
+
+    @MainActor
+    @Test("writer writes reengagement report without an onboarding cohort")
+    func writerWritesReengagementReportWithoutOnboardingCohort() throws {
+        let schema = Schema([
+            Quest.self,
+            RetentionInstallation.self,
+            RetentionEvent.self,
+            ExperimentAssignment.self,
+        ])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+        let store = RetentionBaselineStore(
+            fileURL: temporaryDirectory().appending(path: RetentionBaselineStore.fileName)
+        )
+        let reengagementStore = ReengagementReminderStore(
+            fileURL: temporaryDirectory().appending(path: ReengagementReminderStore.fileName)
+        )
+        let writer = RetentionBaselineWriter(store: store, reengagementStore: reengagementStore)
+        let now = RetentionBaselineFixture.date("2026-07-08T01:00:00Z")
+        container.mainContext.insert(RetentionInstallation(
+            installationID: RetentionBaselineFixture.uuid(506),
+            measurementStartedAt: now.addingTimeInterval(-1)
+        ))
+        try container.mainContext.save()
+
+        writer.recordActivationAndWrite(
+            sessionID: RetentionBaselineFixture.uuid(507),
+            at: now,
+            using: container,
+            calendar: RetentionBaselineFixture.calendar
+        )
+
+        #expect(store.load()?.weeklyActiveInstallations == 1)
+        #expect(reengagementStore.load()?.notificationCompletionRate == RetentionRate(achieved: 0, eligible: 0))
     }
 
     @MainActor
