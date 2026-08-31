@@ -593,6 +593,42 @@ struct QuestNotificationServiceTests {
     // `UNCalendarNotificationTrigger` whose date has passed returns nil from `nextTriggerDate()`,
     // so against the 2023 fixture every seeded request vanishes from the pending set and the cap
     // has nothing to act on — a green that proves nothing. Real future dates keep them visible.
+    @Test("the cap counts the reminders actually pending, not the ones the settings ask for")
+    func capCountsPendingRemindersNotConfiguredOnes() async {
+        let center = FakeQuestNotificationCenter()
+        // Settings say daily, so the old reservation would free 63 slots for quests. Five weekday
+        // requests from the previous frequency are still pending, which makes the real ceiling 59.
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        let cap = QuestNotificationPlanner.maximumScheduledNotifications
+        let base = Date.now
+        let staleReminders = (2...6).map { weekday in
+            makeScheduledRequest(
+                identifier: "reengagement.weekday.\(weekday)",
+                fireDate: base.addingTimeInterval(Double(weekday) * hour)
+            )
+        }
+        let questRequests = (0..<(cap - staleReminders.count)).map { index in
+            makeScheduledRequest(
+                identifier: QuestNotificationKind.deadline.identifier(for: UUID()),
+                fireDate: base.addingTimeInterval(Double(100 + index) * hour)
+            )
+        }
+        center.pendingRequestsList = staleReminders + questRequests
+
+        await service.sync(
+            quest: Quest(title: "빨래", deadline: base.addingTimeInterval(3 * hour), importance: .medium),
+            now: base
+        )
+
+        // Reserving only the configured single slot would admit past the platform limit, and
+        // `UNUserNotificationCenter` resolves that overflow itself, silently.
+        #expect(center.pendingRequestsList.count <= cap)
+        #expect(!center.events.contains { $0.hasPrefix("droppedByPlatform:") })
+        #expect(staleReminders.allSatisfy { stale in
+            center.pendingRequestsList.contains { $0.identifier == stale.identifier }
+        })
+    }
+
     @Test("a single-quest sync evicts the furthest requests rather than overflowing the platform cap")
     func singleQuestSyncEnforcesTheGlobalCap() async {
         let center = FakeQuestNotificationCenter()
