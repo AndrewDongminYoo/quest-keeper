@@ -239,6 +239,23 @@ final class QuestNotificationService {
         // second shortcut creation interleave, and the later refresh could then write a reminder
         // planned from the older `board`.
         await enqueue {
+            // Plan before syncing. `performSync` reserves capacity for the reminder the *settings*
+            // describe, so a reminder set left over from an older frequency occupies slots that
+            // reservation does not know about. Freeing them first keeps the quest adds inside the
+            // platform limit; doing it afterwards lets the platform silently drop one of them.
+            let plans = board.map { snapshots in
+                ReengagementReminderPlanner.plans(
+                    for: snapshots,
+                    settings: self.reengagementSettingsStore.load(),
+                    now: now,
+                    calendar: self.calendar,
+                    locale: locale
+                )
+            }
+            if let plans {
+                await self.removeObsoleteReengagementRequests(keeping: plans)
+            }
+
             let authorization = await self.performSync(
                 questID: snapshot.id,
                 snapshot: snapshot,
@@ -246,18 +263,9 @@ final class QuestNotificationService {
                 locale: locale,
                 authorizationRequestPolicy: .never
             )
-            guard let board, authorization.canSchedule else { return authorization }
+            guard let plans, authorization.canSchedule else { return authorization }
 
-            return await self.performReengagementRefresh(
-                plans: ReengagementReminderPlanner.plans(
-                    for: board,
-                    settings: self.reengagementSettingsStore.load(),
-                    now: now,
-                    calendar: self.calendar,
-                    locale: locale
-                ),
-                authorization: authorization
-            )
+            return await self.addReengagementRequests(plans, authorization: authorization)
         }
     }
 
@@ -428,39 +436,38 @@ final class QuestNotificationService {
         }
     }
 
-    /// Scoped to the reengagement identifiers alone: it touches no quest request and removes no
-    /// delivered notification, so a background caller cannot disturb the rest of the board.
+    /// Removes the reengagement requests the new plan set does not cover — the leftovers of an
+    /// older frequency, or all of them when the planner returns nothing because reminders are off
+    /// or no quest is pending. A reminder aimed at a resolved quest is worse than none.
     ///
-    /// Only the *obsolete* identifiers are removed first — the ones the new plan set does not
-    /// cover, which is how a daily reminder's leftover request disappears after a switch to
-    /// weekdays. The identifiers the plan does cover are replaced by the add itself, since
-    /// `UNUserNotificationCenter` drops a pending request that shares an identifier. Removing them
-    /// up front instead would leave a working reminder deleted whenever an `add` then failed.
+    /// The identifiers the plan *does* cover are left alone here and replaced by the add itself,
+    /// since `UNUserNotificationCenter` drops a pending request that shares an identifier.
+    /// Removing them up front would delete a working reminder whenever the replacing add failed.
     ///
-    /// An obsolete request is dropped even when the replacing adds then fail, and that is
-    /// deliberate: it is obsolete because the stored settings no longer describe it, so keeping it
-    /// alive would fire at a cadence the user has switched off. Preservation applies to the
-    /// reminder the settings still ask for, not to one they have retired.
+    /// An obsolete request is dropped even when the adds then fail, and that is deliberate: it is
+    /// obsolete because the stored settings no longer describe it, so keeping it alive would fire
+    /// at a cadence the user has switched off. Preservation applies to the reminder the settings
+    /// still ask for, not to one they have retired.
     ///
-    /// An empty plan set therefore clears everything, which is intended: the planner returns
-    /// nothing when reminders are off or no quest is pending, and a reminder pointing at a
-    /// resolved quest is worse than none.
-    private func performReengagementRefresh(
-        plans: [ReengagementReminderPlan],
-        authorization: QuestNotificationAuthorization
-    ) async -> QuestNotificationAuthorization {
+    /// Nothing here removes a delivered notification or touches a quest request, so a background
+    /// caller cannot disturb the rest of the board.
+    private func removeObsoleteReengagementRequests(keeping plans: [ReengagementReminderPlan]) async {
         let planned = Set(plans.map(\.identifier))
         let obsolete = await center.pendingNotificationIdentifiers().filter {
             ReengagementReminderPlanner.isReengagementNotificationIdentifier($0)
                 && !planned.contains($0)
         }
-        if !obsolete.isEmpty {
-            center.removePendingNotificationRequests(withIdentifiers: obsolete)
-        }
+        guard !obsolete.isEmpty else { return }
+        center.removePendingNotificationRequests(withIdentifiers: obsolete)
+    }
 
-        // Weekday reminders are five independent requests, and this path can be the last thing to
-        // run before a long gap with no activation. Abandoning the rest on the first failure would
-        // leave those days silent, or still aimed at whichever quest the previous refresh chose.
+    /// Weekday reminders are five independent requests, and the shortcut path can be the last thing
+    /// to run before a long gap with no activation. Abandoning the rest on the first failure would
+    /// leave those days silent, or still aimed at whichever quest the previous refresh chose.
+    private func addReengagementRequests(
+        _ plans: [ReengagementReminderPlan],
+        authorization: QuestNotificationAuthorization
+    ) async -> QuestNotificationAuthorization {
         var anyAddFailed = false
         for plan in plans {
             do {

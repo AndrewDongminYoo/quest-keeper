@@ -11,6 +11,10 @@ nonisolated struct QuestShortcutCreationOutcome: Equatable, Sendable {
     let questID: UUID
     let retentionRecordResult: RetentionRecordResult
     let notificationAuthorization: QuestNotificationAuthorization
+    /// Whether the board could be read for the reengagement refresh. It is a separate fetch from
+    /// the widget payload's, so one can fail while the other succeeds; without this the shortcut
+    /// would report full success with the configured reminder left unrefreshed.
+    let didReadBoard: Bool
     let didUpdateWidgetSnapshot: Bool
 
     var requiresNotificationPermission: Bool {
@@ -19,7 +23,9 @@ nonisolated struct QuestShortcutCreationOutcome: Equatable, Sendable {
 
     var followUpFailures: Set<QuestShortcutFollowUpFailure> {
         var failures: Set<QuestShortcutFollowUpFailure> = []
-        if notificationAuthorization == .unavailable { failures.insert(.notifications) }
+        if notificationAuthorization == .unavailable || !didReadBoard {
+            failures.insert(.notifications)
+        }
         if !didUpdateWidgetSnapshot { failures.insert(.widgetSnapshot) }
         return failures
     }
@@ -117,6 +123,7 @@ final class QuestShortcutCreationCoordinator: Sendable {
             questID: persisted.questID,
             retentionRecordResult: persisted.retentionRecordResult,
             notificationAuthorization: authorization,
+            didReadBoard: board != nil,
             didUpdateWidgetSnapshot: didUpdateWidget
         )
     }

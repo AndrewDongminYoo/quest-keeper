@@ -42,6 +42,10 @@ It removes no delivered notification and touches no other quest's requests.
 The first draft of this change did call `reconcile` from the shortcut path.
 Both regressions were raised as P2 findings on PR #55 and are the reason for the narrower entry point.
 
+**Obsolete reminder identifiers are removed before the quest requests are added.**
+`performSync` reserves capacity for the reminder the _stored settings_ describe, so a reminder set left over from an older frequency occupies slots that reservation does not know about — five weekday requests against a reservation of one, on a board near the platform limit.
+Freeing them first keeps the quest adds inside the limit; freeing them afterwards lets the platform silently drop a quest request and only then release the slots it needed.
+
 **Only obsolete reminder identifiers are removed, and the sync and the refresh share one queue slot.**
 Removing every pending reengagement request before adding would delete a working reminder whenever the replacing `add` then failed, which is the same defect the paragraph above rejects one level down.
 `UNUserNotificationCenter` drops a pending request that shares an identifier, so the identifiers the new plan covers are replaced by the add itself and only the uncovered ones need removing.
@@ -51,7 +55,9 @@ Both were found by a local review round before the change was pushed.
 **A failed board read leaves the reengagement requests alone.**
 `board` is optional. Rewriting the reminder from a board that failed to load would aim it at a partial view, and removing the pending requests without replacing them is worse than leaving a slightly stale target.
 The created quest's own notifications are still synced, which is exactly today's behaviour.
-That failure is already visible to the caller: the same read backs the widget payload, so `didUpdateWidgetSnapshot` goes false and `followUpFailures` reports `.widgetSnapshot`.
+
+The failure is reported through `QuestShortcutCreationOutcome.didReadBoard`, which contributes `.notifications` to `followUpFailures`.
+An earlier draft of this plan claimed the widget payload's own failure would reveal it, and a review round disproved that: the board read and the payload read are independent fetches, so one can fail while the other succeeds, and the shortcut would then report full success with the configured reminder left unrefreshed.
 
 ## Touch Points
 

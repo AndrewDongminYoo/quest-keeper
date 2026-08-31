@@ -175,6 +175,23 @@ struct QuestShortcutCreationCoordinatorTests {
         #expect(Set((receivedBoard ?? nil)?.map(\.id) ?? []) == [existingID, outcome.questID])
     }
 
+    @Test("a board that could not be read is reported as a notification follow-up failure")
+    func unreadableBoardIsAFollowUpFailure() {
+        // The board read and the widget payload read are independent fetches, so one can fail while
+        // the other succeeds. Without this the shortcut would report full success with the
+        // configured reminder left unrefreshed.
+        let outcome = QuestShortcutCreationOutcome(
+            questID: UUID(),
+            retentionRecordResult: .inserted,
+            notificationAuthorization: .allowed,
+            didReadBoard: false,
+            didUpdateWidgetSnapshot: true
+        )
+
+        #expect(outcome.followUpFailures == [.notifications])
+        #expect(outcome.requiresNotificationPermission == false)
+    }
+
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([Quest.self, RetentionInstallation.self, RetentionEvent.self])
         let container = try ModelContainer(

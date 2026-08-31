@@ -531,6 +531,37 @@ struct QuestNotificationServiceTests {
         #expect(reminders.count == 4)
     }
 
+    @Test("reminders left over from an older frequency are freed before the quest requests are added")
+    func obsoleteRemindersArePrunedBeforeTheQuestAdds() async {
+        let center = FakeQuestNotificationCenter()
+        // Stored settings say daily; five weekday requests from the previous frequency are still
+        // pending because their reconcile has not run. `performSync` reserves one slot, not five.
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        center.pendingRequestsList = (2...6).map { weekday in
+            makeScheduledRequest(
+                identifier: "reengagement.weekday.\(weekday)",
+                fireDate: now.addingTimeInterval(Double(weekday) * hour)
+            )
+        }
+        let created = quest(deadlineOffset: 3 * hour).snapshot
+
+        await service.syncAndRefreshReengagement(snapshot: created, board: [created], now: now)
+
+        let freed = center.events.firstIndex {
+            $0.hasPrefix("removePending:") && $0.contains("reengagement.weekday")
+        }
+        let firstQuestAdd = center.events.firstIndex {
+            $0.hasPrefix("add:\(QuestNotificationKind.identifierPrefix)")
+        }
+        #expect(freed != nil)
+        #expect(firstQuestAdd != nil)
+        // Freeing them afterwards would let the platform drop a quest request at the limit and
+        // then release the slots it needed, with no error reported anywhere.
+        #expect((freed ?? .max) < (firstQuestAdd ?? 0))
+        #expect(center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
+        #expect(!center.pendingRequestsList.contains { $0.identifier.hasPrefix("reengagement.weekday") })
+    }
+
     private var enabledDailyReminder: ReengagementReminderSettings {
         ReengagementReminderSettings(
             isEnabled: true,
