@@ -605,10 +605,16 @@ struct ContentView: View {
                     in: modelContext
                 )
                 _ = commitPendingChanges()
-                let authorization = await notificationService.requestAuthorizationAndReconcile(
+                let scheduling = await notificationService.requestAuthorizationAndReconcile(
                     quests: currentQuests,
                     now: now
                 )
+                // `.unavailable`은 권한 거절과 스케줄링 실패를 함께 싣고 온다. 권한은 허용됐는데
+                // `center.add`만 실패한 경우까지 미기록으로 두면 수락률이 낮게 잡히고 UI도 어긋나므로,
+                // 그 경우에만 시스템 상태를 다시 읽는다.
+                let authorization = scheduling == .unavailable
+                    ? await notificationService.authorizationStatus()
+                    : scheduling
                 switch authorization {
                 case .allowed:
                     _ = RetentionEventRecorder.recordReengagementPermissionGranted(
