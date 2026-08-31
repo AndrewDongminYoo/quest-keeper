@@ -13,7 +13,7 @@ struct QuestShortcutCreationCoordinatorTests {
         var updatedPayload: WidgetDungeonPayload?
         let coordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { snapshot, _, _ in
+            scheduleNotifications: { snapshot, _, _, _ in
                 scheduledSnapshot = snapshot
                 return .allowed
             },
@@ -89,7 +89,7 @@ struct QuestShortcutCreationCoordinatorTests {
         var competingSubmissionAccepted = false
         let coordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, _, _ in
+            scheduleNotifications: { _, _, _, _ in
                 competingSubmissionAccepted = await writer.submit(competingPayload)
                 return .allowed
             },
@@ -145,6 +145,53 @@ struct QuestShortcutCreationCoordinatorTests {
         #expect(try ModelContext(container).fetchCount(FetchDescriptor<Quest>()) == 2)
     }
 
+    @Test("the whole board reaches the notification closure, not only the created Quest")
+    func passesTheWholeBoardToNotifications() async throws {
+        let container = try makeContainer()
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let existingID = UUID()
+        container.mainContext.insert(Quest(
+            id: existingID,
+            title: "이미 있던 퀘스트",
+            deadline: now.addingTimeInterval(7_200),
+            importance: .low
+        ))
+        try container.mainContext.save()
+
+        var receivedBoard: [QuestSnapshot]??
+        let coordinator = QuestShortcutCreationCoordinator(
+            modelContainer: container,
+            scheduleNotifications: { _, board, _, _ in
+                receivedBoard = .some(board)
+                return .allowed
+            },
+            updateWidgetSnapshot: { _ in true }
+        )
+
+        let outcome = try await coordinator.create(input: try shortcutInput(now: now), now: now)
+
+        // The reengagement planner picks its target from the whole board, so a board holding only
+        // the created quest would aim the reminder at the wrong one.
+        #expect(Set((receivedBoard ?? nil)?.map(\.id) ?? []) == [existingID, outcome.questID])
+    }
+
+    @Test("a board that could not be read is reported as a notification follow-up failure")
+    func unreadableBoardIsAFollowUpFailure() {
+        // The board read and the widget payload read are independent fetches, so one can fail while
+        // the other succeeds. Without this the shortcut would report full success with the
+        // configured reminder left unrefreshed.
+        let outcome = QuestShortcutCreationOutcome(
+            questID: UUID(),
+            retentionRecordResult: .inserted,
+            notificationAuthorization: .allowed,
+            didReadBoard: false,
+            didUpdateWidgetSnapshot: true
+        )
+
+        #expect(outcome.followUpFailures == [.notifications])
+        #expect(outcome.requiresNotificationPermission == false)
+    }
+
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([Quest.self, RetentionInstallation.self, RetentionEvent.self])
         let container = try ModelContainer(
@@ -166,7 +213,7 @@ struct QuestShortcutCreationCoordinatorTests {
     ) -> QuestShortcutCreationCoordinator {
         QuestShortcutCreationCoordinator(
             modelContainer: container,
-            scheduleNotifications: { _, _, _ in authorization },
+            scheduleNotifications: { _, _, _, _ in authorization },
             updateWidgetSnapshot: { _ in widgetUpdated }
         )
     }

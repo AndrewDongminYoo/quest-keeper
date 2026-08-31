@@ -94,6 +94,13 @@ actor QuestStoreActor {
         return true
     }
 
+    /// The current board as value snapshots, for callers that reconcile derived side effects
+    /// (notifications) without an app activation. `Quest` is a `@Model` and cannot cross the
+    /// actor boundary; `QuestSnapshot` carries the same raw facts and is `Sendable`.
+    func snapshots() throws -> [QuestSnapshot] {
+        try modelContext.fetch(FetchDescriptor<Quest>()).map(\.snapshot)
+    }
+
     /// Re-derives the widget snapshot from the current store, within the actor's isolation.
     func snapshotPayload(generatedAt: Date) throws -> WidgetDungeonPayload {
         let quests = try modelContext.fetch(FetchDescriptor<Quest>())
