@@ -128,6 +128,25 @@ struct ReengagementReminderReportTests {
         #expect(report.dataQuality.status == .partial)
     }
 
+    @Test("a request satisfies one permission outcome, so a second is an orphan")
+    func oneRequestSatisfiesOnlyOnePermissionOutcome() {
+        // `saveReengagementSettings` switches on the resolved authorization and records exactly one
+        // outcome per request, so this shape should not exist. Counting it as two matched outcomes
+        // with a `.complete` status would hide precisely the kind of malformation this report is for.
+        let report = makeReport(events: [
+            event(1, .reengagementPermissionRequested, action: "action-1", offset: -3),
+            event(2, .reengagementPermissionGranted, action: "action-1", offset: -2),
+            event(3, .reengagementPermissionDenied, action: "action-1", offset: -1),
+        ])
+
+        #expect(report.permissionGrantRate == RetentionRate(achieved: 1, eligible: 1))
+        #expect(
+            report.dataQuality
+                .orphanCountsByEvent[RetentionEventName.reengagementPermissionDenied.rawValue] == 1
+        )
+        #expect(report.dataQuality.status == .partial)
+    }
+
     @Test("a completion is matched only by an opening of the same quest")
     func completionMatchesTheOpeningOfItsOwnQuest() {
         let report = makeReport(events: [

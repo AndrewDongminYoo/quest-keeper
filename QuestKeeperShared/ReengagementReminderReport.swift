@@ -71,46 +71,44 @@ nonisolated struct ReengagementReminderReport: Codable, Equatable, Sendable {
         var orphanCountsByEvent: [String: Int] = [:]
         func matched(
             _ predecessor: RetentionEventName,
-            _ successor: RetentionEventName,
+            _ successors: Set<RetentionEventName>,
             _ link: ReengagementPairLink
-        ) -> Int {
+        ) -> [RetentionEventName: Int] {
             let counts = pairCounts(
                 in: canonicalEvents,
                 predecessor: predecessor,
-                successor: successor,
+                successors: successors,
                 link: link
             )
-            if counts.orphaned > 0 {
-                orphanCountsByEvent[successor.rawValue, default: 0] += counts.orphaned
+            for (name, count) in counts.orphaned where count > 0 {
+                orphanCountsByEvent[name.rawValue, default: 0] += count
             }
             return counts.matched
         }
 
+        // Granted and denied share one pool of requests. They are mutually exclusive outcomes of the
+        // same action, so a request that satisfied one is spent — matching both against their own
+        // pool would let a malformed pair report two outcomes for one request and stay `.complete`.
+        // Denied feeds no rate, but it is the same recorded action and the same loss, so an orphan
+        // there is the same data-quality signal as one on granted.
         let permissionRequests = canonicalEvents.count { $0.name == .reengagementPermissionRequested }
         let permissionGrants = matched(
             .reengagementPermissionRequested,
-            .reengagementPermissionGranted,
+            [.reengagementPermissionGranted, .reengagementPermissionDenied],
             .actionID(matchesQuestID: false)
-        )
-        // Denied feeds no rate, but it is the same recorded action and the same loss, so an orphan
-        // there is the same data-quality signal as one on granted.
-        _ = matched(
-            .reengagementPermissionRequested,
-            .reengagementPermissionDenied,
-            .actionID(matchesQuestID: false)
-        )
+        )[.reengagementPermissionGranted] ?? 0
         let reminderEnabled = canonicalEvents.count { $0.name == .reengagementReminderEnabled }
         let reminderDisabled = matched(
             .reengagementReminderEnabled,
-            .reengagementReminderDisabled,
+            [.reengagementReminderDisabled],
             .anyEarlier
-        )
+        )[.reengagementReminderDisabled] ?? 0
         let notificationOpened = canonicalEvents.count { $0.name == .reengagementNotificationOpened }
         let notificationCompleted = matched(
             .reengagementNotificationOpened,
-            .reengagementNotificationCompleted,
+            [.reengagementNotificationCompleted],
             .actionID(matchesQuestID: true)
-        )
+        )[.reengagementNotificationCompleted] ?? 0
         let dataQuality = ReengagementReminderDataQuality(
             status: duplicateCountsByEvent.isEmpty && unsupportedCount == 0 && futureCount == 0
                 && orphanCountsByEvent.isEmpty
@@ -185,36 +183,36 @@ nonisolated struct ReengagementReminderStore: Sendable {
 /// disable` would report two matched disables and leave the status `.complete`, even though the
 /// second cycle's enable was never recorded.
 ///
-/// The pool is per call, so it is not shared between the two permission outcomes and one request
-/// could in principle satisfy both a grant and a denial. `saveReengagementSettings` switches on the
-/// resolved authorization and records exactly one of them per request, so the recorder cannot write
-/// that shape.
+/// Several successor kinds can share one pool, which is how the mutually exclusive permission
+/// outcomes are counted: a request that satisfied a grant is spent, so a denial carrying the same
+/// action ID is an orphan rather than a second matched outcome.
 ///
 /// One forward pass, so "earlier" means earlier in the `eventOrdering` sort — events sharing an
 /// instant stay deterministic, the same rule `RetentionReport` uses for orphan completions.
 private nonisolated func pairCounts(
     in ordered: [RetentionEventSnapshot],
     predecessor: RetentionEventName,
-    successor: RetentionEventName,
+    successors: Set<RetentionEventName>,
     link: ReengagementPairLink
-) -> (matched: Int, orphaned: Int) {
+) -> (matched: [RetentionEventName: Int], orphaned: [RetentionEventName: Int]) {
     var available: [String: Int] = [:]
-    var matched = 0
-    var orphaned = 0
-    for event in ordered where event.name == predecessor || event.name == successor {
+    var matched: [RetentionEventName: Int] = [:]
+    var orphaned: [RetentionEventName: Int] = [:]
+    for event in ordered {
+        guard let name = event.name, name == predecessor || successors.contains(name) else { continue }
         guard let key = matchKey(for: event, link: link) else {
             // An unparseable key cannot link anything. A predecessor simply goes unregistered,
             // which correctly leaves its successor without one.
-            if event.name == successor { orphaned += 1 }
+            if name != predecessor { orphaned[name, default: 0] += 1 }
             continue
         }
-        if event.name == predecessor {
+        if name == predecessor {
             available[key, default: 0] += 1
         } else if let remaining = available[key], remaining > 0 {
             available[key] = remaining - 1
-            matched += 1
+            matched[name, default: 0] += 1
         } else {
-            orphaned += 1
+            orphaned[name, default: 0] += 1
         }
     }
     return (matched, orphaned)

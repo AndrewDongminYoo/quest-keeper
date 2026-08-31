@@ -46,8 +46,11 @@ This is `RetentionReport`'s orphan-completion shape without the ID equality, whi
 A first draft let any earlier enable satisfy a disable, and a local review round showed that hides the loss the counting exists to find: `enable → disable → disable` reported both disables as matched and left the status `.complete`, with `achieved = 2` against `eligible = 1`.
 Matching now walks the ordered events once, keeping a count of unconsumed predecessors per match key, and a successor that finds none is an orphan.
 
-The pool is per pair, not shared across the two permission outcomes, so one request could in principle satisfy both a grant and a denial.
-`saveReengagementSettings` records exactly one outcome per request — the `switch` on the resolved authorization takes a single branch — so the recorder cannot produce that shape, and a shared pool would change no number it can write.
+The two permission outcomes share one pool of requests, since they are mutually exclusive results of the same action: a request that satisfied a grant is spent, and a denial carrying the same action ID is an orphan rather than a second matched outcome.
+
+A first draft gave each successor kind its own pool and argued the shape was unreachable, because `saveReengagementSettings` switches on the resolved authorization and records exactly one outcome per request.
+Both review channels raised it independently, which is what changed the decision: this report exists to detect data the recorder should not have written, so "the recorder cannot write it" is a weaker defence here than it would be elsewhere.
+Sharing the pool also removed the special case — all three pairs now run through the same matching.
 
 `make` pools installations rather than grouping by them, unlike `RetentionReport`.
 The match key therefore always carries `installationID` instead of relying on an enclosing per-installation loop.
