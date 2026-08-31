@@ -118,6 +118,43 @@ struct NotificationRoutingTests {
         #expect(store.takeReengagementAttribution() == nil)
     }
 
+    @Test("backgrounding clears a resolved attribution and keeps an unresolved route")
+    func pauseClearsResolvedAttributionOnly() throws {
+        let schema = Schema([Quest.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [configuration])
+        let questID = UUID()
+        container.mainContext.insert(Quest(
+            id: questID,
+            title: "Reminder target",
+            deadline: Date.now.addingTimeInterval(60 * 60),
+            importance: .medium,
+            details: ""
+        ))
+        try container.mainContext.save()
+        let reengagementUserInfo: [AnyHashable: Any] = [
+            "questID": questID.uuidString,
+            "kind": ReengagementReminderPlanner.notificationKind,
+        ]
+
+        let store = NotificationRouteStore()
+        store.route(userInfo: reengagementUserInfo)
+        store.resume(for: container)
+        #expect(store.takeRoutedQuest(in: container.mainContext)?.id == questID)
+
+        // 해결된 귀속은 같은 포그라운드 실행에서만 유효하므로 백그라운드에서 사라진다.
+        store.pause()
+        #expect(store.takeReengagementAttribution() == nil)
+
+        // 아직 해결되지 않은 라우트는 남는다. 알림 탭과 scene phase 전환의 순서가 보장되지 않아
+        // 여기서 버리면 콜드 스타트로 도착한 유효한 탭까지 삼키기 때문이다.
+        store.route(userInfo: reengagementUserInfo)
+        store.pause()
+        store.resume(for: container)
+        #expect(store.takeRoutedQuest(in: container.mainContext)?.id == questID)
+        #expect(store.takeReengagementAttribution()?.questID == questID)
+    }
+
     @Test("reengagement route falls back when its target is no longer pending")
     func reengagementRouteFallsBackForResolvedQuest() throws {
         let schema = Schema([Quest.self])
