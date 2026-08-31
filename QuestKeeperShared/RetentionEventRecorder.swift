@@ -178,6 +178,27 @@ nonisolated enum RetentionEventRecorder {
         }
     }
 
+    /// The stored key shape. Reports parse the trailing component back out to link a successor
+    /// event to its predecessor, so the format has one owner rather than a copy per reader.
+    static func deduplicationKey(
+        name: RetentionEventName,
+        installationID: UUID,
+        keyComponent: String
+    ) -> String {
+        "\(name.rawValue):\(installationID):\(keyComponent)"
+    }
+
+    /// The action ID a report matches a causal pair on.
+    ///
+    /// `keyComponent` is the action ID alone for the settings events and `"<questID>:<actionID>"`
+    /// for the notification events, so the trailing component is the action ID in both shapes.
+    /// Every other component is an event name or a UUID, none of which contain a `:`.
+    static func actionIDComponent(of deduplicationKey: String) -> Substring? {
+        let components = deduplicationKey.split(separator: ":")
+        guard components.count >= 3, let last = components.last, !last.isEmpty else { return nil }
+        return last
+    }
+
     private static func retryAttemptID(
         in event: RetentionEvent,
         retryName: String
@@ -396,7 +417,11 @@ nonisolated enum RetentionEventRecorder {
                 installation = created
             }
 
-            let deduplicationKey = "\(name.rawValue):\(installation.installationID):\(keyComponent)"
+            let deduplicationKey = Self.deduplicationKey(
+                name: name,
+                installationID: installation.installationID,
+                keyComponent: keyComponent
+            )
             var eventDescriptor = FetchDescriptor<RetentionEvent>(
                 predicate: #Predicate { $0.deduplicationKey == deduplicationKey }
             )
