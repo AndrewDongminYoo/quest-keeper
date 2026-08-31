@@ -102,8 +102,12 @@ final class ReengagementReminderUITests: XCTestCase {
         titleField.tap()
         titleField.typeText(title)
 
-        app.buttons["questEditorSaveButton"].tap()
+        let saveButton = app.buttons["questEditorSaveButton"]
+        saveButton.tap()
         XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 3))
+        // 에디터 시트가 닫히는 중에 다음 시트를 열면 SwiftUI가 그 표시를 조용히 무시한다.
+        // 보드에 행이 보이는 것만으로는 시트가 사라졌다는 뜻이 아니므로 닫힘을 따로 기다린다.
+        XCTAssertTrue(saveButton.waitForNonExistence(timeout: 3))
     }
 
     private func launch(arguments: [String]) -> XCUIApplication {
