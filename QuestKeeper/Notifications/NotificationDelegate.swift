@@ -20,10 +20,10 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        let questIDString = NotificationRouteStore.questIDString(
-            from: response.notification.request.content.userInfo
-        )
-        await routeStore.route(questIDString: questIDString)
+        let userInfo = response.notification.request.content.userInfo
+        let questIDString = NotificationRouteStore.questIDString(from: userInfo)
+        let isReengagement = NotificationRouteStore.isReengagement(userInfo: userInfo)
+        await routeStore.route(questIDString: questIDString, isReengagement: isReengagement)
     }
 
     nonisolated func userNotificationCenter(
