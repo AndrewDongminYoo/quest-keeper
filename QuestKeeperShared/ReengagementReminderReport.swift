@@ -5,6 +5,20 @@ nonisolated struct ReengagementReminderDataQuality: Codable, Equatable, Sendable
     let duplicateCountsByEvent: [String: Int]
     let unsupportedCount: Int
     let futureCount: Int
+    /// Successors with no matching predecessor, keyed by the successor's event name. They are
+    /// excluded from every numerator, so without this count a lost predecessor would silently
+    /// shrink a rate instead of reporting itself.
+    let orphanCountsByEvent: [String: Int]
+}
+
+/// How a successor event is linked back to the predecessor that makes it eligible.
+private nonisolated enum ReengagementPairLink {
+    /// One user action recorded both, so they carry the same action ID — and, for the notification
+    /// pair, the same quest.
+    case actionID(matchesQuestID: Bool)
+    /// Separate user actions days apart, each minting its own action ID. Any earlier predecessor
+    /// from the same installation is the strongest link the recorded facts support.
+    case anyEarlier
 }
 
 nonisolated struct ReengagementReminderReport: Codable, Equatable, Sendable {
@@ -52,19 +66,60 @@ nonisolated struct ReengagementReminderReport: Codable, Equatable, Sendable {
             }
             .sorted(by: eventOrdering)
 
+        // A successor without its predecessor is not evidence of the thing the rate measures, and
+        // counting the kinds independently lets one produce `achieved = 1, eligible = 0`.
+        var orphanCountsByEvent: [String: Int] = [:]
+        func matched(
+            _ predecessor: RetentionEventName,
+            _ successor: RetentionEventName,
+            _ link: ReengagementPairLink
+        ) -> Int {
+            let counts = pairCounts(
+                in: canonicalEvents,
+                predecessor: predecessor,
+                successor: successor,
+                link: link
+            )
+            if counts.orphaned > 0 {
+                orphanCountsByEvent[successor.rawValue, default: 0] += counts.orphaned
+            }
+            return counts.matched
+        }
+
         let permissionRequests = canonicalEvents.count { $0.name == .reengagementPermissionRequested }
-        let permissionGrants = canonicalEvents.count { $0.name == .reengagementPermissionGranted }
+        let permissionGrants = matched(
+            .reengagementPermissionRequested,
+            .reengagementPermissionGranted,
+            .actionID(matchesQuestID: false)
+        )
+        // Denied feeds no rate, but it is the same recorded action and the same loss, so an orphan
+        // there is the same data-quality signal as one on granted.
+        _ = matched(
+            .reengagementPermissionRequested,
+            .reengagementPermissionDenied,
+            .actionID(matchesQuestID: false)
+        )
         let reminderEnabled = canonicalEvents.count { $0.name == .reengagementReminderEnabled }
-        let reminderDisabled = canonicalEvents.count { $0.name == .reengagementReminderDisabled }
+        let reminderDisabled = matched(
+            .reengagementReminderEnabled,
+            .reengagementReminderDisabled,
+            .anyEarlier
+        )
         let notificationOpened = canonicalEvents.count { $0.name == .reengagementNotificationOpened }
-        let notificationCompleted = canonicalEvents.count { $0.name == .reengagementNotificationCompleted }
+        let notificationCompleted = matched(
+            .reengagementNotificationOpened,
+            .reengagementNotificationCompleted,
+            .actionID(matchesQuestID: true)
+        )
         let dataQuality = ReengagementReminderDataQuality(
             status: duplicateCountsByEvent.isEmpty && unsupportedCount == 0 && futureCount == 0
+                && orphanCountsByEvent.isEmpty
                 ? .complete
                 : .partial,
             duplicateCountsByEvent: duplicateCountsByEvent,
             unsupportedCount: unsupportedCount,
-            futureCount: futureCount
+            futureCount: futureCount,
+            orphanCountsByEvent: orphanCountsByEvent
         )
         return ReengagementReminderReport(
             schemaVersion: currentSchemaVersion,
@@ -120,6 +175,38 @@ nonisolated struct ReengagementReminderStore: Sendable {
         let data = try JSONEncoder.retentionBaseline.encode(report)
         try data.write(to: fileURL, options: [.atomic])
     }
+}
+
+/// `make` pools installations rather than grouping by them, unlike `RetentionReport`, so both
+/// rules carry `installationID` in the predicate instead of relying on an enclosing loop.
+/// "Earlier" means earlier in the `eventOrdering` sort, so events sharing an instant stay
+/// deterministic — the same rule `RetentionReport` uses for orphan completions.
+private nonisolated func pairCounts(
+    in ordered: [RetentionEventSnapshot],
+    predecessor: RetentionEventName,
+    successor: RetentionEventName,
+    link: ReengagementPairLink
+) -> (matched: Int, orphaned: Int) {
+    var matched = 0
+    var orphaned = 0
+    for (index, event) in ordered.enumerated() where event.name == successor {
+        let hasPredecessor = ordered[..<index].contains { candidate in
+            guard candidate.name == predecessor,
+                  candidate.installationID == event.installationID else { return false }
+            switch link {
+            case .anyEarlier:
+                return true
+            case .actionID(let matchesQuestID):
+                guard !matchesQuestID || candidate.questID == event.questID else { return false }
+                guard let candidateAction = RetentionEventRecorder
+                    .actionIDComponent(of: candidate.deduplicationKey) else { return false }
+                return candidateAction == RetentionEventRecorder
+                    .actionIDComponent(of: event.deduplicationKey)
+            }
+        }
+        if hasPredecessor { matched += 1 } else { orphaned += 1 }
+    }
+    return (matched, orphaned)
 }
 
 private nonisolated func isValidCombination(

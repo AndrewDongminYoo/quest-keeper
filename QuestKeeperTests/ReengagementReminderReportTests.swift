@@ -11,32 +11,32 @@ struct ReengagementReminderReportTests {
     @Test("canonical reengagement events compute the three local rates")
     func canonicalEventsComputeRates() {
         let report = makeReport(events: [
-            event(1, .reengagementPermissionRequested, key: "permission-request-1"),
-            event(2, .reengagementPermissionRequested, key: "permission-request-2"),
-            event(3, .reengagementPermissionGranted, key: "permission-granted-1"),
-            event(4, .reengagementReminderEnabled, key: "reminder-enabled-1"),
-            event(5, .reengagementReminderEnabled, key: "reminder-enabled-2"),
-            event(6, .reengagementReminderDisabled, key: "reminder-disabled-1"),
-            event(7, .reengagementNotificationOpened, key: "opened-1", questID: firstQuestID),
-            event(8, .reengagementNotificationOpened, key: "opened-2", questID: secondQuestID),
-            event(9, .reengagementNotificationCompleted, key: "completed-1", questID: firstQuestID),
+            event(1, .reengagementPermissionRequested, action: "action-1", offset: -9),
+            event(2, .reengagementPermissionRequested, action: "action-2", offset: -8),
+            event(3, .reengagementPermissionGranted, action: "action-1", offset: -7),
+            event(4, .reengagementReminderEnabled, action: "action-3", offset: -6),
+            event(5, .reengagementReminderEnabled, action: "action-4", offset: -5),
+            event(6, .reengagementReminderDisabled, action: "action-5", offset: -4),
+            event(7, .reengagementNotificationOpened, action: "action-6", questID: firstQuestID, offset: -3),
+            event(8, .reengagementNotificationOpened, action: "action-7", questID: secondQuestID, offset: -2),
+            event(9, .reengagementNotificationCompleted, action: "action-6", questID: firstQuestID, offset: -1),
         ])
 
         #expect(report.permissionGrantRate == RetentionRate(achieved: 1, eligible: 2))
         #expect(report.reminderDisableRate == RetentionRate(achieved: 1, eligible: 2))
         #expect(report.notificationCompletionRate == RetentionRate(achieved: 1, eligible: 2))
+        #expect(report.dataQuality.orphanCountsByEvent.isEmpty)
         #expect(report.dataQuality.status == .complete)
     }
 
     @Test("report excludes duplicate invalid and future reengagement events")
     func invalidEventsDoNotChangeRates() {
-        let duplicateKey = "permission-request-duplicate"
         let report = makeReport(events: [
-            event(1, .reengagementPermissionRequested, key: duplicateKey, offset: -2),
-            event(2, .reengagementPermissionRequested, key: duplicateKey, offset: -1),
-            event(3, .reengagementNotificationOpened, key: "opened-without-quest"),
-            event(4, .reengagementReminderEnabled, key: "enabled-with-quest", questID: firstQuestID),
-            event(5, .reengagementPermissionGranted, key: "future-grant", offset: 1, from: now),
+            event(1, .reengagementPermissionRequested, action: "duplicated", offset: -2),
+            event(2, .reengagementPermissionRequested, action: "duplicated", offset: -1),
+            event(3, .reengagementNotificationOpened, action: "opened-without-quest"),
+            event(4, .reengagementReminderEnabled, action: "enabled-with-quest", questID: firstQuestID),
+            event(5, .reengagementPermissionGranted, action: "duplicated", offset: 1, from: now),
         ], asOf: now)
 
         #expect(report.permissionGrantRate == RetentionRate(achieved: 0, eligible: 1))
@@ -45,6 +45,7 @@ struct ReengagementReminderReportTests {
         #expect(report.dataQuality.duplicateCountsByEvent[RetentionEventName.reengagementPermissionRequested.rawValue] == 1)
         #expect(report.dataQuality.unsupportedCount == 2)
         #expect(report.dataQuality.futureCount == 1)
+        #expect(report.dataQuality.orphanCountsByEvent.isEmpty)
         #expect(report.dataQuality.status == .partial)
     }
 
@@ -53,7 +54,7 @@ struct ReengagementReminderReportTests {
         let fileURL = temporaryDirectory().appending(path: ReengagementReminderStore.fileName)
         let store = ReengagementReminderStore(fileURL: fileURL)
         let report = makeReport(events: [
-            event(1, .reengagementPermissionRequested, key: "permission-request"),
+            event(1, .reengagementPermissionRequested, action: "permission-request"),
         ])
 
         try store.save(report)
@@ -66,6 +67,64 @@ struct ReengagementReminderReportTests {
         let encoded = String(decoding: firstBytes, as: UTF8.self)
         #expect(!encoded.contains("비공개 퀘스트 제목"))
         #expect(!encoded.contains(firstQuestID.uuidString))
+    }
+
+    @Test("a grant whose request was never recorded is excluded and counted as an orphan")
+    func orphanGrantIsExcludedAndCounted() {
+        let report = makeReport(events: [
+            event(1, .reengagementPermissionRequested, action: "action-1", offset: -9),
+            event(2, .reengagementPermissionGranted, action: "action-1", offset: -2),
+            // Its request was lost: `saveReengagementSettings` records the request and commits, and
+            // only the grant survives on its own commit when that first one fails.
+            event(3, .reengagementPermissionGranted, action: "action-orphan", offset: -1),
+        ])
+
+        #expect(report.permissionGrantRate == RetentionRate(achieved: 1, eligible: 1))
+        #expect(
+            report.dataQuality
+                .orphanCountsByEvent[RetentionEventName.reengagementPermissionGranted.rawValue] == 1
+        )
+        #expect(report.dataQuality.status == .partial)
+    }
+
+    @Test("a disable is matched by an earlier enable, not by a shared action ID")
+    func disableMatchesAnEarlierEnable() {
+        // Enabling and disabling are separate user actions and `saveReengagementSettings` mints a
+        // fresh `actionID` for each, so matching them by action ID would orphan every disable and
+        // pin the rate at zero.
+        let matched = makeReport(events: [
+            event(1, .reengagementReminderEnabled, action: "action-enable", offset: -2),
+            event(2, .reengagementReminderDisabled, action: "action-disable", offset: -1),
+        ])
+        let orphaned = makeReport(events: [
+            event(3, .reengagementReminderDisabled, action: "action-disable", offset: -1),
+        ])
+
+        #expect(matched.reminderDisableRate == RetentionRate(achieved: 1, eligible: 1))
+        #expect(matched.dataQuality.orphanCountsByEvent.isEmpty)
+        #expect(orphaned.reminderDisableRate == RetentionRate(achieved: 0, eligible: 0))
+        #expect(
+            orphaned.dataQuality
+                .orphanCountsByEvent[RetentionEventName.reengagementReminderDisabled.rawValue] == 1
+        )
+        #expect(orphaned.dataQuality.status == .partial)
+    }
+
+    @Test("a completion is matched only by an opening of the same quest")
+    func completionMatchesTheOpeningOfItsOwnQuest() {
+        let report = makeReport(events: [
+            event(1, .reengagementNotificationOpened, action: "action-1", questID: firstQuestID, offset: -2),
+            // Same action ID, different quest. The pair is per-quest, so this is no evidence that
+            // the reminder for `secondQuestID` was ever opened.
+            event(2, .reengagementNotificationCompleted, action: "action-1", questID: secondQuestID, offset: -1),
+        ])
+
+        #expect(report.notificationCompletionRate == RetentionRate(achieved: 0, eligible: 1))
+        #expect(
+            report.dataQuality
+                .orphanCountsByEvent[RetentionEventName.reengagementNotificationCompleted.rawValue] == 1
+        )
+        #expect(report.dataQuality.status == .partial)
     }
 
     private func makeReport(
@@ -81,15 +140,19 @@ struct ReengagementReminderReportTests {
         )
     }
 
+    /// Builds the key through the recorder's own formatter rather than by hand. Pair matching reads
+    /// the trailing component back out, so a fixture that spelled the format itself could drift
+    /// from the shape the recorder writes and still pass.
     private func event(
         _ id: Int,
         _ name: RetentionEventName,
-        key: String,
+        action: String,
         questID: UUID? = nil,
         offset: TimeInterval = 0,
         from base: Date? = nil
     ) -> RetentionEventSnapshot {
-        RetentionEventSnapshot(
+        let keyComponent = questID.map { "\($0.uuidString):\(action)" } ?? action
+        return RetentionEventSnapshot(
             id: UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", id))!,
             schemaVersion: RetentionEvent.currentSchemaVersion,
             nameRawValue: name.rawValue,
@@ -97,7 +160,11 @@ struct ReengagementReminderReportTests {
             occurredAt: (base ?? now).addingTimeInterval(offset),
             sourceRawValue: RetentionEventSource.app.rawValue,
             questID: questID,
-            deduplicationKey: key
+            deduplicationKey: RetentionEventRecorder.deduplicationKey(
+                name: name,
+                installationID: installationID,
+                keyComponent: keyComponent
+            )
         )
     }
 
