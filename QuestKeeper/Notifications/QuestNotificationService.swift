@@ -458,14 +458,18 @@ final class QuestNotificationService {
             center.removePendingNotificationRequests(withIdentifiers: obsolete)
         }
 
+        // Weekday reminders are five independent requests, and this path can be the last thing to
+        // run before a long gap with no activation. Abandoning the rest on the first failure would
+        // leave those days silent, or still aimed at whichever quest the previous refresh chose.
+        var anyAddFailed = false
         for plan in plans {
             do {
                 try await center.add(request(for: plan))
             } catch {
-                return .unavailable
+                anyAddFailed = true
             }
         }
-        return authorization
+        return anyAddFailed ? .unavailable : authorization
     }
 
     private func performCancel(questID: UUID) {

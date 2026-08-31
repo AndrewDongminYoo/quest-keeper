@@ -504,6 +504,33 @@ struct QuestNotificationServiceTests {
         #expect(center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
     }
 
+    @Test("one failed weekday reminder does not abandon the remaining days")
+    func oneFailedWeekdayAddDoesNotAbandonTheRest() async {
+        let center = FakeQuestNotificationCenter()
+        let settings = ReengagementReminderSettings(
+            isEnabled: true,
+            minuteOfDay: 20 * 60,
+            frequency: .weekdays,
+            quietHours: nil,
+            purpose: .finishOneQuest
+        )
+        let service = makeService(center: center, settings: settings)
+        let created = quest(deadlineOffset: 3 * hour).snapshot
+        // The two quest requests go first, so the reminders are attempts 3 through 7.
+        center.addErrorOnAttempt = 3
+
+        let authorization = await service.syncAndRefreshReengagement(
+            snapshot: created,
+            board: [created],
+            now: now
+        )
+
+        let scheduled = Set(center.pendingRequestsList.map(\.identifier))
+        let reminders = ReengagementReminderPlanner.allIdentifiers.filter { scheduled.contains($0) }
+        #expect(authorization == .unavailable)
+        #expect(reminders.count == 4)
+    }
+
     private var enabledDailyReminder: ReengagementReminderSettings {
         ReengagementReminderSettings(
             isEnabled: true,
