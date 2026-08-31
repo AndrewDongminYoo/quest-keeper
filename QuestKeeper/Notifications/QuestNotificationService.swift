@@ -214,6 +214,61 @@ final class QuestNotificationService {
         )
     }
 
+    /// The background-safe half of a reconcile, for `CreateQuestIntent`.
+    ///
+    /// A single-quest sync subtracts the configured reengagement requests from its capacity but
+    /// never plans them; only a reconcile does. The shortcut path runs without an app activation,
+    /// so nothing reconciles afterwards and the reminder stays unscheduled. Running a full
+    /// `reconcile` here would fix that and break two other things: it prunes the whole board's
+    /// *delivered* alerts, which from the background would silently clear notifications the user
+    /// has not opened, and it clears every pending request before re-adding, so one failed `add`
+    /// would leave the rest of the board unscheduled until the app is next opened.
+    ///
+    /// So sync the created quest through the same capacity-reserving path the app uses, then
+    /// rewrite only the reengagement requests. `board` is the whole quest set, which the
+    /// reengagement planner needs to choose its target; pass `nil` when it could not be read, and
+    /// the existing reengagement requests are left alone rather than rewritten from a partial view.
+    @discardableResult
+    func syncAndRefreshReengagement(
+        snapshot: QuestSnapshot,
+        board: [QuestSnapshot]?,
+        now: Date,
+        locale: Locale = .current
+    ) async -> QuestNotificationAuthorization {
+        // One enqueue, not two. Releasing the queue between the sync and the refresh would let a
+        // second shortcut creation interleave, and the later refresh could then write a reminder
+        // planned from the older `board`.
+        await enqueue {
+            // Plan before syncing. `performSync` reserves capacity for the reminder the *settings*
+            // describe, so a reminder set left over from an older frequency occupies slots that
+            // reservation does not know about. Freeing them first keeps the quest adds inside the
+            // platform limit; doing it afterwards lets the platform silently drop one of them.
+            let plans = board.map { snapshots in
+                ReengagementReminderPlanner.plans(
+                    for: snapshots,
+                    settings: self.reengagementSettingsStore.load(),
+                    now: now,
+                    calendar: self.calendar,
+                    locale: locale
+                )
+            }
+            if let plans {
+                await self.removeObsoleteReengagementRequests(keeping: plans)
+            }
+
+            let authorization = await self.performSync(
+                questID: snapshot.id,
+                snapshot: snapshot,
+                now: now,
+                locale: locale,
+                authorizationRequestPolicy: .never
+            )
+            guard let plans, authorization.canSchedule else { return authorization }
+
+            return await self.addReengagementRequests(plans, authorization: authorization)
+        }
+    }
+
     @discardableResult
     func requestAuthorizationAndReconcile(
         quests: [Quest],
@@ -379,6 +434,49 @@ final class QuestNotificationService {
                 authorizationRequestPolicy: authorizationRequestPolicy
             )
         }
+    }
+
+    /// Removes the reengagement requests the new plan set does not cover — the leftovers of an
+    /// older frequency, or all of them when the planner returns nothing because reminders are off
+    /// or no quest is pending. A reminder aimed at a resolved quest is worse than none.
+    ///
+    /// The identifiers the plan *does* cover are left alone here and replaced by the add itself,
+    /// since `UNUserNotificationCenter` drops a pending request that shares an identifier.
+    /// Removing them up front would delete a working reminder whenever the replacing add failed.
+    ///
+    /// An obsolete request is dropped even when the adds then fail, and that is deliberate: it is
+    /// obsolete because the stored settings no longer describe it, so keeping it alive would fire
+    /// at a cadence the user has switched off. Preservation applies to the reminder the settings
+    /// still ask for, not to one they have retired.
+    ///
+    /// Nothing here removes a delivered notification or touches a quest request, so a background
+    /// caller cannot disturb the rest of the board.
+    private func removeObsoleteReengagementRequests(keeping plans: [ReengagementReminderPlan]) async {
+        let planned = Set(plans.map(\.identifier))
+        let obsolete = await center.pendingNotificationIdentifiers().filter {
+            ReengagementReminderPlanner.isReengagementNotificationIdentifier($0)
+                && !planned.contains($0)
+        }
+        guard !obsolete.isEmpty else { return }
+        center.removePendingNotificationRequests(withIdentifiers: obsolete)
+    }
+
+    /// Weekday reminders are five independent requests, and the shortcut path can be the last thing
+    /// to run before a long gap with no activation. Abandoning the rest on the first failure would
+    /// leave those days silent, or still aimed at whichever quest the previous refresh chose.
+    private func addReengagementRequests(
+        _ plans: [ReengagementReminderPlan],
+        authorization: QuestNotificationAuthorization
+    ) async -> QuestNotificationAuthorization {
+        var anyAddFailed = false
+        for plan in plans {
+            do {
+                try await center.add(request(for: plan))
+            } catch {
+                anyAddFailed = true
+            }
+        }
+        return anyAddFailed ? .unavailable : authorization
     }
 
     private func performCancel(questID: UUID) {

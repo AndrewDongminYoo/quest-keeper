@@ -413,6 +413,165 @@ struct QuestNotificationServiceTests {
         #expect(center.removedPendingIdentifiers.contains { $0.contains("reengagement.daily") })
     }
 
+    @Test("the shortcut path schedules the configured reminder a single-quest sync only reserves")
+    func shortcutSyncSchedulesTheConfiguredReminder() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        let questID = UUID(uuidString: "EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE")!
+        let snapshot = quest(id: questID, deadlineOffset: 3 * hour).snapshot
+
+        await service.syncWithoutRequestingAuthorization(snapshot: snapshot, now: now)
+        // The capacity for it is already reserved at this point, but nothing plans it.
+        #expect(!center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
+
+        await service.syncAndRefreshReengagement(snapshot: snapshot, board: [snapshot], now: now)
+
+        #expect(center.pendingRequestsList.map(\.identifier) == [
+            QuestNotificationKind.dueSoon.identifier(for: questID),
+            QuestNotificationKind.deadline.identifier(for: questID),
+            "reengagement.daily",
+        ])
+    }
+
+    @Test("the shortcut path leaves the rest of the board's requests and delivered alerts alone")
+    func shortcutSyncDoesNotDisturbTheRestOfTheBoard() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        let existingID = UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!
+        let existingIdentifiers = QuestNotificationPlanner.identifiers(for: existingID)
+        center.pendingRequestsList = existingIdentifiers.map {
+            makeScheduledRequest(identifier: $0, fireDate: now.addingTimeInterval(10 * hour))
+        }
+        let created = quest(deadlineOffset: 3 * hour).snapshot
+
+        await service.syncAndRefreshReengagement(
+            snapshot: created,
+            board: [created],
+            now: now
+        )
+
+        // This path can run with the app in the background, so pruning another quest's delivered
+        // alert would clear a notification the user has not opened, and clearing its pending
+        // requests would leave it unscheduled until the app is next launched.
+        let pending = Set(center.pendingRequestsList.map(\.identifier))
+        #expect(existingIdentifiers.allSatisfy { pending.contains($0) })
+        #expect(center.removedPendingIdentifiers.allSatisfy { batch in
+            existingIdentifiers.allSatisfy { !batch.contains($0) }
+        })
+        #expect(center.removedDeliveredIdentifiers.allSatisfy { batch in
+            existingIdentifiers.allSatisfy { !batch.contains($0) }
+        })
+    }
+
+    @Test("an unreadable board leaves the existing reengagement request in place")
+    func unreadableBoardLeavesTheReminderAlone() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        center.pendingRequestsList = [
+            makeScheduledRequest(identifier: "reengagement.daily", fireDate: now.addingTimeInterval(8 * hour)),
+        ]
+        let created = quest(deadlineOffset: 3 * hour).snapshot
+
+        await service.syncAndRefreshReengagement(snapshot: created, board: nil, now: now)
+
+        // Rewriting the reminder from a board that failed to load would aim it at a partial view.
+        #expect(center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
+        #expect(!center.removedPendingIdentifiers.contains { $0.contains("reengagement.daily") })
+    }
+
+    @Test("a failed reminder add leaves the request that was already scheduled in place")
+    func failedReminderAddKeepsTheExistingRequest() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        let existing = makeScheduledRequest(
+            identifier: "reengagement.daily",
+            fireDate: now.addingTimeInterval(8 * hour)
+        )
+        center.pendingRequestsList = [existing]
+        let created = quest(deadlineOffset: 3 * hour).snapshot
+        // The two quest requests land first, so the reminder is the third add.
+        center.addErrorOnAttempt = 3
+
+        let authorization = await service.syncAndRefreshReengagement(
+            snapshot: created,
+            board: [created],
+            now: now
+        )
+
+        // Removing the reminder up front and only then failing to replace it would leave the user
+        // with no reminder at all until the app is next opened.
+        #expect(authorization == .unavailable)
+        #expect(center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
+    }
+
+    @Test("one failed weekday reminder does not abandon the remaining days")
+    func oneFailedWeekdayAddDoesNotAbandonTheRest() async {
+        let center = FakeQuestNotificationCenter()
+        let settings = ReengagementReminderSettings(
+            isEnabled: true,
+            minuteOfDay: 20 * 60,
+            frequency: .weekdays,
+            quietHours: nil,
+            purpose: .finishOneQuest
+        )
+        let service = makeService(center: center, settings: settings)
+        let created = quest(deadlineOffset: 3 * hour).snapshot
+        // The two quest requests go first, so the reminders are attempts 3 through 7.
+        center.addErrorOnAttempt = 3
+
+        let authorization = await service.syncAndRefreshReengagement(
+            snapshot: created,
+            board: [created],
+            now: now
+        )
+
+        let scheduled = Set(center.pendingRequestsList.map(\.identifier))
+        let reminders = ReengagementReminderPlanner.allIdentifiers.filter { scheduled.contains($0) }
+        #expect(authorization == .unavailable)
+        #expect(reminders.count == 4)
+    }
+
+    @Test("reminders left over from an older frequency are freed before the quest requests are added")
+    func obsoleteRemindersArePrunedBeforeTheQuestAdds() async {
+        let center = FakeQuestNotificationCenter()
+        // Stored settings say daily; five weekday requests from the previous frequency are still
+        // pending because their reconcile has not run. `performSync` reserves one slot, not five.
+        let service = makeService(center: center, settings: enabledDailyReminder)
+        center.pendingRequestsList = (2...6).map { weekday in
+            makeScheduledRequest(
+                identifier: "reengagement.weekday.\(weekday)",
+                fireDate: now.addingTimeInterval(Double(weekday) * hour)
+            )
+        }
+        let created = quest(deadlineOffset: 3 * hour).snapshot
+
+        await service.syncAndRefreshReengagement(snapshot: created, board: [created], now: now)
+
+        let freed = center.events.firstIndex {
+            $0.hasPrefix("removePending:") && $0.contains("reengagement.weekday")
+        }
+        let firstQuestAdd = center.events.firstIndex {
+            $0.hasPrefix("add:\(QuestNotificationKind.identifierPrefix)")
+        }
+        #expect(freed != nil)
+        #expect(firstQuestAdd != nil)
+        // Freeing them afterwards would let the platform drop a quest request at the limit and
+        // then release the slots it needed, with no error reported anywhere.
+        #expect((freed ?? .max) < (firstQuestAdd ?? 0))
+        #expect(center.pendingRequestsList.contains { $0.identifier == "reengagement.daily" })
+        #expect(!center.pendingRequestsList.contains { $0.identifier.hasPrefix("reengagement.weekday") })
+    }
+
+    private var enabledDailyReminder: ReengagementReminderSettings {
+        ReengagementReminderSettings(
+            isEnabled: true,
+            minuteOfDay: 20 * 60,
+            frequency: .daily,
+            quietHours: nil,
+            purpose: .finishOneQuest
+        )
+    }
+
     private func makeRequest(identifier: String) -> UNNotificationRequest {
         UNNotificationRequest(identifier: identifier, content: UNMutableNotificationContent(), trigger: nil)
     }
@@ -599,6 +758,13 @@ private final class FakeQuestNotificationCenter: QuestNotificationCenter {
         if let addError { throw addError }
         events.append("add:\(request.identifier)")
         addedRequests.append(request)
+        // `UNUserNotificationCenter` drops a pending request that shares an identifier and keeps
+        // the new one. A fake that appends instead reports a duplicate where the platform has a
+        // replacement, and it hides whether a failed add left the previous request intact.
+        if let existing = pendingRequestsList.firstIndex(where: { $0.identifier == request.identifier }) {
+            pendingRequestsList[existing] = request
+            return
+        }
         guard pendingRequestsList.count < QuestNotificationPlanner.maximumScheduledNotifications else {
             events.append("droppedByPlatform:\(request.identifier)")
             return
