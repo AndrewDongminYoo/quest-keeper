@@ -340,9 +340,11 @@ final class QuestNotificationService {
         }
         guard authorization.canSchedule else { return authorization }
 
-        let capacity = QuestNotificationPlanner.maximumScheduledNotifications
-            - reengagementSettingsStore.load().scheduledRequestCount
-        let (admitted, evicted) = await admit(plans, capacity: capacity, locale: locale)
+        let (admitted, evicted) = await admit(
+            plans,
+            reservedForReengagement: reengagementSettingsStore.load().scheduledRequestCount,
+            locale: locale
+        )
         for plan in admitted {
             do {
                 try await center.add(request(for: plan))
@@ -382,11 +384,23 @@ final class QuestNotificationService {
     /// simply not scheduled, and the next reconcile reconsiders them once they are near enough.
     private func admit(
         _ plans: [QuestNotificationPlan],
-        capacity: Int,
+        reservedForReengagement: Int,
         locale: Locale
     ) async -> (admitted: [QuestNotificationPlan], evicted: [QuestNotificationPlan]) {
-        let cap = max(0, capacity)
-        let pending = await center.pendingQuestNotifications()
+        let scheduled = await center.pendingQuestNotifications()
+        // Reserve what the reminder actually occupies, not merely what the settings ask for. A set
+        // left over from an older frequency still holds its slots until something rewrites it —
+        // five weekday requests against a reservation of one — and the difference is quest requests
+        // the platform drops at the limit, silently and without an error.
+        let reengagementCount = scheduled.count {
+            ReengagementReminderPlanner.isReengagementNotificationIdentifier($0.identifier)
+        }
+        let cap = max(
+            0,
+            QuestNotificationPlanner.maximumScheduledNotifications
+                - max(reservedForReengagement, reengagementCount)
+        )
+        let pending = scheduled
             .filter { QuestNotificationPlanner.isQuestNotificationIdentifier($0.identifier) }
         guard pending.count + plans.count > cap else { return (plans, []) }
 
