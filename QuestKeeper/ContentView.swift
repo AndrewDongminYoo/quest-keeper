@@ -568,7 +568,10 @@ struct ContentView: View {
     }
 
     private func saveReengagementSettings(_ settings: ReengagementReminderSettings) {
-        guard !settings.isEnabled || !quests.isEmpty else { return }
+        // 시트가 토글을 여는 근거와 같은 사실을 봐야 한다. 현재 퀘스트 수를 보면
+        // 퀘스트를 모두 지운 뒤 토글은 켤 수 있는데 저장만 조용히 버려진다.
+        let creationFactExists = hasCreatedQuest
+        guard !settings.isEnabled || creationFactExists else { return }
         let previousSettings = reengagementSettingsStore.load()
         reengagementSettingsStore.save(settings)
         reengagementSettings = settings
@@ -594,7 +597,7 @@ struct ContentView: View {
         let currentQuests = quests
         Task { @MainActor in
             let status = await notificationService.authorizationStatus()
-            if settings.canRequestAuthorization(hasCreatedQuest: !currentQuests.isEmpty), status == .notDetermined {
+            if settings.canRequestAuthorization(hasCreatedQuest: creationFactExists), status == .notDetermined {
                 let actionID = UUID()
                 _ = RetentionEventRecorder.recordReengagementPermissionRequested(
                     actionID: actionID,
