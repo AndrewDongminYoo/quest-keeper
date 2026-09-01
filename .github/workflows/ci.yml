@@ -29,7 +29,7 @@ jobs:
           xcrun simctl list runtimes
           xcrun simctl list devices available
 
-      - name: Run unit tests
+      - name: Run tests
         run: |
           # -showdestinations already filters by IPHONEOS_DEPLOYMENT_TARGET, so a destination it
           # lists is one this scheme can actually build for. A pinned 'name=…,OS=…' cannot survive
@@ -70,3 +70,20 @@ jobs:
             -destination "platform=iOS Simulator,id=$simulator_id" \
             -only-testing:QuestKeeperTests \
             -parallel-testing-enabled NO
+
+          # The UI target was already being built on every run and never executed, which is how
+          # two stale expectations reached main unnoticed (#72). It reuses the build above, so the
+          # added cost is the run itself.
+          #
+          # `-retry-tests-on-failure` re-runs a failing test, to a maximum of three attempts.
+          # This suite has produced presentation timeouts under the load of a sequential
+          # fifty-six-test run that pass on their own: `testDailyFocusExplicitConfirmationAndCompletion`
+          # and `testEnablingStaysGatedUntilAFirstQuestExists`, each waiting three seconds for a
+          # sheet. Without a retry the job fails on machine load rather than on the code. The
+          # retries are named in the xcodebuild output, so a test that only ever passes on the
+          # second attempt is still visible rather than silently green.
+          xcodebuild test -scheme QuestKeeper \
+            -destination "platform=iOS Simulator,id=$simulator_id" \
+            -only-testing:QuestKeeperUITests \
+            -parallel-testing-enabled NO \
+            -retry-tests-on-failure
