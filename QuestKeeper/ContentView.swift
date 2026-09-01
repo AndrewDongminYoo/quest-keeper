@@ -218,17 +218,7 @@ struct ContentView: View {
                             now: context.date,
                             notificationService: notificationService,
                             onAuthorizationChange: { notificationAuthorization = $0 },
-                            onSaved: { quest in
-                                guard handleQuestSaved(quest) else {
-                                    // The editor here is nested inside the detail sheet, so its own
-                                    // dismissal only uncovers that sheet and the board's banner
-                                    // stays hidden. Close the detail route too, or the refused edit
-                                    // reports nothing until the user happens to back out.
-                                    self.route = nil
-                                    return false
-                                }
-                                return true
-                            },
+                            onSaved: handleQuestSaved,
                             onRetryTomorrow: {
                                 retryTomorrow(quest)
                                 self.route = nil
@@ -555,7 +545,10 @@ struct ContentView: View {
     /// with nothing left to remind about it. So a failed save rolls the change back and the caller
     /// publishes nothing; the board re-renders from the rolled-back model, which is the honest
     /// outcome rather than a screen that disagrees with disk.
-    private func commitPendingChanges() -> Bool {
+    /// - Parameter closingSheets: whether a refusal may close the writing sheets. False for the
+    ///   two measurement writes that resume after an `await`: by then the user may have opened a
+    ///   sheet this write knows nothing about, and closing it would throw away what they typed.
+    private func commitPendingChanges(closingSheets: Bool = true) -> Bool {
         guard modelContext.hasChanges else {
             note(.nothingToWrite)
             return true
@@ -571,7 +564,7 @@ struct ContentView: View {
             return true
         } catch {
             modelContext.rollback()
-            note(.refused)
+            note(.refused, closingSheets: closingSheets)
             return false
         }
     }
@@ -581,11 +574,25 @@ struct ContentView: View {
     /// Called from `commitPendingChanges` and from the two paths that do not go through it: the
     /// routine and daily-focus recorders own their own `save()`, so a failure there would otherwise
     /// be silent and a success there could never clear a standing banner.
-    private func note(_ outcome: QuestWriteOutcome) {
+    private func note(_ outcome: QuestWriteOutcome, closingSheets: Bool = true) {
         lastCommitFailed = QuestWriteFeedback.showsFailureBanner(
             current: lastCommitFailed,
             outcome: outcome
         )
+        // The banner lives on the board, so a sheet still standing over it hides the only report
+        // the user gets — a Save button that did nothing reads as unresponsive rather than as
+        // feedback. Closing the routes here rather than inside each sheet is what keeps the next
+        // sheet from inheriting the gap, since the writing sheets are all presented from these
+        // three states. ponytail: a write sheet presented from state held elsewhere would still
+        // have to close itself; hoisting every sheet into one route enum is the fuller fix and is
+        // not worth its diff for the three that exist.
+        //
+        // Keyed on the outcome, not on `lastCommitFailed`: the banner stands until a later write
+        // succeeds, so reading the flag would close a sheet on every no-op in between.
+        guard outcome == .refused, closingSheets else { return }
+        route = nil
+        dailyFocusEditor = nil
+        routineSheet = nil
     }
 
     private func retryTomorrow(_ quest: Quest) {
@@ -693,7 +700,7 @@ struct ContentView: View {
                     at: now,
                     in: modelContext
                 )
-                _ = commitPendingChanges()
+                _ = commitPendingChanges(closingSheets: false)
                 let scheduling = await notificationService.requestAuthorizationAndReconcile(
                     quests: currentQuests,
                     now: now
@@ -720,7 +727,7 @@ struct ContentView: View {
                 case .notDetermined, .unavailable:
                     break
                 }
-                _ = commitPendingChanges()
+                _ = commitPendingChanges(closingSheets: false)
                 notificationAuthorization = authorization
             } else {
                 notificationAuthorization = await notificationService.reconcile(
@@ -751,16 +758,22 @@ struct ContentView: View {
     private func consumeNotificationRoute() {
         guard let quest = notificationRouteStore.takeRoutedQuest(in: modelContext) else { return }
 
+        // The route opens after the measurement write rather than before it. A refused write now
+        // closes the standing sheets so the board's banner can be read, and this sheet is the one
+        // thing the user asked for by tapping the notification — it must not be what gets closed.
+        // The reachable end states are the same ones this function always produced.
+        if let attribution = notificationRouteStore.takeReengagementAttribution() {
+            _ = RetentionEventRecorder.recordReengagementNotificationOpened(
+                questID: attribution.questID,
+                actionID: attribution.actionID,
+                at: .now,
+                in: modelContext
+            )
+            if commitPendingChanges() {
+                reengagementAttribution = attribution
+            }
+        }
         route = .detail(quest)
-        guard let attribution = notificationRouteStore.takeReengagementAttribution() else { return }
-        _ = RetentionEventRecorder.recordReengagementNotificationOpened(
-            questID: attribution.questID,
-            actionID: attribution.actionID,
-            at: .now,
-            in: modelContext
-        )
-        guard commitPendingChanges() else { return }
-        reengagementAttribution = attribution
     }
 
     private func openNotificationSettings() {
