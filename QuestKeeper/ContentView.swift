@@ -136,7 +136,10 @@ struct ContentView: View {
                     snapshots: snapshots,
                     now: now,
                     context: WeeklyReviewContext(
-                        hasQuestHistory: hasCreatedQuest,
+                        hasQuestHistory: WeeklyReviewContext.hasQuestHistory(
+                            hasCreatedQuest: hasCreatedQuest,
+                            hasStoredQuests: !quests.isEmpty
+                        ),
                         isOnboarding: onboardingPresentation == .guidedOffer,
                         isRecovering: recoveryPresentation != nil,
                         storeFailedToOpen: storeFailedToOpen

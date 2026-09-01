@@ -234,6 +234,18 @@ struct WeeklyReviewStateTests {
         }
     }
 
+    @Test("quest history counts either the creation fact or a quest still in the store")
+    func questHistoryIsTheUnionOfBothSources() {
+        // Both sources are needed. A user migrated from the pre-measurement schema keeps their
+        // quests with no `quest_created` events, and a user who deleted every quest keeps the fact.
+        #expect(WeeklyReviewContext.hasQuestHistory(hasCreatedQuest: true, hasStoredQuests: true))
+        #expect(WeeklyReviewContext.hasQuestHistory(hasCreatedQuest: true, hasStoredQuests: false))
+        #expect(WeeklyReviewContext.hasQuestHistory(hasCreatedQuest: false, hasStoredQuests: true))
+        #expect(
+            WeeklyReviewContext.hasQuestHistory(hasCreatedQuest: false, hasStoredQuests: false) == false
+        )
+    }
+
     @Test("a board with none of those conditions shows the card")
     func presentableContextShowsTheCard() {
         #expect(Self.presentable.suppressesReview == false)

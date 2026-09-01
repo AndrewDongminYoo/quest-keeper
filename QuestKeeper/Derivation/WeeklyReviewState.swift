@@ -33,6 +33,15 @@ nonisolated struct WeeklyReviewContext: Equatable, Sendable {
     var suppressesReview: Bool {
         !hasQuestHistory || isOnboarding || isRecovering || storeFailedToOpen
     }
+
+    /// Quest history is the union of the append-only creation fact and the current store contents,
+    /// because each alone misses a real user: the fact misses anyone migrated from the
+    /// pre-measurement schema, whose quests survived with no `quest_created` events, and the store
+    /// misses anyone who has since deleted every quest. This composition was wrong in both
+    /// directions during review, which is why it lives here with the rest of the rule.
+    static func hasQuestHistory(hasCreatedQuest: Bool, hasStoredQuests: Bool) -> Bool {
+        hasCreatedQuest || hasStoredQuests
+    }
 }
 
 nonisolated enum WeeklyReviewState {
