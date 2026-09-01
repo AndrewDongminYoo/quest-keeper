@@ -127,6 +127,71 @@ struct QuestShortcutCreationCoordinatorTests {
         #expect(try ModelContext(refreshedContainer).fetchCount(FetchDescriptor<Quest>()) == 1)
     }
 
+    @Test("the shortcut runs against the reopened store, not the injected one")
+    func readsAndWritesThroughTheReopenedStore() async throws {
+        // Stands in for the cross-process staleness of issue #56: the injected container is the warm
+        // one the app has held since before the last background, and the reopened one holds a
+        // completion the widget process committed in the meantime. Two *separate* stores are used on
+        // purpose — two containers over one store file share a coordinator cache and reproduce
+        // nothing, which is why the obvious regression test for this passes with or without the fix.
+        let warm = try makeContainer()
+        let reopened = try makeContainer()
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let widgetCompletedID = UUID()
+        reopened.mainContext.insert(Quest(
+            id: widgetCompletedID,
+            title: "위젯에서 완료한 퀘스트",
+            deadline: now.addingTimeInterval(7_200),
+            importance: .low
+        ))
+        try reopened.mainContext.save()
+
+        var receivedBoard: [QuestSnapshot]??
+        var updatedPayload: WidgetDungeonPayload?
+        let coordinator = QuestShortcutCreationCoordinator(
+            modelContainer: warm,
+            reopenStore: { reopened },
+            scheduleNotifications: { _, readBoard, _, _ in
+                let board = await readBoard()
+                receivedBoard = .some(board)
+                return ReengagementRefreshOutcome(authorization: .allowed, didReadBoard: board != nil)
+            },
+            updateWidgetSnapshot: { payload in
+                updatedPayload = payload
+                return true
+            }
+        )
+
+        let outcome = try await coordinator.create(input: try shortcutInput(now: now), now: now)
+
+        #expect(try ModelContext(warm).fetchCount(FetchDescriptor<Quest>()) == 0)
+        #expect(try ModelContext(reopened).fetchCount(FetchDescriptor<Quest>()) == 2)
+        // Republishing a payload derived from the warm board is the defect: it drops the quest the
+        // widget process wrote, and the widget re-renders it as if the completion never happened.
+        #expect(Set(updatedPayload?.quests.map(\.id) ?? []) == [widgetCompletedID, outcome.questID])
+        #expect(Set((receivedBoard ?? nil)?.map(\.id) ?? []) == [widgetCompletedID, outcome.questID])
+    }
+
+    @Test("a reopen that fails leaves the shortcut on the injected container")
+    func fallsBackToTheInjectedContainer() async throws {
+        // Reopening can fail the same way the launch open can. Dropping the creation then would lose
+        // a quest the user already dictated, so the warm container stays the fallback.
+        let warm = try makeContainer()
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let coordinator = QuestShortcutCreationCoordinator(
+            modelContainer: warm,
+            reopenStore: { nil },
+            scheduleNotifications: { _, _, _, _ in
+                ReengagementRefreshOutcome(authorization: .allowed, didReadBoard: true)
+            },
+            updateWidgetSnapshot: { _ in true }
+        )
+
+        _ = try await coordinator.create(input: try shortcutInput(now: now), now: now)
+
+        #expect(try ModelContext(warm).fetchCount(FetchDescriptor<Quest>()) == 1)
+    }
+
     @Test("identical shortcut invocations create distinct Quests")
     func identicalInvocationsCreateDistinctQuests() async throws {
         let container = try makeContainer()

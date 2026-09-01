@@ -140,10 +140,23 @@ struct QuestKeeperApp: App {
             storeFailedToOpen: storeFailedToOpen
         ) ? RetentionBaselineWriter() : nil
         _sharedModelContainer = State(initialValue: container)
+        // The shortcut runs without an activation, so it reopens the store itself to avoid reading a
+        // warm container that cannot see the widget process's writes. The two conditions are the ones
+        // the `.active` container swap already answers: an inert run must not reach the real App
+        // Group store at all, and an in-memory or UI-testing run has no on-disk store to reopen.
+        let reopensStoreForShortcut = !usesInertSideEffects
+            && !ActivationPolicy.shouldReuseContainerOnBackground(
+                usesInMemoryStore: usesInMemoryStore,
+                uiTestingStoreURL: uiTestingStoreURL
+            )
         let shortcutCreationCoordinator = QuestShortcutCreationCoordinator(
             modelContainer: container,
             notificationService: notificationService,
-            widgetSnapshotWriter: snapshotWriter
+            widgetSnapshotWriter: snapshotWriter,
+            reopenStore: {
+                guard reopensStoreForShortcut else { return nil }
+                return try? QuestModelContainer.make()
+            }
         )
         self.shortcutCreationCoordinator = shortcutCreationCoordinator
         AppDependencyManager.shared.add(dependency: shortcutCreationCoordinator)
@@ -331,9 +344,9 @@ struct QuestKeeperApp: App {
     }
 
     /// Reconcile notifications and rewrite the widget snapshot from the *current* (freshly swapped)
-    /// container. This runs here — not in `ContentView` — because a warm foreground's
-    /// `@Query` is stale, and opening a second container for the same store to read fresh would trap
-    /// in SwiftData. Using the one live container avoids both the staleness and the trap.
+    /// container. This runs here — not in `ContentView` — because a warm foreground's `@Query` is
+    /// stale, and the swap above has already produced the fresh container this needs. `ContentView`
+    /// would have to open another one for the same store to read the same facts.
     private func syncActivation(using container: ModelContainer) {
         let writer = widgetSnapshotWriter
         let notificationService = notificationService
