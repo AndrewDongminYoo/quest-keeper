@@ -214,12 +214,25 @@ enum DebugFixtureSeeder {
                 importance: .medium
             ))
         }
-        context.insert(Quest(
+        let securedVictory = Quest(
             title: AppStrings.resolve(AppStrings.debugFixtureRecoveryVictorySecured, locale: .current),
             deadline: now.addingTimeInterval(-86_400),
             importance: .low,
             completedAt: now.addingTimeInterval(-86_460)
-        ))
+        )
+        context.insert(securedVictory)
+        // Recorded through the production recorder so this fixture describes an ordinary user: a
+        // quest with no creation fact is only reachable by migration, and the weekly review's
+        // history gate reads that fact. Skipped in the persistence-failure variant, which builds
+        // its failure precisely by leaving `RetentionInstallation` absent — the recorder would
+        // create one and dissolve the condition the test is built on.
+        if !arguments.contains("-uiTestingRecoveryPersistenceFailure") {
+            _ = RetentionEventRecorder.recordQuestCreated(
+                questID: securedVictory.id,
+                at: now.addingTimeInterval(-90_000),
+                in: context
+            )
+        }
         // The recovery card only appears after a multi-day absence, which is derived from `lastOpened`.
         UserDefaults.standard.set(
             now.addingTimeInterval(-3 * 86_400).timeIntervalSinceReferenceDate,

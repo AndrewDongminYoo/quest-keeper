@@ -60,7 +60,8 @@ The change figure is omitted rather than shown as a negative number when it woul
 ## Accessibility And Localization
 
 Every string is a semantic key in `AppStrings` with a Korean `defaultValue` and an English peer, per the String Catalog rule.
-The figures are read as a single accessibility element with a sentence that names each number, because three bare numerals read out of context are not usable.
+The two numeric columns are read as a single accessibility element with a sentence that names each number, because bare numerals read out of context are not usable.
+The change is deliberately left as its own element: it is already a full sentence that names what it compares against, so it loses nothing when read on its own, and folding it into the merged label would produce one long utterance instead of two that each stand up.
 Both actions carry a stable accessibility identifier.
 The card must survive Dynamic Type without clipping; long localized labels wrap.
 

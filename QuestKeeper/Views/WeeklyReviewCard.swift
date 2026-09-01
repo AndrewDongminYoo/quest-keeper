@@ -33,6 +33,9 @@ struct WeeklyReviewCard: View {
                     victories: review.victories,
                     activeDays: review.activeDays
                 )))
+                // Its own element on purpose: it already names what it compares against, so it
+                // stands up read alone, and merging it into the label above would make one long
+                // utterance out of two that each work. See the spec's accessibility section.
                 Text(changeResource)
                     .font(.caption)
                     .foregroundStyle(DungeonPalette.ink.opacity(0.7))
