@@ -3418,6 +3418,262 @@
           }
         }
       }
+    },
+    "weeklyReview.action.dismiss" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "나중에"
+          }
+        }
+      }
+    },
+    "weeklyReview.action.plan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan this week"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이번 주 첫 퀘스트"
+          }
+        }
+      }
+    },
+    "weeklyReview.body.quiet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new week has started. One quest is enough to begin."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새로운 한 주가 시작됐습니다. 첫 퀘스트 하나면 충분합니다."
+          }
+        }
+      }
+    },
+    "weeklyReview.body.withVictories" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That is what you got done last week. Shall we set this week's first quest?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난주에 이만큼 해냈습니다. 이번 주 첫 퀘스트를 정해볼까요?"
+          }
+        }
+      }
+    },
+    "weeklyReview.change.down" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fewer than the week before."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 전 주보다 %lld회 적어요."
+          }
+        }
+      }
+    },
+    "weeklyReview.change.same" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same as the week before."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 전 주와 같아요."
+          }
+        }
+      }
+    },
+    "weeklyReview.change.up" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld more than the week before."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 전 주보다 %lld회 많아요."
+          }
+        }
+      }
+    },
+    "weeklyReview.range" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ~ %@"
+          }
+        }
+      }
+    },
+    "weeklyReview.stat.activeDays" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active days"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "활동한 날"
+          }
+        }
+      }
+    },
+    "weeklyReview.stat.victories" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Victories"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "승리"
+          }
+        }
+      }
+    },
+    "weeklyReview.stats.accessibility" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last week: %lld victories, active on %lld days."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난주 승리 %lld회, 활동한 날 %lld일."
+          }
+        }
+      }
+    },
+    "weeklyReview.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last week's record"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난주 전과"
+          }
+        }
+      }
+    },
+    "debug.fixture.weeklyReview.first" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last week quest 1"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난주 퀘스트 1"
+          }
+        }
+      }
+    },
+    "debug.fixture.weeklyReview.prior" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Week before quest"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 전 주 퀘스트"
+          }
+        }
+      }
+    },
+    "debug.fixture.weeklyReview.second" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last week quest 2"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난주 퀘스트 2"
+          }
+        }
+      }
+    },
+    "debug.fixture.weeklyReview.third" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last week quest 3"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난주 퀘스트 3"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

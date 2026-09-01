@@ -27,6 +27,10 @@ struct ContentView: View {
     @State private var reengagementSettings: ReengagementReminderSettings
     @State private var reengagementAttribution: ReengagementNotificationAttribution?
     @State private var mourningTask: Task<Void, Never>?
+    /// The start instant of the week the weekly-review card last showed. Naming the reviewed week
+    /// rather than the week it was seen in is what keeps a return after several weeks away from
+    /// replaying one card per skipped week. See `docs/specs/026-weekly-review.md`.
+    @AppStorage("weeklyReviewAcknowledgedWeekTIRD") private var weeklyReviewAcknowledgedRaw = 0.0
     @Binding private var hasDeferredOnboardingThisRun: Bool
     @Binding private var recoveryOffer: RecoveryActivationOffer?
 
@@ -125,6 +129,14 @@ struct ContentView: View {
                     now: now,
                     calendar: localCalendar
                 )
+                // The user's own calendar, not the forced-Gregorian day-key one: the first weekday
+                // is a regional preference and this card names a week to a person. Nothing durable
+                // is keyed on it, so a region change costs one extra card, not a broken key.
+                let weeklyReview = weeklyReviewPresentation(
+                    snapshots: snapshots,
+                    now: now,
+                    isRecovering: recoveryPresentation != nil
+                )
                 let routineRulesByID = Dictionary(uniqueKeysWithValues: routineRules.map { ($0.id, $0) })
                 let visibleRoutines = RoutineState.visibleRoutineIDs(
                     rules: routineRules.map(\.snapshot),
@@ -155,6 +167,7 @@ struct ContentView: View {
                     recoveryPresentation: recoveryPresentation,
                     visibleRoutines: visibleRoutines,
                     hasRoutineRules: !routineRules.isEmpty,
+                    weeklyReview: weeklyReview,
                     onCreate: { beginQuestCreation(draft: nil) },
                     onStartGuidedQuest: {
                         beginQuestCreation(draft: .guided(at: .now))
@@ -177,6 +190,11 @@ struct ContentView: View {
                         route = .recoveryCreate(.guided(at: .now))
                     },
                     onDismissRecovery: { recoveryOffer = nil },
+                    onPlanWeek: {
+                        acknowledgeWeeklyReview(at: now)
+                        beginQuestCreation(draft: nil)
+                    },
+                    onDismissWeeklyReview: { acknowledgeWeeklyReview(at: now) },
                     onSaveReengagementSettings: saveReengagementSettings,
                     onOpenNotificationSettings: openNotificationSettings,
                     onComplete: complete,
@@ -470,6 +488,42 @@ struct ContentView: View {
 
     private var localCalendar: Calendar {
         DailyFocusDay.gregorianCalendar(timeZone: .current)
+    }
+
+    private var weeklyReviewCalendar: Calendar { .current }
+
+    /// `nil` hides the card. The recovery card owns the board after a multi-day absence, and a
+    /// welcome-back card stacked under a summary of the week the user was away for reads as a
+    /// reprimand; the review waits for a later launch instead.
+    private func weeklyReviewPresentation(
+        snapshots: [QuestSnapshot],
+        now: Date,
+        isRecovering: Bool
+    ) -> WeeklyReview? {
+        guard !isRecovering else { return nil }
+        guard WeeklyReviewState.shouldPresent(
+            now: now,
+            calendar: weeklyReviewCalendar,
+            acknowledgedWeekStart: acknowledgedWeekStart
+        ) else {
+            return nil
+        }
+        return WeeklyReviewState.make(quests: snapshots, now: now, calendar: weeklyReviewCalendar)
+    }
+
+    /// Zero is the never-acknowledged marker; `@AppStorage` has no `Date?` and a sentinel keeps the
+    /// preference a plain number rather than an optional encoded into a string.
+    private var acknowledgedWeekStart: Date? {
+        weeklyReviewAcknowledgedRaw == 0
+            ? nil
+            : Date(timeIntervalSinceReferenceDate: weeklyReviewAcknowledgedRaw)
+    }
+
+    private func acknowledgeWeeklyReview(at now: Date) {
+        guard let week = WeeklyReviewState.reviewedWeek(now: now, calendar: weeklyReviewCalendar) else {
+            return
+        }
+        weeklyReviewAcknowledgedRaw = week.start.timeIntervalSinceReferenceDate
     }
 
     private func completeRoutine(_ routine: RoutineRule) {

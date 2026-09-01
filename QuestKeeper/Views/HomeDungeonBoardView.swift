@@ -27,6 +27,9 @@ struct HomeDungeonBoardView: View {
     let recoveryPresentation: RecoveryCardPresentation?
     let visibleRoutines: [RoutineRule]
     let hasRoutineRules: Bool
+    /// `nil` while the week the card would review is already acknowledged, or while the recovery
+    /// card owns the board — see `docs/specs/026-weekly-review.md`.
+    let weeklyReview: WeeklyReview?
     let onCreate: () -> Void
     let onStartGuidedQuest: () -> Void
     let onDeferOnboarding: () -> Void
@@ -36,6 +39,8 @@ struct HomeDungeonBoardView: View {
     let onChooseRecoveryFocus: () -> Void
     let onCreateRecoveryQuest: () -> Void
     let onDismissRecovery: () -> Void
+    let onPlanWeek: () -> Void
+    let onDismissWeeklyReview: () -> Void
     let onSaveReengagementSettings: (ReengagementReminderSettings) -> Void
     let onOpenNotificationSettings: () -> Void
     let onComplete: (Quest, Date) -> Void
@@ -75,6 +80,13 @@ struct HomeDungeonBoardView: View {
                                 onOpenNotificationSettings()
                             }
                         }
+                    }
+                    if let weeklyReview {
+                        WeeklyReviewCard(
+                            review: weeklyReview,
+                            onPlan: onPlanWeek,
+                            onDismiss: onDismissWeeklyReview
+                        )
                     }
                     if let recoveryPresentation {
                         RecoveryCardView(

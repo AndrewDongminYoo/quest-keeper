@@ -623,3 +623,82 @@ nonisolated extension AppStrings {
         defaultValue: "버전과 개인정보 처리방침, 후원 항목을 엽니다."
     )
 }
+
+// 주간 회고 카드 — docs/specs/026-weekly-review.md.
+nonisolated extension AppStrings {
+    static let weeklyReviewTitle = LocalizedStringResource("weeklyReview.title", defaultValue: "지난주 전과")
+
+    static func weeklyReviewRange(_ start: String, _ end: String) -> LocalizedStringResource {
+        LocalizedStringResource("weeklyReview.range", defaultValue: "\(start) ~ \(end)")
+    }
+
+    static let weeklyReviewBodyWithVictories = LocalizedStringResource(
+        "weeklyReview.body.withVictories",
+        defaultValue: "지난주에 이만큼 해냈습니다. 이번 주 첫 퀘스트를 정해볼까요?"
+    )
+    static let weeklyReviewBodyQuiet = LocalizedStringResource(
+        "weeklyReview.body.quiet",
+        defaultValue: "새로운 한 주가 시작됐습니다. 첫 퀘스트 하나면 충분합니다."
+    )
+
+    static let weeklyReviewStatVictories = LocalizedStringResource(
+        "weeklyReview.stat.victories",
+        defaultValue: "승리"
+    )
+    static let weeklyReviewStatActiveDays = LocalizedStringResource(
+        "weeklyReview.stat.activeDays",
+        defaultValue: "활동한 날"
+    )
+
+    /// 증감은 별도의 한 문장으로 둔다. 통계 열에 넣으면 한국어 라벨과 영어 라벨의 폭 차이가
+    /// 커서 세 칸 배치가 무너지고, 숫자만 남으면 늘었는지 줄었는지 읽히지 않는다.
+    static func weeklyReviewChangeUp(_ count: Int) -> LocalizedStringResource {
+        LocalizedStringResource("weeklyReview.change.up", defaultValue: "그 전 주보다 \(count)회 많아요.")
+    }
+
+    static func weeklyReviewChangeDown(_ count: Int) -> LocalizedStringResource {
+        LocalizedStringResource("weeklyReview.change.down", defaultValue: "그 전 주보다 \(count)회 적어요.")
+    }
+
+    static let weeklyReviewChangeSame = LocalizedStringResource(
+        "weeklyReview.change.same",
+        defaultValue: "그 전 주와 같아요."
+    )
+
+    /// 숫자 두 개를 따로 읽으면 맥락이 사라지므로, 카드의 수치는 한 문장으로 묶어 읽는다.
+    static func weeklyReviewStatsAccessibility(
+        victories: Int,
+        activeDays: Int
+    ) -> LocalizedStringResource {
+        LocalizedStringResource(
+            "weeklyReview.stats.accessibility",
+            defaultValue: "지난주 승리 \(victories)회, 활동한 날 \(activeDays)일."
+        )
+    }
+
+    static let weeklyReviewActionPlan = LocalizedStringResource(
+        "weeklyReview.action.plan",
+        defaultValue: "이번 주 첫 퀘스트"
+    )
+    static let weeklyReviewActionDismiss = LocalizedStringResource(
+        "weeklyReview.action.dismiss",
+        defaultValue: "나중에"
+    )
+
+    static let debugFixtureWeeklyReviewFirst = LocalizedStringResource(
+        "debug.fixture.weeklyReview.first",
+        defaultValue: "지난주 퀘스트 1"
+    )
+    static let debugFixtureWeeklyReviewSecond = LocalizedStringResource(
+        "debug.fixture.weeklyReview.second",
+        defaultValue: "지난주 퀘스트 2"
+    )
+    static let debugFixtureWeeklyReviewThird = LocalizedStringResource(
+        "debug.fixture.weeklyReview.third",
+        defaultValue: "지난주 퀘스트 3"
+    )
+    static let debugFixtureWeeklyReviewPrior = LocalizedStringResource(
+        "debug.fixture.weeklyReview.prior",
+        defaultValue: "그 전 주 퀘스트"
+    )
+}
