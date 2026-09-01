@@ -54,6 +54,13 @@ enum DebugFixtureSeeder {
         usesUITestingStore && arguments.contains("-uiTestingRoutineFixture")
     }
 
+    nonisolated static func shouldSeedWeeklyReviewFixture(
+        usesUITestingStore: Bool,
+        arguments: [String]
+    ) -> Bool {
+        usesUITestingStore && arguments.contains("-uiTestingWeeklyReviewFixture")
+    }
+
     /// Seeds whichever fixture the launch arguments ask for. Each fixture is inert unless its own
     /// flag is present, and the quest-inserting ones only run against an empty store so a re-launch
     /// against a persistent UI-testing store does not stack duplicates.
@@ -97,6 +104,11 @@ enum DebugFixtureSeeder {
         if shouldSeedRoutineFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
            try context.fetchCount(FetchDescriptor<RoutineRule>()) == 0 {
             try seedRoutineFixture(in: context)
+        }
+
+        if shouldSeedWeeklyReviewFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
+           try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
+            try seedWeeklyReviewFixture(in: context)
         }
 
         // 퀘스트를 만들었다가 전부 지운 뒤의 사실 상태다. 게이트가 읽는 `quest_created`를
@@ -213,6 +225,40 @@ enum DebugFixtureSeeder {
             now.addingTimeInterval(-3 * 86_400).timeIntervalSinceReferenceDate,
             forKey: "lastOpenedTIRD"
         )
+        try context.save()
+    }
+
+    /// Victories dated into the week the review card reports, plus one in the week before it so the
+    /// change figure is not zero. Dates are computed from the same calendar the card derives with,
+    /// because a fixture that hard-codes a date renders nothing once that date is two weeks old.
+    private static func seedWeeklyReviewFixture(in context: ModelContext) throws {
+        let now = Date.now
+        let calendar = Calendar.current
+        guard let week = WeeklyReviewState.reviewedWeek(now: now, calendar: calendar),
+              let priorWeekAnchor = calendar.date(byAdding: .weekOfYear, value: -1, to: week.start),
+              let priorWeek = calendar.dateInterval(of: .weekOfYear, for: priorWeekAnchor) else {
+            return
+        }
+
+        func victory(_ title: LocalizedStringResource, at completedAt: Date) {
+            context.insert(Quest(
+                title: AppStrings.resolve(title, locale: .current),
+                deadline: completedAt.addingTimeInterval(3_600),
+                importance: .medium,
+                completedAt: completedAt
+            ))
+        }
+
+        // Two distinct local days inside the reviewed week, three victories, one the week before.
+        victory(AppStrings.debugFixtureWeeklyReviewFirst, at: week.start.addingTimeInterval(86_400 + 32_400))
+        victory(AppStrings.debugFixtureWeeklyReviewSecond, at: week.start.addingTimeInterval(86_400 + 64_800))
+        victory(AppStrings.debugFixtureWeeklyReviewThird, at: week.start.addingTimeInterval(3 * 86_400 + 32_400))
+        victory(AppStrings.debugFixtureWeeklyReviewPrior, at: priorWeek.start.addingTimeInterval(2 * 86_400 + 32_400))
+
+        // The card is gated on both of these: an acknowledgement from an earlier run would hide it,
+        // and a stale `lastOpened` would hand the board to the recovery card instead.
+        UserDefaults.standard.set(0.0, forKey: "weeklyReviewAcknowledgedWeekTIRD")
+        UserDefaults.standard.set(now.timeIntervalSinceReferenceDate, forKey: "lastOpenedTIRD")
         try context.save()
     }
 }
