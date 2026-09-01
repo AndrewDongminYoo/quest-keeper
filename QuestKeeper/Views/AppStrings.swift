@@ -297,6 +297,14 @@ nonisolated extension AppStrings {
         "store.failure.banner.body",
         defaultValue: "지금 만든 퀘스트는 저장되지 않습니다. 앱을 다시 실행해보세요."
     )
+    static let commitFailureBannerTitle = LocalizedStringResource(
+        "commit.failure.banner.title",
+        defaultValue: "방금 변경을 저장하지 못했습니다"
+    )
+    static let commitFailureBannerBody = LocalizedStringResource(
+        "commit.failure.banner.body",
+        defaultValue: "던전은 저장된 내용을 그대로 보여줍니다. 다시 시도해보세요."
+    )
     static let notificationPermissionBannerBody = LocalizedStringResource(
         "notification.permissionBanner.body",
         defaultValue: "마감 알림을 받으려면 설정에서 TODO Slayer 알림을 켜세요."

@@ -40,6 +40,14 @@ struct ContentView: View {
     private let dailyFocusLoopEnabled: Bool
     private let activationReplay: ActivationReplayResult?
     private let storeFailedToOpen: Bool
+    /// True once a save was rejected and no later save has succeeded.
+    ///
+    /// Set inside `commitPendingChanges` rather than at its nine call sites: that is the one place
+    /// every write converges on, so a path added later is covered without being remembered.
+    @State private var lastCommitFailed = false
+#if DEBUG
+    private let rejectsSaves: Bool
+#endif
 
     init(
         notificationService: QuestNotificationService = .shared,
@@ -70,6 +78,11 @@ struct ContentView: View {
         self.onboardingSessionID = onboardingSessionID
         self.dailyFocusLoopEnabled = dailyFocusLoopEnabled
         self.storeFailedToOpen = storeFailedToOpen
+#if DEBUG
+        rejectsSaves = LaunchArguments.saveRejectionFixtureEnabled(
+            arguments: ProcessInfo.processInfo.arguments
+        )
+#endif
     }
 
     var body: some View {
@@ -130,6 +143,7 @@ struct ContentView: View {
                     escalatedQuestIDs: escalatedQuestIDs,
                     now: now,
                     storeFailedToOpen: storeFailedToOpen,
+                    lastCommitFailed: lastCommitFailed,
                     notificationPermissionAction: QuestNotificationPermissionAction.make(
                         authorization: notificationAuthorization
                     ),
@@ -375,13 +389,19 @@ struct ContentView: View {
         at recordedAt: Date
     ) -> Bool {
         guard dailyFocusLoopEnabled else { return false }
-        return DailyFocusSelectionRecorder.record(
+        let result = DailyFocusSelectionRecorder.record(
             selectedQuestIDs: questIDs,
             kind: kind,
             at: recordedAt,
             calendar: DailyFocusDay.gregorianCalendar(timeZone: .current),
             in: modelContext
-        ) != .failed
+        )
+        switch result {
+        case .inserted: note(.committed)
+        case .unchanged: note(.nothingToWrite)
+        case .failed: note(.refused)
+        }
+        return result != .failed
     }
 
     private func confirmRecommendedDailyFocus(_ displayedQuestIDs: [UUID]) {
@@ -440,12 +460,16 @@ struct ContentView: View {
     }
 
     private func completeRoutine(_ routine: RoutineRule) {
-        _ = RoutineCompletionRecorder.record(
+        switch RoutineCompletionRecorder.record(
             routineID: routine.id,
             at: .now,
             calendar: localCalendar,
             in: modelContext
-        )
+        ) {
+        case .inserted: note(.committed)
+        case .unchanged: note(.nothingToWrite)
+        case .failed: note(.refused)
+        }
     }
 
     private func saveRoutine(_ routine: RoutineRule?, title: String) -> Bool {
@@ -506,14 +530,36 @@ struct ContentView: View {
     /// publishes nothing; the board re-renders from the rolled-back model, which is the honest
     /// outcome rather than a screen that disagrees with disk.
     private func commitPendingChanges() -> Bool {
-        guard modelContext.hasChanges else { return true }
+        guard modelContext.hasChanges else {
+            note(.nothingToWrite)
+            return true
+        }
         do {
+#if DEBUG
+            if rejectsSaves {
+                throw DebugSaveFailure.forcedByLaunchArgument
+            }
+#endif
             try modelContext.save()
+            note(.committed)
             return true
         } catch {
             modelContext.rollback()
+            note(.refused)
             return false
         }
+    }
+
+    /// The one place a write's outcome becomes visible to the user.
+    ///
+    /// Called from `commitPendingChanges` and from the two paths that do not go through it: the
+    /// routine and daily-focus recorders own their own `save()`, so a failure there would otherwise
+    /// be silent and a success there could never clear a standing banner.
+    private func note(_ outcome: QuestWriteOutcome) {
+        lastCommitFailed = QuestWriteFeedback.showsFailureBanner(
+            current: lastCommitFailed,
+            outcome: outcome
+        )
     }
 
     private func retryTomorrow(_ quest: Quest) {
