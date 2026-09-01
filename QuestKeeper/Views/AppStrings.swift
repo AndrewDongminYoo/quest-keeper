@@ -236,8 +236,16 @@ nonisolated extension AppStrings {
     static let questActionEdit = LocalizedStringResource("quest.action.edit", defaultValue: "편집")
     static let questActionAdd = LocalizedStringResource("quest.action.add", defaultValue: "전투 추가")
     static let questActionRetryTomorrow = LocalizedStringResource("quest.action.retryTomorrow", defaultValue: "내일 도전하기")
+    static let questActionRecordLateCompletion = LocalizedStringResource(
+        "quest.action.recordLateCompletion",
+        defaultValue: "완료로 기록하기"
+    )
     static let questStateCompleted = LocalizedStringResource("quest.state.completed", defaultValue: "완료됨")
     static let questGraveJustMissed = LocalizedStringResource("quest.grave.justMissed", defaultValue: "방금 놓친 전투")
+    static let questGraveRecordedComplete = LocalizedStringResource(
+        "quest.grave.recordedComplete",
+        defaultValue: "완료로 기록함"
+    )
 
     static func questRemainingCount(_ count: Int) -> LocalizedStringResource {
         LocalizedStringResource("quest.remaining.count", defaultValue: "나머지 퀘스트 \(count)개")

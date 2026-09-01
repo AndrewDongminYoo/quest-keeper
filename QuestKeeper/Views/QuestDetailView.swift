@@ -10,18 +10,32 @@ import SwiftUI
 nonisolated struct QuestDetailCapabilities: Equatable, Sendable {
     static let readOnly = QuestDetailCapabilities(
         canEdit: false,
-        canRetryTomorrow: false
+        canRetryTomorrow: false,
+        canRecordLateCompletion: false
     )
 
     let canEdit: Bool
     let canRetryTomorrow: Bool
+    /// Whether the sheet offers "완료로 기록하기" — the user actually finished this after the deadline.
+    let canRecordLateCompletion: Bool
 
     static func make(snapshot: QuestSnapshot, now: Date) -> QuestDetailCapabilities {
         switch snapshot.outcome(at: now) {
         case .pending:
-            QuestDetailCapabilities(canEdit: true, canRetryTomorrow: false)
-        case .grave where snapshot.isVisibleDailyGrave(at: now):
-            QuestDetailCapabilities(canEdit: false, canRetryTomorrow: true)
+            QuestDetailCapabilities(
+                canEdit: true,
+                canRetryTomorrow: false,
+                canRecordLateCompletion: false
+            )
+        // Both recovery choices withdraw once a completion is recorded. `QuestActions.retryTomorrow`
+        // clears `completedAt`, so leaving retry here would silently discard the fact the user just
+        // recorded — see docs/specs/024-late-completion.md.
+        case .grave where snapshot.isVisibleDailyGrave(at: now) && !snapshot.isCompleted:
+            QuestDetailCapabilities(
+                canEdit: false,
+                canRetryTomorrow: true,
+                canRecordLateCompletion: true
+            )
         case .victory, .grave:
             .readOnly
         }
@@ -37,6 +51,7 @@ struct QuestDetailView: View {
     let onAuthorizationChange: (QuestNotificationAuthorization) -> Void
     let onSaved: (Quest) -> Void
     let onRetryTomorrow: (() -> Void)?
+    let onRecordLateCompletion: (() -> Void)?
 
     @State private var isEditing = false
 
@@ -46,7 +61,8 @@ struct QuestDetailView: View {
         notificationService: QuestNotificationService = .shared,
         onAuthorizationChange: @escaping (QuestNotificationAuthorization) -> Void = { _ in },
         onSaved: @escaping (Quest) -> Void = { _ in },
-        onRetryTomorrow: (() -> Void)? = nil
+        onRetryTomorrow: (() -> Void)? = nil,
+        onRecordLateCompletion: (() -> Void)? = nil
     ) {
         self.quest = quest
         self.now = now
@@ -54,6 +70,7 @@ struct QuestDetailView: View {
         self.onAuthorizationChange = onAuthorizationChange
         self.onSaved = onSaved
         self.onRetryTomorrow = onRetryTomorrow
+        self.onRecordLateCompletion = onRecordLateCompletion
     }
 
     private var capabilities: QuestDetailCapabilities {
@@ -86,15 +103,31 @@ struct QuestDetailView: View {
                         )
                     }
                 }
-                if capabilities.canRetryTomorrow, let onRetryTomorrow {
+                if capabilities.canRetryTomorrow || capabilities.canRecordLateCompletion {
                     Section {
-                        Button {
-                            onRetryTomorrow()
-                            dismiss()
-                        } label: {
-                            Label(AppStrings.questActionRetryTomorrow, systemImage: "arrow.uturn.forward")
+                        // Ordered so the already-done case is read first: someone who finished the
+                        // work should not have to walk past an offer to redo it.
+                        if capabilities.canRecordLateCompletion, let onRecordLateCompletion {
+                            Button {
+                                onRecordLateCompletion()
+                                dismiss()
+                            } label: {
+                                Label(
+                                    AppStrings.questActionRecordLateCompletion,
+                                    systemImage: "checkmark.circle"
+                                )
+                            }
+                            .accessibilityIdentifier("questDetailRecordLateCompletionButton")
                         }
-                        .accessibilityIdentifier("questDetailRetryButton")
+                        if capabilities.canRetryTomorrow, let onRetryTomorrow {
+                            Button {
+                                onRetryTomorrow()
+                                dismiss()
+                            } label: {
+                                Label(AppStrings.questActionRetryTomorrow, systemImage: "arrow.uturn.forward")
+                            }
+                            .accessibilityIdentifier("questDetailRetryButton")
+                        }
                     }
                 }
             }

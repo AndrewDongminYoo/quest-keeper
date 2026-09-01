@@ -205,6 +205,13 @@ struct ContentView: View {
                             onRetryTomorrow: {
                                 retryTomorrow(quest)
                                 self.route = nil
+                            },
+                            onRecordLateCompletion: {
+                                // The same path an on-time completion takes, so the retention event,
+                                // the notification cleanup and the widget snapshot need no separate
+                                // answer here — see docs/specs/024-late-completion.md.
+                                complete(quest)
+                                self.route = nil
                             }
                         )
                     }

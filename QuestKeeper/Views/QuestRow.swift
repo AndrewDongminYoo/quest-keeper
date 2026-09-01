@@ -149,7 +149,9 @@ struct DailyGraveRow: View {
     let quest: Quest
     let isNewlyMissed: Bool
 
-    private var style: Style { isNewlyMissed ? .mourning : .rest }
+    private var style: Style {
+        .make(isCompleted: quest.completedAt != nil, isNewlyMissed: isNewlyMissed)
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -177,7 +179,7 @@ struct DailyGraveRow: View {
     }
 }
 
-private extension DailyGraveRow {
+extension DailyGraveRow {
     /// Visual variant of a grave row. Newly-missed quests wear the mourning treatment
     /// during the transient `pendingDeaths` window; older graves fall back to the rest palette.
     struct Style {
@@ -209,6 +211,29 @@ private extension DailyGraveRow {
                 background: DungeonPalette.stone,
                 borderTint: DungeonPalette.grave.opacity(0.35),
                 accessibilityValue: ""
+            )
+        }
+
+        /// A recorded late completion wins over the mourning treatment: it is what the user just did,
+        /// and this row is the only feedback that the action landed — the quest stays in the grave
+        /// section for the rest of the deadline's local day (docs/specs/024-late-completion.md).
+        static func make(isCompleted: Bool, isNewlyMissed: Bool) -> Style {
+            if isCompleted { return .recorded }
+            return isNewlyMissed ? .mourning : .rest
+        }
+
+        /// The user recorded that they finished this after the deadline. The artwork stays a grave —
+        /// the outcome is unchanged — and only the caption reports the recorded fact.
+        static var recorded: Style {
+            Style(
+                caption: AppStrings.resolve(AppStrings.questGraveRecordedComplete, locale: .current),
+                captionTint: DungeonPalette.hero,
+                background: DungeonPalette.stone,
+                borderTint: DungeonPalette.hero.opacity(0.45),
+                accessibilityValue: AppStrings.resolve(
+                    AppStrings.questGraveRecordedComplete,
+                    locale: .current
+                )
             )
         }
     }
