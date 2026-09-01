@@ -12,18 +12,8 @@ import SwiftData
 // reengagement refresh before it reads the widget payload. Arm 2 skips that first fetch so the
 // payload read happens on a context that registered nothing.
 
-func modelSchema() -> Schema {
-    Schema([
-        Quest.self,
-        RetentionInstallation.self,
-        RetentionEvent.self,
-        ExperimentAssignment.self,
-        DailyFocusSelection.self,
-        RoutineRule.self,
-        RoutineCompletion.self,
-    ])
-}
-
+// `modelSchema()` is generated into the build directory by run.sh, straight from
+// QuestModelContainer.makeSchema(), so this file never restates the schema.
 func makeContainer(_ url: URL) throws -> ModelContainer {
     let schema = modelSchema()
     return try ModelContainer(
@@ -65,13 +55,42 @@ func fetchQuest(_ context: ModelContext, id: UUID) throws -> Quest? {
     return try context.fetch(descriptor).first
 }
 
-let arguments = CommandLine.arguments
-guard arguments.count >= 3 else {
-    FileHandle.standardError.write(Data("usage: harness <role> <storeURL> [...]\n".utf8))
+func fail(_ message: String) -> Never {
+    FileHandle.standardError.write(Data("\(message)\n".utf8))
     exit(2)
 }
+
+let usage = """
+usage: harness seed <storeURL>
+       harness a    <storeURL> <gateDir> <questID> <arm 1|2>
+       harness b    <storeURL> <gateDir> <questID>
+"""
+
+let arguments = CommandLine.arguments
+guard arguments.count >= 3 else { fail(usage) }
 let role = arguments[1]
 let storeURL = URL(fileURLWithPath: arguments[2])
+
+/// Every role argument goes through here. An out-of-range index or an unparsable UUID would
+/// otherwise trap, and an unrecognised arm would silently take the arm-2 path and report a
+/// measurement of something nobody asked for.
+func argument(_ index: Int) -> String {
+    guard arguments.count > index else { fail(usage) }
+    return arguments[index]
+}
+
+func questIDArgument(_ index: Int) -> UUID {
+    guard let id = UUID(uuidString: argument(index)) else {
+        fail("not a quest UUID: \(argument(index))")
+    }
+    return id
+}
+
+func armArgument(_ index: Int) -> String {
+    let value = argument(index)
+    guard value == "1" || value == "2" else { fail("arm must be 1 or 2, got \(value)") }
+    return value
+}
 
 switch role {
 case "seed":
@@ -87,9 +106,9 @@ case "seed":
     print(quest.id.uuidString)
 
 case "a":
-    let gateDir = URL(fileURLWithPath: arguments[3])
-    let questID = UUID(uuidString: arguments[4])!
-    let arm = arguments[5]
+    let gateDir = URL(fileURLWithPath: argument(3))
+    let questID = questIDArgument(4)
+    let arm = armArgument(5)
     let aReady = gateDir.appending(path: "a-ready")
     let bDone = gateDir.appending(path: "b-done")
 
@@ -140,8 +159,8 @@ case "a":
     print(after?.completedAt == nil ? "RESULT=STALE" : "RESULT=FRESH")
 
 case "b":
-    let gateDir = URL(fileURLWithPath: arguments[3])
-    let questID = UUID(uuidString: arguments[4])!
+    let gateDir = URL(fileURLWithPath: argument(3))
+    let questID = questIDArgument(4)
     let aReady = gateDir.appending(path: "a-ready")
     let bDone = gateDir.appending(path: "b-done")
 
@@ -162,6 +181,5 @@ case "b":
     try touch(bDone)
 
 default:
-    FileHandle.standardError.write(Data("unknown role \(role)\n".utf8))
-    exit(2)
+    fail("unknown role \(role)\n\(usage)")
 }

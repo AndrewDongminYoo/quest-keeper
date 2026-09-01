@@ -5,7 +5,7 @@ It records a reproduction attempt and its measurement; it changes no behaviour.
 
 ## The claim under test
 
-#65 states that a `CompleteQuestIntent` commit landing after `reopenStore()` and before `snapshotPayload()` is still invisible to the reopened container, so the shortcut can publish a widget payload that shows a completed quest as pending.
+Issue #65 states that a `CompleteQuestIntent` commit landing after `reopenStore()` and before `snapshotPayload()` is still invisible to the reopened container, so the shortcut can publish a widget payload that shows a completed quest as pending.
 
 The claim is an ordering property, not a timing race: `QuestShortcutCreationCoordinator.create` opens its store once at entry and reads the payload from that same store after the notification round trips.
 A reproduction therefore only has to control the ordering.
@@ -18,7 +18,8 @@ That is what makes the measurement below possible without a pause, a hook, or an
 - Process A stands in for the shortcut: it opens a container, commits its own created quest, reads the board, waits, then re-reads.
 - Process B stands in for the widget: it waits, opens its own container, and writes `completedAt` on a quest A already read.
 
-Both are built from the repository's own `@Model` sources, copied out of `QuestKeeperShared/` at run time rather than duplicated into the script, so the schema is the one `QuestModelContainer.makeSchema()` declares and cannot drift from it.
+Both are built from the repository's own `@Model` sources.
+The type list is read out of `QuestModelContainer.makeSchema()` at run time and each type's file is located by its declaration, so the harness's schema is the production schema rather than a copy of it; a model added to production that the script cannot locate stops the run instead of measuring an older store shape.
 A's reads are the two `QuestStoreActor` calls the coordinator makes, in the same order and with the same descriptors:
 
 | Harness step                                      | Production call                                                            |

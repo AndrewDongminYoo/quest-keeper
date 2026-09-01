@@ -24,17 +24,42 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "${WORK}/src" "${WORK}/store" "${WORK}/gate"
 
-# The seven types QuestModelContainer.makeSchema() declares, taken from the working tree so the
-# harness always compiles against the current models. Six files, because RetentionInstallation is
-# declared in RetentionEvent.swift — if it is ever split out, add its file here.
-for name in Quest RetentionEvent ExperimentAssignment DailyFocusSelection RoutineRule RoutineCompletion; do
-	cp "${ROOT}/QuestKeeperShared/${name}.swift" "${WORK}/src/"
+# The schema is read out of QuestModelContainer.makeSchema() rather than restated here, so adding a
+# model to production cannot leave the harness silently measuring an older store shape. Each type's
+# declaring file is then located by its declaration, which also survives a file being split or
+# renamed. An unlocatable type is a hard failure: a partial schema would migrate the copied store.
+TYPES="$(sed -n '/Schema(\[/,/\])/p' "${ROOT}/QuestKeeperShared/QuestModelContainer.swift" |
+	grep -oE '[A-Za-z_][A-Za-z0-9_]*\.self' | sed 's/\.self$//' || true)"
+[[ -n ${TYPES} ]] || {
+	echo "could not read the schema from QuestModelContainer.swift" >&2
+	exit 1
+}
+for name in ${TYPES}; do
+	source_file="$(grep -lE "(final )?class ${name}\b" "${ROOT}/QuestKeeperShared"/*.swift | head -1 || true)"
+	[[ -n ${source_file} ]] || {
+		echo "could not locate the declaration of ${name}" >&2
+		exit 1
+	}
+	cp "${source_file}" "${WORK}/src/"
 done
 cp "${HERE}/main.swift" "${WORK}/src/"
+{
+	echo "import SwiftData"
+	echo "func modelSchema() -> Schema {"
+	echo "    Schema(["
+	for name in ${TYPES}; do echo "        ${name}.self,"; done
+	echo "    ])"
+	echo "}"
+} >"${WORK}/src/schema.swift"
 
 if [[ -n ${UDID} ]]; then
 	SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
-	swiftc -swift-version 6 -O -target arm64-apple-ios26.5-simulator -sdk "${SDK}" \
+	# Architecture and deployment target come from the host and the installed SDK; hard-coding
+	# arm64 would build something an Intel host's simulator cannot launch.
+	ARCH="$(uname -m)"
+	SDK_VERSION="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+	TARGET="${ARCH}-apple-ios${SDK_VERSION}-simulator"
+	swiftc -swift-version 6 -O -target "${TARGET}" -sdk "${SDK}" \
 		-o "${WORK}/harness" "${WORK}/src"/*.swift
 	run() { xcrun simctl spawn "${UDID}" "${WORK}/harness" "$@"; }
 	# `|| true` because the lookup exits nonzero when the app is not installed on that simulator,
