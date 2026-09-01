@@ -20,6 +20,13 @@ ROOT="$(cd "${HERE}/../.." && pwd)"
 UDID="${1:-}"
 RUNS="${2:-20}"
 
+# A zero run count would leave both arms empty, make every expected tally zero, and let the
+# positive control alone satisfy the whole check — a pass that exercised nothing.
+[[ ${RUNS} =~ ^[1-9][0-9]*$ ]] || {
+	echo "runs-per-arm must be a positive integer, got '${RUNS}'" >&2
+	exit 2
+}
+
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "${WORK}/src" "${WORK}/store" "${WORK}/gate"
@@ -54,11 +61,28 @@ cp "${HERE}/main.swift" "${WORK}/src/"
 
 if [[ -n ${UDID} ]]; then
 	SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
-	# Architecture and deployment target come from the host and the installed SDK; hard-coding
-	# arm64 would build something an Intel host's simulator cannot launch.
+	# Architecture from the host, minimum OS from the runtime of the device actually selected.
+	# Hard-coding arm64 builds something an Intel host's simulator cannot launch, and taking the
+	# version from the installed SDK sets a minimum the selected runtime may be older than, which
+	# `simctl spawn` then refuses.
 	ARCH="$(uname -m)"
-	SDK_VERSION="$(xcrun --sdk iphonesimulator --show-sdk-version)"
-	TARGET="${ARCH}-apple-ios${SDK_VERSION}-simulator"
+	RUNTIME_VERSION="$(xcrun simctl list devices --json |
+		/usr/bin/python3 -c '
+import json, re, sys
+udid = sys.argv[1]
+devices = json.load(sys.stdin)["devices"]
+for runtime, entries in devices.items():
+    if any(entry.get("udid") == udid for entry in entries):
+        match = re.search(r"SimRuntime\.iOS-(\d+)-(\d+)", runtime)
+        if match:
+            print(f"{match.group(1)}.{match.group(2)}")
+        break
+' "${UDID}" || true)"
+	[[ -n ${RUNTIME_VERSION} ]] || {
+		echo "could not resolve an iOS runtime version for ${UDID}" >&2
+		exit 1
+	}
+	TARGET="${ARCH}-apple-ios${RUNTIME_VERSION}-simulator"
 	swiftc -swift-version 6 -O -target "${TARGET}" -sdk "${SDK}" \
 		-o "${WORK}/harness" "${WORK}/src"/*.swift
 	run() { xcrun simctl spawn "${UDID}" "${WORK}/harness" "$@"; }
