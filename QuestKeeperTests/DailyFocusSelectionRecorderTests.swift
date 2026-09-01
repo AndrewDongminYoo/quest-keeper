@@ -221,8 +221,14 @@ struct DailyFocusSelectionRecorderTests {
             in: container.mainContext
         )
 
-        #expect(result.snapshot != nil)
-        #expect(result.snapshot?.selectedQuestIDs?.contains(firstQuestID) == true)
+        // `.inserted` specifically: the revision has to be appended. `.unchanged` would satisfy a
+        // snapshot check while the revision was silently dropped, which is what this test exists
+        // to catch.
+        guard case .inserted(let snapshot) = result else {
+            Issue.record("개정이 새 행으로 기록되지 않았습니다: \(result)")
+            return
+        }
+        #expect(snapshot.selectedQuestIDs?.contains(firstQuestID) == true)
     }
 
     private var seoulCalendar: Calendar {
