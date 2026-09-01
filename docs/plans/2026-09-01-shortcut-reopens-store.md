@@ -60,6 +60,15 @@ Leaving prose that contradicts this change would invite a later reader to revert
 `fallsBackToTheInjectedContainer` covers the reopen returning `nil`.
 Both were proved able to fail before being trusted: with the reopen removed, the first reports the missing quest in the payload and the board.
 
+**The window narrows; it does not close.**
+A `CompleteQuestIntent` commit landing after `reopenStore()` and before `snapshotPayload()` is still invisible to the reopened container, so the shortcut can still publish a stale payload.
+What changes is the size of the window: from "since the app was last foregrounded", which is unbounded, to one shortcut invocation, whose dominant cost is the notification work's `UNUserNotificationCenter` round trips.
+
+Reopening a second time before the payload read relocates that gap rather than removing it, so it is not the fix.
+No cheap durable ordering closes it either: `latestSubmittedAt` is per-process, the stale payload's `generatedAt` is genuinely the newer one, and a monotonic-completion rule in the writer is unavailable because `QuestActions.uncomplete` and `QuestActions.retryTomorrow` both clear `completedAt`, which makes un-completion a legitimate transition.
+Closing the class needs cross-process ordering that the App Group store itself owns.
+Raised as a P2 on PR #64 and scoped out as issue #65.
+
 **What the suite cannot gate, and why no test claims to.**
 That a reopened container sees a write committed by the _widget process_ is not observable from this suite.
 Issue #56 records the measurement: two containers over the same store file in one process share the coordinator's cache, and the warm one already sees the other's write, so a regression test built on that shape passes with or without this change and reads as evidence the defect does not exist.
