@@ -140,7 +140,7 @@ struct ContentView: View {
                             hasCreatedQuest: hasCreatedQuest,
                             hasStoredQuests: !quests.isEmpty
                         ),
-                        isOnboarding: onboardingPresentation == .guidedOffer,
+                        isOnboarding: onboardingPresentation.isGuidingFirstQuest,
                         isRecovering: recoveryPresentation != nil,
                         storeFailedToOpen: storeFailedToOpen
                     )
