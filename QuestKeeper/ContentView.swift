@@ -184,12 +184,26 @@ struct ContentView: View {
                             dismissesRecoveryOnSave: false
                         )
                     },
-                    onConfirmRecoveryQuest: confirmRecoveryQuest,
-                    onChooseRecoveryFocus: beginRecoveryFocusSelection,
+                    // Every recovery exit also acknowledges the reviewed week. Without it the
+                    // weekly card takes the recovery card's place in the same render and asks for
+                    // a quest the user has just been asked for, and the week it would report is
+                    // the one they were away for.
+                    onConfirmRecoveryQuest: { questID in
+                        acknowledgeWeeklyReview(at: now)
+                        return confirmRecoveryQuest(questID)
+                    },
+                    onChooseRecoveryFocus: {
+                        acknowledgeWeeklyReview(at: now)
+                        beginRecoveryFocusSelection()
+                    },
                     onCreateRecoveryQuest: {
+                        acknowledgeWeeklyReview(at: now)
                         route = .recoveryCreate(.guided(at: .now))
                     },
-                    onDismissRecovery: { recoveryOffer = nil },
+                    onDismissRecovery: {
+                        acknowledgeWeeklyReview(at: now)
+                        recoveryOffer = nil
+                    },
                     onPlanWeek: {
                         acknowledgeWeeklyReview(at: now)
                         beginQuestCreation(draft: nil)

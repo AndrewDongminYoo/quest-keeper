@@ -225,6 +225,10 @@ enum DebugFixtureSeeder {
             now.addingTimeInterval(-3 * 86_400).timeIntervalSinceReferenceDate,
             forKey: "lastOpenedTIRD"
         )
+        // Cleared so the run does not inherit an acknowledgement from an earlier test. Without this
+        // the weekly review can never appear here, and the assertion that it stays away after a
+        // recovery action would pass against a build that had no such rule at all.
+        UserDefaults.standard.set(0.0, forKey: "weeklyReviewAcknowledgedWeekTIRD")
         try context.save()
     }
 

@@ -35,7 +35,7 @@ No quest, snapshot, or `@Model` gains a field.
 Two consequences follow, and both are intended:
 
 - After an absence of several weeks the card reviews the week that just ended, once, and the weeks in between are never shown. A review of a week the user has forgotten is worse than no review, and the weeks in between are exactly the ones the recovery loop already speaks to.
-- The card is suppressed while `RecoveryCardView` is presented, the same guard `DailyFocusRecommendationCard` already uses. Returning after a long absence therefore gets the recovery card first and the weekly review on a later launch, rather than an empty-week summary stacked on top of a welcome-back card.
+- The card is suppressed while `RecoveryCardView` is presented, the same guard `DailyFocusRecommendationCard` already uses, and every recovery action acknowledges the reviewed week on its way out. Returning after a long absence therefore gets the recovery card alone, and the week the user was away for is skipped rather than summarised — otherwise the weekly card would take the recovery card's place in the same render and ask for a quest the user has just been asked for.
 
 The card carries, in this order:
 

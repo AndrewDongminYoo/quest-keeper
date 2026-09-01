@@ -72,10 +72,13 @@ struct WeeklyReviewCard: View {
         return AppStrings.weeklyReviewChangeSame
     }
 
-    /// Formats through the user's own calendar and locale, which is also the calendar
-    /// `WeeklyReviewState` derives the week with, so the label cannot name a different week.
+    /// The calendar is named rather than inherited: `ContentView` derives the week with
+    /// `Calendar.current`, and a label formatted through a different one would name a different
+    /// week than the figures above it describe.
     private func formatted(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .omitted)
+        date.formatted(
+            Date.FormatStyle(date: .abbreviated, time: .omitted, calendar: .current, timeZone: .current)
+        )
     }
 
     private func stat(_ label: LocalizedStringResource, _ value: Int) -> some View {

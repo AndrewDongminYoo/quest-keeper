@@ -25,6 +25,9 @@ final class RecoveryLoopUITests: XCTestCase {
         let victoryCounter = app.buttons["hallOfFameButton"]
         XCTAssertTrue(victoryCounter.waitForExistence(timeout: 3))
         XCTAssertEqual(victoryCounter.value as? String, "1")
+        // The weekly review must not take the recovery card's place in the same render and ask for
+        // a quest the user has just been asked for. See docs/specs/026-weekly-review.md.
+        XCTAssertFalse(app.staticTexts["지난주 전과"].exists)
     }
 
     func testChooseTodayRequiresExplicitSelection() {
