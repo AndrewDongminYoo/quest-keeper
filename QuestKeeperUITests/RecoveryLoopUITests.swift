@@ -19,7 +19,12 @@ final class RecoveryLoopUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["오늘의 핵심 퀘스트"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["0/1 완료"].exists)
-        XCTAssertTrue(app.descendants(matching: .any)["승리 1"].exists)
+        // The counter used to read as the composed label "승리 1". The Hall of Fame work wrapped it
+        // in a Button, and a Button replaces the wrapped view's accessibility label — so it now
+        // carries the button's own label with the count as its accessibility *value*.
+        let victoryCounter = app.buttons["hallOfFameButton"]
+        XCTAssertTrue(victoryCounter.waitForExistence(timeout: 3))
+        XCTAssertEqual(victoryCounter.value as? String, "1")
     }
 
     func testChooseTodayRequiresExplicitSelection() {
