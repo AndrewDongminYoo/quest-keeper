@@ -78,7 +78,14 @@ final class ReengagementReminderUITests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(explanation.waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["설정 열기"].exists)
+        // `Form` renders lazily, so a row below the fold is absent from the tree rather than merely
+        // off-screen. Scrolling for the explanation alone is not enough: it sits above the button,
+        // so it is found while the button — the only route to system settings from here — is not.
+        let openSettings = app.buttons["설정 열기"]
+        if !openSettings.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(openSettings.waitForExistence(timeout: 3))
     }
 
     private func openSettings(in app: XCUIApplication) {
