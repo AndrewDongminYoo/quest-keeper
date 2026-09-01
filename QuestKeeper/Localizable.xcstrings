@@ -2569,6 +2569,22 @@
         }
       }
     },
+    "quest.action.recordLateCompletion" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record as complete"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료로 기록하기"
+          }
+        }
+      }
+    },
     "quest.action.retryTomorrow" : {
       "localizations" : {
         "en" : {
@@ -2853,6 +2869,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "방금 놓친 전투"
+          }
+        }
+      }
+    },
+    "quest.grave.recordedComplete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded as complete"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료로 기록함"
           }
         }
       }
