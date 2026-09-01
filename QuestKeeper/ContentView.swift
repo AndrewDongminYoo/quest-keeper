@@ -135,7 +135,12 @@ struct ContentView: View {
                 let weeklyReview = weeklyReviewPresentation(
                     snapshots: snapshots,
                     now: now,
-                    isRecovering: recoveryPresentation != nil
+                    context: WeeklyReviewContext(
+                        hasQuestHistory: !quests.isEmpty,
+                        isOnboarding: onboardingPresentation == .guidedOffer,
+                        isRecovering: recoveryPresentation != nil,
+                        storeFailedToOpen: storeFailedToOpen
+                    )
                 )
                 let routineRulesByID = Dictionary(uniqueKeysWithValues: routineRules.map { ($0.id, $0) })
                 let visibleRoutines = RoutineState.visibleRoutineIDs(
@@ -188,9 +193,13 @@ struct ContentView: View {
                     // weekly card takes the recovery card's place in the same render and asks for
                     // a quest the user has just been asked for, and the week it would report is
                     // the one they were away for.
+                    // Only a confirmation that actually landed counts as a recovery exit; a
+                    // refused one leaves the recovery card on screen, so acknowledging there would
+                    // silence a week's review for a recovery that never happened.
                     onConfirmRecoveryQuest: { questID in
-                        acknowledgeWeeklyReview(at: now)
-                        return confirmRecoveryQuest(questID)
+                        let confirmed = confirmRecoveryQuest(questID)
+                        if confirmed { acknowledgeWeeklyReview(at: now) }
+                        return confirmed
                     },
                     onChooseRecoveryFocus: {
                         acknowledgeWeeklyReview(at: now)
@@ -506,19 +515,18 @@ struct ContentView: View {
 
     private var weeklyReviewCalendar: Calendar { .current }
 
-    /// `nil` hides the card. The recovery card owns the board after a multi-day absence, and a
-    /// welcome-back card stacked under a summary of the week the user was away for reads as a
-    /// reprimand; the review waits for a later launch instead.
+    /// `nil` hides the card. Every condition that silences it lives in `WeeklyReviewContext`, so
+    /// the rule is testable rather than a chain of guards here.
     private func weeklyReviewPresentation(
         snapshots: [QuestSnapshot],
         now: Date,
-        isRecovering: Bool
+        context: WeeklyReviewContext
     ) -> WeeklyReview? {
-        guard !isRecovering else { return nil }
         guard WeeklyReviewState.shouldPresent(
             now: now,
             calendar: weeklyReviewCalendar,
-            acknowledgedWeekStart: acknowledgedWeekStart
+            acknowledgedWeekStart: acknowledgedWeekStart,
+            context: context
         ) else {
             return nil
         }
@@ -533,8 +541,11 @@ struct ContentView: View {
             : Date(timeIntervalSinceReferenceDate: weeklyReviewAcknowledgedRaw)
     }
 
+    /// Never writes while the on-disk store is unavailable: the preference is persistent and would
+    /// outlive the failure, silencing the accurate review on a later, successful launch.
     private func acknowledgeWeeklyReview(at now: Date) {
-        guard let week = WeeklyReviewState.reviewedWeek(now: now, calendar: weeklyReviewCalendar) else {
+        guard !storeFailedToOpen,
+              let week = WeeklyReviewState.reviewedWeek(now: now, calendar: weeklyReviewCalendar) else {
             return
         }
         weeklyReviewAcknowledgedRaw = week.start.timeIntervalSinceReferenceDate

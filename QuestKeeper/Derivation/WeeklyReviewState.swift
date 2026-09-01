@@ -15,6 +15,26 @@ nonisolated struct WeeklyReview: Equatable, Sendable {
     var hasVictories: Bool { victories > 0 }
 }
 
+/// The board conditions that can silence the card, gathered so the rule is one testable value
+/// rather than a chain of guards inside the view.
+nonisolated struct WeeklyReviewContext: Equatable, Sendable {
+    /// A fresh installation has no week to review, and its board belongs to the onboarding offer.
+    let hasQuestHistory: Bool
+    /// The guided onboarding offer is showing. Its template is the treatment being measured, and
+    /// this card's plain editor would let a guided-cohort user walk past it.
+    let isOnboarding: Bool
+    /// The recovery card owns the board after a multi-day absence.
+    let isRecovering: Bool
+    /// The on-disk store could not be opened, so the board is an empty ephemeral copy. Reviewing it
+    /// would report a quiet week the user did not have, and acknowledging that review would write a
+    /// preference that outlives the failure and silences the accurate one.
+    let storeFailedToOpen: Bool
+
+    var suppressesReview: Bool {
+        !hasQuestHistory || isOnboarding || isRecovering || storeFailedToOpen
+    }
+}
+
 nonisolated enum WeeklyReviewState {
     /// The week the card reviews: the completed week before the one containing `now`.
     /// `nil` when the calendar cannot resolve a week interval, which no supported calendar does.
@@ -37,8 +57,10 @@ nonisolated enum WeeklyReviewState {
     static func shouldPresent(
         now: Date,
         calendar: Calendar,
-        acknowledgedWeekStart: Date?
+        acknowledgedWeekStart: Date?,
+        context: WeeklyReviewContext
     ) -> Bool {
+        guard !context.suppressesReview else { return false }
         guard let week = reviewedWeek(now: now, calendar: calendar) else { return false }
         guard let acknowledgedWeekStart else { return true }
         return week.start != acknowledgedWeekStart

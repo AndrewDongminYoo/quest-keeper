@@ -32,10 +32,16 @@ Acknowledgement is one `@AppStorage` preference holding **the start instant of t
 It names what was shown rather than when it was shown, so the card appears exactly when the previous week's start differs from the stored one.
 No quest, snapshot, or `@Model` gains a field.
 
-Two consequences follow, and both are intended:
+After an absence of several weeks the card therefore reviews the week that just ended, once, and the weeks in between are never shown.
+A review of a week the user has forgotten is worse than no review, and the weeks in between are exactly the ones the recovery loop already speaks to.
 
-- After an absence of several weeks the card reviews the week that just ended, once, and the weeks in between are never shown. A review of a week the user has forgotten is worse than no review, and the weeks in between are exactly the ones the recovery loop already speaks to.
-- The card is suppressed while `RecoveryCardView` is presented, the same guard `DailyFocusRecommendationCard` already uses, and every recovery action acknowledges the reviewed week on its way out. Returning after a long absence therefore gets the recovery card alone, and the week the user was away for is skipped rather than summarised — otherwise the weekly card would take the recovery card's place in the same render and ask for a quest the user has just been asked for.
+Four board conditions silence the card outright, gathered into `WeeklyReviewContext` so the rule is one testable value rather than a chain of guards in the view.
+Each is checked in the derivation suite on its own, because a suppression that stops firing is invisible: the card simply does not appear, which is what a working suppression looks like too.
+
+- **No quest history.** A fresh installation has no week to review, and the sentence it would show is nonsense on a board that has never held a quest.
+- **The guided onboarding offer is showing.** The guided template is the treatment `and-34-first-value-v1` measures. This card's primary action opens an unprefilled editor, so a guided-cohort user could walk past the treatment while still counted in the cohort, moving the experiment's own conversion figure.
+- **The recovery card is presented**, the same guard `DailyFocusRecommendationCard` already uses. Every recovery action also acknowledges the reviewed week on its way out — but only a confirmation that actually landed, since a refused one leaves the recovery card on screen and no exit occurred. Otherwise the weekly card takes the recovery card's place in the same render and asks for a quest the user has just been asked for, about a week they were away for.
+- **The store failed to open.** The board is then an empty ephemeral copy, so the review would report a quiet week the user did not have — and acknowledging it writes a preference that outlives the failure and silences the accurate review on a later, successful launch. Acknowledgement is refused in that state for the same reason.
 
 The card carries, in this order:
 
@@ -70,5 +76,6 @@ The card must survive Dynamic Type without clipping; long localized labels wrap.
 
 - A Swift Testing suite over the derivation covers: an empty week, a week with victories on one day, victories spread over several days, a late completion excluded, a positive and a negative change, and a week boundary resolved through a non-Gregorian first weekday and a non-UTC time zone.
 - The acknowledgement rule is covered by its own cases: an unacknowledged week shows the card, an acknowledged one does not, a new week shows it again, and a jump of several weeks shows it once for the week that just ended rather than once per skipped week.
+- Each of the four suppressing conditions is asserted separately, and a context with none of them is asserted to present.
 - A UI test opens the board with a seeded previous week and confirms the card, its figures, and that the primary action reaches the quest editor.
 - `scripts/test-localization.sh` passes, so every new key exists in both catalogs with no stray literal.

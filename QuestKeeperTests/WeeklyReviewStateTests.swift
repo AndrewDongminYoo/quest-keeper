@@ -155,7 +155,8 @@ struct WeeklyReviewStateTests {
         #expect(WeeklyReviewState.shouldPresent(
             now: now,
             calendar: Self.sundayFirst,
-            acknowledgedWeekStart: nil
+            acknowledgedWeekStart: nil,
+            context: Self.presentable
         ))
     }
 
@@ -166,7 +167,8 @@ struct WeeklyReviewStateTests {
         #expect(WeeklyReviewState.shouldPresent(
             now: now,
             calendar: Self.sundayFirst,
-            acknowledgedWeekStart: week?.start
+            acknowledgedWeekStart: week?.start,
+            context: Self.presentable
         ) == false)
     }
 
@@ -178,7 +180,8 @@ struct WeeklyReviewStateTests {
         #expect(WeeklyReviewState.shouldPresent(
             now: nextWeek,
             calendar: Self.sundayFirst,
-            acknowledgedWeekStart: acknowledged
+            acknowledgedWeekStart: acknowledged,
+            context: Self.presentable
         ))
     }
 
@@ -190,7 +193,8 @@ struct WeeklyReviewStateTests {
         #expect(WeeklyReviewState.shouldPresent(
             now: muchLater,
             calendar: Self.sundayFirst,
-            acknowledgedWeekStart: acknowledged
+            acknowledgedWeekStart: acknowledged,
+            context: Self.presentable
         ))
 
         let week = WeeklyReviewState.reviewedWeek(now: muchLater, calendar: Self.sundayFirst)
@@ -200,8 +204,66 @@ struct WeeklyReviewStateTests {
         #expect(WeeklyReviewState.shouldPresent(
             now: muchLater,
             calendar: Self.sundayFirst,
-            acknowledgedWeekStart: week?.start
+            acknowledgedWeekStart: week?.start,
+            context: Self.presentable
         ) == false)
+    }
+
+    // Each board condition is checked on its own, because a suppression that quietly stops firing
+    // is invisible: the card simply does not appear, which is also what a working suppression
+    // looks like.
+    @Test("every board condition silences the card on its own")
+    func contextSuppressesTheCard() {
+        let cases: [(String, WeeklyReviewContext)] = [
+            ("a fresh installation", Self.context(hasQuestHistory: false)),
+            ("the guided onboarding offer", Self.context(isOnboarding: true)),
+            ("the recovery card", Self.context(isRecovering: true)),
+            ("an unopenable store", Self.context(storeFailedToOpen: true)),
+        ]
+
+        for (label, context) in cases {
+            #expect(
+                WeeklyReviewState.shouldPresent(
+                    now: now,
+                    calendar: Self.sundayFirst,
+                    acknowledgedWeekStart: nil,
+                    context: context
+                ) == false,
+                "\(label) must silence the card"
+            )
+        }
+    }
+
+    @Test("a board with none of those conditions shows the card")
+    func presentableContextShowsTheCard() {
+        #expect(Self.presentable.suppressesReview == false)
+        #expect(WeeklyReviewState.shouldPresent(
+            now: now,
+            calendar: Self.sundayFirst,
+            acknowledgedWeekStart: nil,
+            context: Self.presentable
+        ))
+    }
+
+    static let presentable = WeeklyReviewContext(
+        hasQuestHistory: true,
+        isOnboarding: false,
+        isRecovering: false,
+        storeFailedToOpen: false
+    )
+
+    private static func context(
+        hasQuestHistory: Bool = true,
+        isOnboarding: Bool = false,
+        isRecovering: Bool = false,
+        storeFailedToOpen: Bool = false
+    ) -> WeeklyReviewContext {
+        WeeklyReviewContext(
+            hasQuestHistory: hasQuestHistory,
+            isOnboarding: isOnboarding,
+            isRecovering: isRecovering,
+            storeFailedToOpen: storeFailedToOpen
+        )
     }
 
     private static func victory(at completion: String) -> QuestSnapshot {
