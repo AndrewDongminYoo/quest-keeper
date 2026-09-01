@@ -3,6 +3,10 @@ import SwiftUI
 /// The account of the week that just ended, with one action that starts this one.
 /// See `docs/specs/026-weekly-review.md`; the figures come from `WeeklyReviewState`.
 struct WeeklyReviewCard: View {
+    /// SwiftUI's locale, not `Locale.current`: a per-app language differs from the device's, and a
+    /// range formatted through the system locale would mix languages with the labels beside it.
+    @Environment(\.locale) private var locale
+
     let review: WeeklyReview
     let onPlan: () -> Void
     let onDismiss: () -> Void
@@ -74,10 +78,17 @@ struct WeeklyReviewCard: View {
 
     /// The calendar is named rather than inherited: `ContentView` derives the week with
     /// `Calendar.current`, and a label formatted through a different one would name a different
-    /// week than the figures above it describe.
+    /// week than the figures above it describe. The locale is the app's, which decides the
+    /// language only, so the two cannot disagree about which week this is.
     private func formatted(_ date: Date) -> String {
         date.formatted(
-            Date.FormatStyle(date: .abbreviated, time: .omitted, calendar: .current, timeZone: .current)
+            Date.FormatStyle(
+                date: .abbreviated,
+                time: .omitted,
+                locale: locale,
+                calendar: .current,
+                timeZone: .current
+            )
         )
     }
 

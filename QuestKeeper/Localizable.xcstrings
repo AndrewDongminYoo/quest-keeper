@@ -3584,7 +3584,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Last week: %lld victories, active on %lld days."
+            "value" : "Last week — victories: %lld, active days: %lld."
           }
         },
         "ko" : {

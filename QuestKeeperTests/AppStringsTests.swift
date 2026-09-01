@@ -159,7 +159,7 @@ struct AppStringsTests {
             AppStrings.resolve(
                 AppStrings.weeklyReviewStatsAccessibility(victories: 3, activeDays: 2),
                 locale: en
-            ) == "Last week: 3 victories, active on 2 days."
+            ) == "Last week — victories: 3, active days: 2."
         )
 
         #expect(AppStrings.resolve(AppStrings.weeklyReviewActionPlan, locale: ko) == "이번 주 첫 퀘스트")

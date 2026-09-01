@@ -136,7 +136,7 @@ struct ContentView: View {
                     snapshots: snapshots,
                     now: now,
                     context: WeeklyReviewContext(
-                        hasQuestHistory: !quests.isEmpty,
+                        hasQuestHistory: hasCreatedQuest,
                         isOnboarding: onboardingPresentation == .guidedOffer,
                         isRecovering: recoveryPresentation != nil,
                         storeFailedToOpen: storeFailedToOpen
@@ -189,30 +189,12 @@ struct ContentView: View {
                             dismissesRecoveryOnSave: false
                         )
                     },
-                    // Every recovery exit also acknowledges the reviewed week. Without it the
-                    // weekly card takes the recovery card's place in the same render and asks for
-                    // a quest the user has just been asked for, and the week it would report is
-                    // the one they were away for.
-                    // Only a confirmation that actually landed counts as a recovery exit; a
-                    // refused one leaves the recovery card on screen, so acknowledging there would
-                    // silence a week's review for a recovery that never happened.
-                    onConfirmRecoveryQuest: { questID in
-                        let confirmed = confirmRecoveryQuest(questID)
-                        if confirmed { acknowledgeWeeklyReview(at: now) }
-                        return confirmed
-                    },
-                    onChooseRecoveryFocus: {
-                        acknowledgeWeeklyReview(at: now)
-                        beginRecoveryFocusSelection()
-                    },
+                    onConfirmRecoveryQuest: confirmRecoveryQuest,
+                    onChooseRecoveryFocus: beginRecoveryFocusSelection,
                     onCreateRecoveryQuest: {
-                        acknowledgeWeeklyReview(at: now)
                         route = .recoveryCreate(.guided(at: .now))
                     },
-                    onDismissRecovery: {
-                        acknowledgeWeeklyReview(at: now)
-                        recoveryOffer = nil
-                    },
+                    onDismissRecovery: { endRecoveryActivation() },
                     onPlanWeek: {
                         acknowledgeWeeklyReview(at: now)
                         beginQuestCreation(draft: nil)
@@ -248,7 +230,7 @@ struct ContentView: View {
                             // The offer stands if the quest was not stored; clearing it would drop
                             // the recovery path for a write that never landed.
                             guard handleQuestSaved(quest) else { return false }
-                            recoveryOffer = nil
+                            endRecoveryActivation()
                             return true
                         }
                     )
@@ -298,7 +280,7 @@ struct ContentView: View {
                         at: savedAt
                     )
                     if didSave, editor.dismissesRecoveryOnSave {
-                        recoveryOffer = nil
+                        endRecoveryActivation(at: savedAt)
                     }
                     return didSave
                 }
@@ -490,7 +472,7 @@ struct ContentView: View {
         guard recordDailyFocus([questID], kind: .confirmation, at: now) else {
             return false
         }
-        recoveryOffer = nil
+        endRecoveryActivation(at: now)
         return true
     }
 
@@ -539,6 +521,14 @@ struct ContentView: View {
         weeklyReviewAcknowledgedRaw == 0
             ? nil
             : Date(timeIntervalSinceReferenceDate: weeklyReviewAcknowledgedRaw)
+    }
+
+    /// The one place a recovery activation ends. The weekly review is acknowledged here rather than
+    /// at each entry point, so a cancelled editor or a refused save — both of which deliberately
+    /// leave the offer standing — cannot silence a week's review for a recovery that never happened.
+    private func endRecoveryActivation(at now: Date = .now) {
+        acknowledgeWeeklyReview(at: now)
+        recoveryOffer = nil
     }
 
     /// Never writes while the on-disk store is unavailable: the preference is persistent and would

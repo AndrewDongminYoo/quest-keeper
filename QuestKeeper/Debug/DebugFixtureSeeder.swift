@@ -244,13 +244,23 @@ enum DebugFixtureSeeder {
             return
         }
 
+        // The creation fact is recorded through the production recorder, not implied by inserting a
+        // Quest. The card reads that append-only fact rather than the current store contents, so a
+        // fixture that only inserted quests would be faking a state the app cannot produce — and it
+        // did: the card was invisible here until this was added.
         func victory(_ title: LocalizedStringResource, at completedAt: Date) {
-            context.insert(Quest(
+            let quest = Quest(
                 title: AppStrings.resolve(title, locale: .current),
                 deadline: completedAt.addingTimeInterval(3_600),
                 importance: .medium,
                 completedAt: completedAt
-            ))
+            )
+            context.insert(quest)
+            _ = RetentionEventRecorder.recordQuestCreated(
+                questID: quest.id,
+                at: completedAt.addingTimeInterval(-3_600),
+                in: context
+            )
         }
 
         // Two distinct local days inside the reviewed week, three victories, one the week before.
