@@ -73,6 +73,9 @@ Neither candidate direction in #65 — a cross-process sequence owned by the App
 
 The residual risk is that a future refactor moves a read from a re-fetch to a retained object, at which point the staleness in the table above becomes reachable and no unit test can see it: two containers in one process share a coordinator cache, so any in-process test of this is a false green (gated since PR #68).
 
+The run asserts the table above rather than printing it: a positive control that reads stale, a negative control that stops observing staleness, or any stale re-fetch exits nonzero and names which expectation broke.
+A re-run that exits 0 is therefore evidence the measurement still holds, not merely evidence that the script finished.
+
 Watch these three, and re-run this spike if any of them changes:
 
 - `QuestStoreActor.snapshotPayload` and `QuestStoreActor.snapshots` must each keep issuing their own `fetch`. Deriving the payload from an array an earlier call returned would reintroduce the object-level staleness.

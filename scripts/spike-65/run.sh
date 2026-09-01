@@ -104,8 +104,31 @@ run_case() {
 	for i in $(seq 1 "${RUNS}"); do run_case "ARM2-run${i}" 2 no; done
 } | tee "${WORK}/spike.log"
 
+# The run is a watch condition, so it has to fail when the measurement changes rather than print a
+# different number and exit 0. Each expectation below is one of the claims in the note: the positive
+# control reads the store correctly, the negative control still observes staleness (without it a
+# clean verdict is a blind spot, not a measurement), and the re-fetch never comes back stale.
+expect() {
+	local label="$1" pattern="$2" wanted="$3" actual
+	actual="$(grep -c "${pattern}" "${WORK}/spike.log" || true)"
+	printf '%-14s %-4s (expected %s)\n' "${label}" "${actual}" "${wanted}"
+	[[ ${actual} == "${wanted}" ]] || failures+=("${label}: got ${actual}, expected ${wanted}")
+}
+
 echo "=== tally ==="
-for key in OBJECT=STALE OBJECT=FRESH RESULT=STALE RESULT=FRESH; do
-	printf '%-14s %s\n' "${key}" "$(grep -c "${key}" "${WORK}/spike.log" || true)"
-done
-printf '%-14s %s\n' "B commits" "$(grep -c '\[B\] .* commit quest=' "${WORK}/spike.log" || true)"
+failures=()
+expect "OBJECT=STALE" 'OBJECT=STALE' "${RUNS}"
+expect "OBJECT=FRESH" 'OBJECT=FRESH' 1
+expect "RESULT=STALE" 'RESULT=STALE' 0
+expect "RESULT=FRESH" 'RESULT=FRESH' "$((RUNS * 2 + 1))"
+expect "B commits" '\[B\] .* commit quest=' "$((RUNS * 2 + 1))"
+
+if ((${#failures[@]} > 0)); then
+	echo
+	echo "SPIKE CHANGED — the recorded measurement no longer holds:" >&2
+	printf '  %s\n' "${failures[@]}" >&2
+	echo "Re-read docs/notes/shortcut-widget-payload-race-spike.md before acting on this." >&2
+	exit 1
+fi
+echo
+echo "SPIKE UNCHANGED — the re-fetch stays fresh and the negative control stays stale."
