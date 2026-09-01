@@ -4,6 +4,13 @@ import SwiftData
 nonisolated enum RoutineCompletionRecordResult: Equatable, Sendable {
     case inserted(RoutineCompletionSnapshot)
     case unchanged(RoutineCompletionSnapshot)
+    /// The completion does not apply: the rule is gone, or the routine rotated out of today's
+    /// roster. Nothing was written and nothing is wrong with the store, so a caller must not report
+    /// this as a refused write — a tap on a board that has not refreshed past local midnight lands
+    /// here, and telling the user their save failed would send them to retry something that cannot
+    /// succeed.
+    case rejected
+    /// The store refused the write.
     case failed
 }
 
@@ -17,7 +24,7 @@ enum RoutineCompletionRecorder {
     ) -> RoutineCompletionRecordResult {
         do {
             let rules = try context.fetch(FetchDescriptor<RoutineRule>())
-            guard rules.contains(where: { $0.id == routineID }) else { return .failed }
+            guard rules.contains(where: { $0.id == routineID }) else { return .rejected }
 
             let localDayKey = DailyFocusDay.key(for: completedAt, calendar: calendar)
             let completions = try context.fetch(FetchDescriptor<RoutineCompletion>())
@@ -32,7 +39,7 @@ enum RoutineCompletionRecorder {
                 now: completedAt,
                 calendar: calendar
             ).contains(routineID) else {
-                return .failed
+                return .rejected
             }
 
             let completion = RoutineCompletion(

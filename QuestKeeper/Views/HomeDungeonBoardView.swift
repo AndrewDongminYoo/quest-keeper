@@ -15,6 +15,9 @@ struct HomeDungeonBoardView: View {
     let escalatedQuestIDs: Set<UUID>
     let now: Date
     let storeFailedToOpen: Bool
+    /// A write the store refused. Separate from `storeFailedToOpen`: the store opened fine and is
+    /// rejecting saves, so the board is showing on-disk truth rather than an ephemeral copy.
+    let lastCommitFailed: Bool
     let notificationPermissionAction: QuestNotificationPermissionAction?
     let notificationAuthorization: QuestNotificationAuthorization?
     let reengagementSettings: ReengagementReminderSettings
@@ -141,6 +144,17 @@ struct HomeDungeonBoardView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 18)
                 .padding(.bottom, 28)
+            }
+            // Pinned rather than placed in the scrolled content, unlike `StoreFailureBanner`, which
+            // renders at launch before there is anywhere to scroll. This one appears in response to
+            // an action the user can take anywhere on the board, so inside the `LazyVStack` it would
+            // land above the viewport and the rejected write would look like it worked.
+            .safeAreaInset(edge: .bottom) {
+                if lastCommitFailed {
+                    CommitFailureBanner()
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                }
             }
         }
         .sheet(item: $presentedSheet) { sheet in
@@ -436,6 +450,31 @@ private struct StoreFailureBanner: View {
         .background(DungeonPalette.danger, in: RoundedRectangle(cornerRadius: 2))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("storeFailureBanner")
+    }
+}
+
+/// Shown after the store refused a write and before any later write succeeded.
+/// Informational for the same reason `StoreFailureBanner` is: the only recovery is to repeat the
+/// action, which the user does on the board itself rather than from here.
+private struct CommitFailureBanner: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label {
+                Text(AppStrings.commitFailureBannerTitle)
+            } icon: {
+                DungeonArtworkView(artwork: .notificationsDisabled, size: 16)
+            }
+            .font(.caption.weight(.black))
+            Text(AppStrings.commitFailureBannerBody)
+                .font(.caption2.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(DungeonPalette.danger, in: RoundedRectangle(cornerRadius: 2))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("commitFailureBanner")
     }
 }
 

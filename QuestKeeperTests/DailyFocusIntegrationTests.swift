@@ -50,7 +50,7 @@ private extension DailyFocusSelectionRecordResult {
         switch self {
         case .inserted(let snapshot), .unchanged(let snapshot):
             snapshot
-        case .failed:
+        case .rejected, .failed:
             nil
         }
     }

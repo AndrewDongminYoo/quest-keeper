@@ -481,6 +481,14 @@ nonisolated enum LaunchArguments {
         arguments.contains("-uiTestingStoreFailure")
     }
 
+    /// Makes `ContentView.commitPendingChanges` take its failure branch so a UI test can read the
+    /// rejected-write banner. Like the store-open fixture above, it throws inside the same `do`
+    /// block a real failure lands in — there is no way to make a real store reject a save from a
+    /// test, and setting the resulting flag directly would assert nothing about the path that runs.
+    static func saveRejectionFixtureEnabled(arguments: [String]) -> Bool {
+        arguments.contains("-uiTestingRejectSaves")
+    }
+
     /// Makes the inert centre report `.denied` so a UI test can read the settings sheet's denial
     /// route. The substitution stops at the `QuestNotificationCenter` seam, which CLAUDE.md names
     /// as the test seam — the service, the board, and the sheet all run their real code above it.
@@ -493,6 +501,11 @@ nonisolated enum LaunchArguments {
 #if DEBUG
 /// The error `-uiTestingStoreFailure` throws in place of a real store-open failure.
 enum DebugStoreFailure: Error {
+    case forcedByLaunchArgument
+}
+
+/// The error `-uiTestingRejectSaves` throws in place of a real `ModelContext.save()` failure.
+enum DebugSaveFailure: Error {
     case forcedByLaunchArgument
 }
 #endif

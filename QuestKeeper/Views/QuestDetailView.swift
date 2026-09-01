@@ -49,7 +49,7 @@ struct QuestDetailView: View {
     let now: Date
     let notificationService: QuestNotificationService
     let onAuthorizationChange: (QuestNotificationAuthorization) -> Void
-    let onSaved: (Quest) -> Void
+    let onSaved: (Quest) -> Bool
     let onRetryTomorrow: (() -> Void)?
     let onRecordLateCompletion: (() -> Void)?
 
@@ -60,7 +60,7 @@ struct QuestDetailView: View {
         now: Date,
         notificationService: QuestNotificationService = .shared,
         onAuthorizationChange: @escaping (QuestNotificationAuthorization) -> Void = { _ in },
-        onSaved: @escaping (Quest) -> Void = { _ in },
+        onSaved: @escaping (Quest) -> Bool = { _ in true },
         onRetryTomorrow: (() -> Void)? = nil,
         onRecordLateCompletion: (() -> Void)? = nil
     ) {

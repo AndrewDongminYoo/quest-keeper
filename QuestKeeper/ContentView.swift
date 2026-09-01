@@ -40,6 +40,14 @@ struct ContentView: View {
     private let dailyFocusLoopEnabled: Bool
     private let activationReplay: ActivationReplayResult?
     private let storeFailedToOpen: Bool
+    /// True once a save was rejected and no later save has succeeded.
+    ///
+    /// Set inside `commitPendingChanges` rather than at its nine call sites: that is the one place
+    /// every write converges on, so a path added later is covered without being remembered.
+    @State private var lastCommitFailed = false
+#if DEBUG
+    private let rejectsSaves: Bool
+#endif
 
     init(
         notificationService: QuestNotificationService = .shared,
@@ -70,6 +78,11 @@ struct ContentView: View {
         self.onboardingSessionID = onboardingSessionID
         self.dailyFocusLoopEnabled = dailyFocusLoopEnabled
         self.storeFailedToOpen = storeFailedToOpen
+#if DEBUG
+        rejectsSaves = LaunchArguments.saveRejectionFixtureEnabled(
+            arguments: ProcessInfo.processInfo.arguments
+        )
+#endif
     }
 
     var body: some View {
@@ -130,6 +143,7 @@ struct ContentView: View {
                     escalatedQuestIDs: escalatedQuestIDs,
                     now: now,
                     storeFailedToOpen: storeFailedToOpen,
+                    lastCommitFailed: lastCommitFailed,
                     notificationPermissionAction: QuestNotificationPermissionAction.make(
                         authorization: notificationAuthorization
                     ),
@@ -190,8 +204,11 @@ struct ContentView: View {
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
                         onSaved: { quest in
+                            // The offer stands if the quest was not stored; clearing it would drop
+                            // the recovery path for a write that never landed.
+                            guard handleQuestSaved(quest) else { return false }
                             recoveryOffer = nil
-                            handleQuestSaved(quest)
+                            return true
                         }
                     )
                 case .detail(let quest):
@@ -201,7 +218,17 @@ struct ContentView: View {
                             now: context.date,
                             notificationService: notificationService,
                             onAuthorizationChange: { notificationAuthorization = $0 },
-                            onSaved: handleQuestSaved,
+                            onSaved: { quest in
+                                guard handleQuestSaved(quest) else {
+                                    // The editor here is nested inside the detail sheet, so its own
+                                    // dismissal only uncovers that sheet and the board's banner
+                                    // stays hidden. Close the detail route too, or the refused edit
+                                    // reports nothing until the user happens to back out.
+                                    self.route = nil
+                                    return false
+                                }
+                                return true
+                            },
                             onRetryTomorrow: {
                                 retryTomorrow(quest)
                                 self.route = nil
@@ -375,13 +402,29 @@ struct ContentView: View {
         at recordedAt: Date
     ) -> Bool {
         guard dailyFocusLoopEnabled else { return false }
-        return DailyFocusSelectionRecorder.record(
+        let result = DailyFocusSelectionRecorder.record(
             selectedQuestIDs: questIDs,
             kind: kind,
             at: recordedAt,
             calendar: DailyFocusDay.gregorianCalendar(timeZone: .current),
             in: modelContext
-        ) != .failed
+        )
+        // `rejected` is a selection that does not apply, not a storage problem. The sheet stays open
+        // on it, which is the accurate surface; raising the banner would misname the cause.
+        switch result {
+        case .inserted:
+            note(.committed)
+            return true
+        case .unchanged:
+            note(.nothingToWrite)
+            return true
+        case .rejected:
+            note(.nothingToWrite)
+            return false
+        case .failed:
+            note(.refused)
+            return false
+        }
     }
 
     private func confirmRecommendedDailyFocus(_ displayedQuestIDs: [UUID]) {
@@ -440,12 +483,19 @@ struct ContentView: View {
     }
 
     private func completeRoutine(_ routine: RoutineRule) {
-        _ = RoutineCompletionRecorder.record(
+        switch RoutineCompletionRecorder.record(
             routineID: routine.id,
             at: .now,
             calendar: localCalendar,
             in: modelContext
-        )
+        ) {
+        case .inserted: note(.committed)
+        // `rejected` is a stale tap, not a refused write — the board had not caught up with local
+        // midnight. Reporting it as a store failure would send the user to retry something that
+        // cannot succeed; the next board tick removes the row instead.
+        case .unchanged, .rejected: note(.nothingToWrite)
+        case .failed: note(.refused)
+        }
     }
 
     private func saveRoutine(_ routine: RoutineRule?, title: String) -> Bool {
@@ -506,14 +556,36 @@ struct ContentView: View {
     /// publishes nothing; the board re-renders from the rolled-back model, which is the honest
     /// outcome rather than a screen that disagrees with disk.
     private func commitPendingChanges() -> Bool {
-        guard modelContext.hasChanges else { return true }
+        guard modelContext.hasChanges else {
+            note(.nothingToWrite)
+            return true
+        }
         do {
+#if DEBUG
+            if rejectsSaves {
+                throw DebugSaveFailure.forcedByLaunchArgument
+            }
+#endif
             try modelContext.save()
+            note(.committed)
             return true
         } catch {
             modelContext.rollback()
+            note(.refused)
             return false
         }
+    }
+
+    /// The one place a write's outcome becomes visible to the user.
+    ///
+    /// Called from `commitPendingChanges` and from the two paths that do not go through it: the
+    /// routine and daily-focus recorders own their own `save()`, so a failure there would otherwise
+    /// be silent and a success there could never clear a standing banner.
+    private func note(_ outcome: QuestWriteOutcome) {
+        lastCommitFailed = QuestWriteFeedback.showsFailureBanner(
+            current: lastCommitFailed,
+            outcome: outcome
+        )
     }
 
     private func retryTomorrow(_ quest: Quest) {
@@ -567,11 +639,18 @@ struct ContentView: View {
         persistWidgetSnapshot(payload)
     }
 
-    private func handleQuestSaved(_ quest: Quest) {
+    @discardableResult
+    private func handleQuestSaved(_ quest: Quest) -> Bool {
+        // The editor mutates or inserts into the shared context and never saves, so creation and
+        // editing — the app's most common writes — reached neither the commit nor its failure
+        // feedback. Commit here, on the same terms as `complete` and `delete`: publish nothing for
+        // a write the store did not take.
+        guard commitPendingChanges() else { return false }
         writeWidgetSnapshot(including: quest)
         if reengagementSettings.isEnabled {
             reconcileNotifications(at: .now)
         }
+        return true
     }
 
     private func saveReengagementSettings(_ settings: ReengagementReminderSettings) {

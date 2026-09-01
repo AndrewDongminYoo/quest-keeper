@@ -609,6 +609,38 @@
         }
       }
     },
+    "commit.failure.banner.body" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The dungeon still shows what was saved. Please try again."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "던전은 저장된 내용을 그대로 보여줍니다. 다시 시도해보세요."
+          }
+        }
+      }
+    },
+    "commit.failure.banner.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That change wasn't saved"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "방금 변경을 저장하지 못했습니다"
+          }
+        }
+      }
+    },
     "common.action.cancel" : {
       "localizations" : {
         "en" : {

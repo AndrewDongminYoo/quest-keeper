@@ -131,7 +131,7 @@ struct DailyFocusSelectionRecorderTests {
             in: container.mainContext
         )
 
-        #expect(result == .failed)
+        #expect(result == .rejected)
         #expect(try container.mainContext.fetchCount(FetchDescriptor<DailyFocusSelection>()) == 0)
     }
 
@@ -148,7 +148,7 @@ struct DailyFocusSelectionRecorderTests {
             in: container.mainContext
         )
 
-        #expect(result == .failed)
+        #expect(result == .rejected)
         #expect(try container.mainContext.fetchCount(FetchDescriptor<DailyFocusSelection>()) == 0)
     }
 
@@ -162,7 +162,7 @@ struct DailyFocusSelectionRecorderTests {
             at: recordedAt,
             calendar: seoulCalendar,
             in: container.mainContext
-        ) != .failed)
+        ).snapshot != nil)
 
         for invalidDate in [recordedAt.addingTimeInterval(-1), recordedAt] {
             #expect(DailyFocusSelectionRecorder.record(
@@ -171,7 +171,7 @@ struct DailyFocusSelectionRecorderTests {
                 at: invalidDate,
                 calendar: seoulCalendar,
                 in: container.mainContext
-            ) == .failed)
+            ) == .rejected)
         }
         #expect(try container.mainContext.fetchCount(FetchDescriptor<DailyFocusSelection>()) == 1)
     }
@@ -186,7 +186,7 @@ struct DailyFocusSelectionRecorderTests {
             at: recordedAt,
             calendar: seoulCalendar,
             in: container.mainContext
-        ) != .failed)
+        ).snapshot != nil)
         var tokyoCalendar = Calendar(identifier: .japanese)
         tokyoCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
 
@@ -196,7 +196,7 @@ struct DailyFocusSelectionRecorderTests {
             at: recordedAt.addingTimeInterval(60),
             calendar: tokyoCalendar,
             in: container.mainContext
-        ) == .failed)
+        ) == .rejected)
     }
 
     @Test("revision can retain a focus quest completed on the same day")
@@ -209,7 +209,7 @@ struct DailyFocusSelectionRecorderTests {
             at: recordedAt,
             calendar: seoulCalendar,
             in: container.mainContext
-        ) != .failed)
+        ).snapshot != nil)
         let quests = try container.mainContext.fetch(FetchDescriptor<Quest>())
         quests.first(where: { $0.id == firstQuestID })?.completedAt = recordedAt.addingTimeInterval(30)
 
@@ -221,8 +221,14 @@ struct DailyFocusSelectionRecorderTests {
             in: container.mainContext
         )
 
-        #expect(result != .failed)
-        #expect(result.snapshot?.selectedQuestIDs?.contains(firstQuestID) == true)
+        // `.inserted` specifically: the revision has to be appended. `.unchanged` would satisfy a
+        // snapshot check while the revision was silently dropped, which is what this test exists
+        // to catch.
+        guard case .inserted(let snapshot) = result else {
+            Issue.record("개정이 새 행으로 기록되지 않았습니다: \(result)")
+            return
+        }
+        #expect(snapshot.selectedQuestIDs?.contains(firstQuestID) == true)
     }
 
     private var seoulCalendar: Calendar {
@@ -282,7 +288,7 @@ private extension DailyFocusSelectionRecordResult {
     var snapshot: DailyFocusSelectionSnapshot? {
         switch self {
         case .inserted(let snapshot), .unchanged(let snapshot): snapshot
-        case .failed: nil
+        case .rejected, .failed: nil
         }
     }
 }
