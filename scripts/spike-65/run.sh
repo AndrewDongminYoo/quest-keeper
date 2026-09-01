@@ -37,7 +37,9 @@ if [[ -n ${UDID} ]]; then
 	swiftc -swift-version 6 -O -target arm64-apple-ios26.5-simulator -sdk "${SDK}" \
 		-o "${WORK}/harness" "${WORK}/src"/*.swift
 	run() { xcrun simctl spawn "${UDID}" "${WORK}/harness" "$@"; }
-	GROUP="$(xcrun simctl get_app_container "${UDID}" kr.donminzzi.QuestKeeper groups | awk -F'\t' '/group.kr.donminzzi.QuestKeeper/ {print $2}')"
+	# `|| true` because the lookup exits nonzero when the app is not installed on that simulator,
+	# and under `pipefail` that would kill the script before the fresh-store fallback below.
+	GROUP="$(xcrun simctl get_app_container "${UDID}" kr.donminzzi.QuestKeeper groups 2>/dev/null | awk -F'\t' '/group.kr.donminzzi.QuestKeeper/ {print $2}' || true)"
 else
 	swiftc -swift-version 6 -O -o "${WORK}/harness" "${WORK}/src"/*.swift
 	run() { "${WORK}/harness" "$@"; }
