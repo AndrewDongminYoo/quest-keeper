@@ -5,6 +5,17 @@ nonisolated enum OnboardingFlowPresentation: Equatable, Sendable {
     case guidedOffer
     case guidedCompletion(UUID)
     case finished
+
+    /// Whether the guided first-quest flow is still live — the offer *and* the completion that
+    /// follows it, because the experiment measures completion, not creation. Surfaces that must not
+    /// compete with the guided template gate on this rather than on one case: `.guidedOffer` alone
+    /// leaves the whole completion phase unguarded, and the enum grows.
+    var isGuidingFirstQuest: Bool {
+        switch self {
+        case .guidedOffer, .guidedCompletion: true
+        case .standard, .finished: false
+        }
+    }
 }
 
 nonisolated enum OnboardingFlowState {

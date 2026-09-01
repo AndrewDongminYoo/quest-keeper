@@ -339,4 +339,15 @@ struct OnboardingFlowStateTests {
             deduplicationKey: "\(name.rawValue):\(installationID.uuidString):\(component)"
         )
     }
+
+    // The weekly review card gates on this. `.guidedOffer` alone left the entire completion phase
+    // unguarded, so the card could appear above the specially guided quest while the experiment was
+    // still measuring its completion.
+    @Test("the guided flow is live through completion, not only at the offer")
+    func guidingFirstQuestSpansOfferAndCompletion() {
+        #expect(OnboardingFlowPresentation.guidedOffer.isGuidingFirstQuest)
+        #expect(OnboardingFlowPresentation.guidedCompletion(UUID()).isGuidingFirstQuest)
+        #expect(OnboardingFlowPresentation.standard.isGuidingFirstQuest == false)
+        #expect(OnboardingFlowPresentation.finished.isGuidingFirstQuest == false)
+    }
 }

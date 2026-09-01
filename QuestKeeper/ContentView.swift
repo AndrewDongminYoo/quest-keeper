@@ -27,6 +27,10 @@ struct ContentView: View {
     @State private var reengagementSettings: ReengagementReminderSettings
     @State private var reengagementAttribution: ReengagementNotificationAttribution?
     @State private var mourningTask: Task<Void, Never>?
+    /// The start instant of the week the weekly-review card last showed. Naming the reviewed week
+    /// rather than the week it was seen in is what keeps a return after several weeks away from
+    /// replaying one card per skipped week. See `docs/specs/026-weekly-review.md`.
+    @AppStorage("weeklyReviewAcknowledgedWeekTIRD") private var weeklyReviewAcknowledgedRaw = 0.0
     @Binding private var hasDeferredOnboardingThisRun: Bool
     @Binding private var recoveryOffer: RecoveryActivationOffer?
 
@@ -125,6 +129,22 @@ struct ContentView: View {
                     now: now,
                     calendar: localCalendar
                 )
+                // The user's own calendar, not the forced-Gregorian day-key one: the first weekday
+                // is a regional preference and this card names a week to a person. Nothing durable
+                // is keyed on it, so a region change costs one extra card, not a broken key.
+                let weeklyReview = weeklyReviewPresentation(
+                    snapshots: snapshots,
+                    now: now,
+                    context: WeeklyReviewContext(
+                        hasQuestHistory: WeeklyReviewContext.hasQuestHistory(
+                            hasCreatedQuest: hasCreatedQuest,
+                            hasStoredQuests: !quests.isEmpty
+                        ),
+                        isOnboarding: onboardingPresentation.isGuidingFirstQuest,
+                        isRecovering: recoveryPresentation != nil,
+                        storeFailedToOpen: storeFailedToOpen
+                    )
+                )
                 let routineRulesByID = Dictionary(uniqueKeysWithValues: routineRules.map { ($0.id, $0) })
                 let visibleRoutines = RoutineState.visibleRoutineIDs(
                     rules: routineRules.map(\.snapshot),
@@ -155,6 +175,7 @@ struct ContentView: View {
                     recoveryPresentation: recoveryPresentation,
                     visibleRoutines: visibleRoutines,
                     hasRoutineRules: !routineRules.isEmpty,
+                    weeklyReview: weeklyReview,
                     onCreate: { beginQuestCreation(draft: nil) },
                     onStartGuidedQuest: {
                         beginQuestCreation(draft: .guided(at: .now))
@@ -176,7 +197,12 @@ struct ContentView: View {
                     onCreateRecoveryQuest: {
                         route = .recoveryCreate(.guided(at: .now))
                     },
-                    onDismissRecovery: { recoveryOffer = nil },
+                    onDismissRecovery: { endRecoveryActivation() },
+                    onPlanWeek: {
+                        acknowledgeWeeklyReview(at: now)
+                        beginQuestCreation(draft: nil)
+                    },
+                    onDismissWeeklyReview: { acknowledgeWeeklyReview(at: now) },
                     onSaveReengagementSettings: saveReengagementSettings,
                     onOpenNotificationSettings: openNotificationSettings,
                     onComplete: complete,
@@ -207,7 +233,7 @@ struct ContentView: View {
                             // The offer stands if the quest was not stored; clearing it would drop
                             // the recovery path for a write that never landed.
                             guard handleQuestSaved(quest) else { return false }
-                            recoveryOffer = nil
+                            endRecoveryActivation()
                             return true
                         }
                     )
@@ -257,7 +283,7 @@ struct ContentView: View {
                         at: savedAt
                     )
                     if didSave, editor.dismissesRecoveryOnSave {
-                        recoveryOffer = nil
+                        endRecoveryActivation(at: savedAt)
                     }
                     return didSave
                 }
@@ -449,7 +475,7 @@ struct ContentView: View {
         guard recordDailyFocus([questID], kind: .confirmation, at: now) else {
             return false
         }
-        recoveryOffer = nil
+        endRecoveryActivation(at: now)
         return true
     }
 
@@ -470,6 +496,52 @@ struct ContentView: View {
 
     private var localCalendar: Calendar {
         DailyFocusDay.gregorianCalendar(timeZone: .current)
+    }
+
+    private var weeklyReviewCalendar: Calendar { .current }
+
+    /// `nil` hides the card. Every condition that silences it lives in `WeeklyReviewContext`, so
+    /// the rule is testable rather than a chain of guards here.
+    private func weeklyReviewPresentation(
+        snapshots: [QuestSnapshot],
+        now: Date,
+        context: WeeklyReviewContext
+    ) -> WeeklyReview? {
+        guard WeeklyReviewState.shouldPresent(
+            now: now,
+            calendar: weeklyReviewCalendar,
+            acknowledgedWeekStart: acknowledgedWeekStart,
+            context: context
+        ) else {
+            return nil
+        }
+        return WeeklyReviewState.make(quests: snapshots, now: now, calendar: weeklyReviewCalendar)
+    }
+
+    /// Zero is the never-acknowledged marker; `@AppStorage` has no `Date?` and a sentinel keeps the
+    /// preference a plain number rather than an optional encoded into a string.
+    private var acknowledgedWeekStart: Date? {
+        weeklyReviewAcknowledgedRaw == 0
+            ? nil
+            : Date(timeIntervalSinceReferenceDate: weeklyReviewAcknowledgedRaw)
+    }
+
+    /// The one place a recovery activation ends. The weekly review is acknowledged here rather than
+    /// at each entry point, so a cancelled editor or a refused save — both of which deliberately
+    /// leave the offer standing — cannot silence a week's review for a recovery that never happened.
+    private func endRecoveryActivation(at now: Date = .now) {
+        acknowledgeWeeklyReview(at: now)
+        recoveryOffer = nil
+    }
+
+    /// Never writes while the on-disk store is unavailable: the preference is persistent and would
+    /// outlive the failure, silencing the accurate review on a later, successful launch.
+    private func acknowledgeWeeklyReview(at now: Date) {
+        guard !storeFailedToOpen,
+              let week = WeeklyReviewState.reviewedWeek(now: now, calendar: weeklyReviewCalendar) else {
+            return
+        }
+        weeklyReviewAcknowledgedRaw = week.start.timeIntervalSinceReferenceDate
     }
 
     private func completeRoutine(_ routine: RoutineRule) {

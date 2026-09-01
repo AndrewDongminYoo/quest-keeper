@@ -128,4 +128,43 @@ struct AppStringsTests {
             #expect(AppStrings.resolve(resource, locale: en) == english)
         }
     }
+
+    // The UI suite is pinned to Korean, so the English side of the weekly-review card is only ever
+    // exercised here. The interpolated shapes matter most: a catalog value whose placeholders do
+    // not match the resource's arguments renders the wrong text without failing any other gate.
+    @Test("the weekly review card resolves in both locales")
+    func weeklyReviewLocalizes() {
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewTitle, locale: ko) == "지난주 전과")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewTitle, locale: en) == "Last week's record")
+
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewRange("7월 5일", "7월 11일"), locale: ko)
+            == "7월 5일 ~ 7월 11일")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewRange("Jul 5", "Jul 11"), locale: en)
+            == "Jul 5 – Jul 11")
+
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewChangeUp(2), locale: ko) == "그 전 주보다 2회 많아요.")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewChangeUp(2), locale: en) == "2 more than the week before.")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewChangeDown(3), locale: ko) == "그 전 주보다 3회 적어요.")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewChangeDown(3), locale: en) == "3 fewer than the week before.")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewChangeSame, locale: ko) == "그 전 주와 같아요.")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewChangeSame, locale: en) == "Same as the week before.")
+
+        #expect(
+            AppStrings.resolve(
+                AppStrings.weeklyReviewStatsAccessibility(victories: 3, activeDays: 2),
+                locale: ko
+            ) == "지난주 승리 3회, 활동한 날 2일."
+        )
+        #expect(
+            AppStrings.resolve(
+                AppStrings.weeklyReviewStatsAccessibility(victories: 3, activeDays: 2),
+                locale: en
+            ) == "Last week — victories: 3, active days: 2."
+        )
+
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewActionPlan, locale: ko) == "이번 주 첫 퀘스트")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewActionPlan, locale: en) == "Plan this week")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewActionDismiss, locale: ko) == "나중에")
+        #expect(AppStrings.resolve(AppStrings.weeklyReviewActionDismiss, locale: en) == "Later")
+    }
 }

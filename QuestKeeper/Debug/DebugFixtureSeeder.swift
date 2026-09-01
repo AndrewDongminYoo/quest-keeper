@@ -54,6 +54,13 @@ enum DebugFixtureSeeder {
         usesUITestingStore && arguments.contains("-uiTestingRoutineFixture")
     }
 
+    nonisolated static func shouldSeedWeeklyReviewFixture(
+        usesUITestingStore: Bool,
+        arguments: [String]
+    ) -> Bool {
+        usesUITestingStore && arguments.contains("-uiTestingWeeklyReviewFixture")
+    }
+
     /// Seeds whichever fixture the launch arguments ask for. Each fixture is inert unless its own
     /// flag is present, and the quest-inserting ones only run against an empty store so a re-launch
     /// against a persistent UI-testing store does not stack duplicates.
@@ -97,6 +104,11 @@ enum DebugFixtureSeeder {
         if shouldSeedRoutineFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
            try context.fetchCount(FetchDescriptor<RoutineRule>()) == 0 {
             try seedRoutineFixture(in: context)
+        }
+
+        if shouldSeedWeeklyReviewFixture(usesUITestingStore: usesUITestingStore, arguments: arguments),
+           try context.fetchCount(FetchDescriptor<Quest>()) == 0 {
+            try seedWeeklyReviewFixture(in: context)
         }
 
         // 퀘스트를 만들었다가 전부 지운 뒤의 사실 상태다. 게이트가 읽는 `quest_created`를
@@ -202,17 +214,78 @@ enum DebugFixtureSeeder {
                 importance: .medium
             ))
         }
-        context.insert(Quest(
+        let securedVictory = Quest(
             title: AppStrings.resolve(AppStrings.debugFixtureRecoveryVictorySecured, locale: .current),
             deadline: now.addingTimeInterval(-86_400),
             importance: .low,
             completedAt: now.addingTimeInterval(-86_460)
-        ))
+        )
+        context.insert(securedVictory)
+        // Recorded through the production recorder so this fixture describes an ordinary user: a
+        // quest with no creation fact is only reachable by migration, and the weekly review's
+        // history gate reads that fact. Skipped in the persistence-failure variant, which builds
+        // its failure precisely by leaving `RetentionInstallation` absent — the recorder would
+        // create one and dissolve the condition the test is built on.
+        if !arguments.contains("-uiTestingRecoveryPersistenceFailure") {
+            _ = RetentionEventRecorder.recordQuestCreated(
+                questID: securedVictory.id,
+                at: now.addingTimeInterval(-90_000),
+                in: context
+            )
+        }
         // The recovery card only appears after a multi-day absence, which is derived from `lastOpened`.
         UserDefaults.standard.set(
             now.addingTimeInterval(-3 * 86_400).timeIntervalSinceReferenceDate,
             forKey: "lastOpenedTIRD"
         )
+        // Cleared so the run does not inherit an acknowledgement from an earlier test. Without this
+        // the weekly review can never appear here, and the assertion that it stays away after a
+        // recovery action would pass against a build that had no such rule at all.
+        UserDefaults.standard.set(0.0, forKey: "weeklyReviewAcknowledgedWeekTIRD")
+        try context.save()
+    }
+
+    /// Victories dated into the week the review card reports, plus one in the week before it so the
+    /// change figure is not zero. Dates are computed from the same calendar the card derives with,
+    /// because a fixture that hard-codes a date renders nothing once that date is two weeks old.
+    private static func seedWeeklyReviewFixture(in context: ModelContext) throws {
+        let now = Date.now
+        let calendar = Calendar.current
+        guard let week = WeeklyReviewState.reviewedWeek(now: now, calendar: calendar),
+              let priorWeekAnchor = calendar.date(byAdding: .weekOfYear, value: -1, to: week.start),
+              let priorWeek = calendar.dateInterval(of: .weekOfYear, for: priorWeekAnchor) else {
+            return
+        }
+
+        // The creation fact is recorded through the production recorder, not implied by inserting a
+        // Quest. The card reads that append-only fact rather than the current store contents, so a
+        // fixture that only inserted quests would be faking a state the app cannot produce — and it
+        // did: the card was invisible here until this was added.
+        func victory(_ title: LocalizedStringResource, at completedAt: Date) {
+            let quest = Quest(
+                title: AppStrings.resolve(title, locale: .current),
+                deadline: completedAt.addingTimeInterval(3_600),
+                importance: .medium,
+                completedAt: completedAt
+            )
+            context.insert(quest)
+            _ = RetentionEventRecorder.recordQuestCreated(
+                questID: quest.id,
+                at: completedAt.addingTimeInterval(-3_600),
+                in: context
+            )
+        }
+
+        // Two distinct local days inside the reviewed week, three victories, one the week before.
+        victory(AppStrings.debugFixtureWeeklyReviewFirst, at: week.start.addingTimeInterval(86_400 + 32_400))
+        victory(AppStrings.debugFixtureWeeklyReviewSecond, at: week.start.addingTimeInterval(86_400 + 64_800))
+        victory(AppStrings.debugFixtureWeeklyReviewThird, at: week.start.addingTimeInterval(3 * 86_400 + 32_400))
+        victory(AppStrings.debugFixtureWeeklyReviewPrior, at: priorWeek.start.addingTimeInterval(2 * 86_400 + 32_400))
+
+        // The card is gated on both of these: an acknowledgement from an earlier run would hide it,
+        // and a stale `lastOpened` would hand the board to the recovery card instead.
+        UserDefaults.standard.set(0.0, forKey: "weeklyReviewAcknowledgedWeekTIRD")
+        UserDefaults.standard.set(now.timeIntervalSinceReferenceDate, forKey: "lastOpenedTIRD")
         try context.save()
     }
 }
