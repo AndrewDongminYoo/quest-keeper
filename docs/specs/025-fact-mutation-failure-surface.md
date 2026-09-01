@@ -63,6 +63,20 @@ Every one of the nine paths ends with the board on screen, so the board is the o
 **It is pinned rather than placed in the scrolled content**, unlike `StoreFailureBanner`, which renders at launch when there is nowhere to scroll yet.
 This one appears in response to an action the user can take anywhere on the board, so inside the `LazyVStack` it would land above the viewport and the rejected write would look like it worked.
 
+**A refused write closes whatever sheet the user is standing in**, because the banner is on the board and a sheet covers it.
+`note(_:)` clears the three routes `ContentView` presents its writing sheets from — the quest editor and the detail sheet, the daily-focus selection sheet, and the routine editor and management sheets.
+Putting it there rather than in each sheet is what stops the next sheet inheriting the gap: closing them one at a time was tried on PR #69 and three review rounds each turned up one more instance at a new call site.
+It is keyed on the `refused` outcome rather than on the standing banner flag, because the banner stays up until a later write succeeds and reading the flag would close a sheet on every no-op in between.
+A `rejected` action never reaches it — both recorders report validation as nothing written — so a daily-focus selection that no longer applies, or a routine that rotated out of today's roster past local midnight, still leaves its sheet open, which is the accurate surface for a rejection.
+The sheet a notification tap opens is the one case that had to move: `consumeNotificationRoute` set the detail route and then wrote its measurement event, so a refused write would have closed the very sheet the tap asked for.
+It now writes first and opens the route last, which leaves the same end states it always produced.
+Two writes opt out, and they are the ones that resume after an `await`: the permission-event commits inside `saveReengagementSettings`'s task.
+By the time either runs the user is back on the board and may have opened a sheet the write knows nothing about, so closing it would discard what they were typing rather than report anything.
+They still raise the banner; only the dismissal is withheld, through `commitPendingChanges(closingSheets:)`.
+Every other call site is synchronous with the action that caused it.
+
+The sheets `HomeDungeonBoardView` owns are outside this: the appearance sheet writes to `AppStorage`, the Hall of Fame and About sheets write no facts, and the reminder settings sheet dismisses itself unconditionally after calling its save closure.
+
 **It clears on the next successful commit**, which is the only event that shows the store is taking writes again.
 Like `storeFailedToOpen`, it is a standing condition rather than a toast: a store that rejects writes does not stop being a problem after a few seconds.
 
@@ -74,7 +88,7 @@ The failure is the app's, and the copy says so without blaming the user. `DESIGN
 
 - Retrying the write automatically. A rejected save means the store is refusing, and a silent retry loop would hide that.
 - Keeping the detail sheet open, per the reasoning above.
-- **Writes made from a sheet that stays presented afterwards.** The routine editor, the routine management sheet, and the daily-focus selection sheet all raise the banner onto a board they are covering. Closing them one at a time is the losing move — three review rounds each found one more instance at a new call site — so where a refused write should be told when the user is inside a sheet is its own design question. Tracked as issue #71.
+- **Hoisting every sheet's presentation state into one route enum.** That would remove the last thing an author has to remember, since a write sheet presented from state held outside `ContentView` still would not close. It is a broad refactor across many call sites for three sheets that all already live in the one place, so the ceiling is written into the code instead.
 - Distinguishing _which_ mutation was rejected. The banner reports that the last write did not land; the board already shows the actual state, which is the more reliable answer.
 
 ## Verification
@@ -89,6 +103,10 @@ The test taps a completion on a seeded board and asserts three things, because a
 - the banner exists,
 - its label carries the words, not merely the identifier — an identifier-only assertion is what let four English defects ship,
 - the quest is still on the board uncompleted, which is what makes the banner's claim true.
+
+A second case covers the sheet that used to cover the banner: it opens the routine management sheet on a seeded roster, taps delete, and waits for the sheet's navigation bar to go away _before_ reading the banner.
+That order is the point of the test. The banner is in the board's element tree whether or not a sheet is drawn over it, so a test that only asserted its existence would have passed against the defect — the same "existence is not visibility" trap that produced the two stale expectations corrected in #72.
+Run against the code before the fix, it fails on the sheet still being present.
 
 **The banner's placement is not asserted.**
 The seeded board is short enough to fit on screen, so the test passes under both the pinned and the in-scroll placement and cannot see the defect that motivated the change.

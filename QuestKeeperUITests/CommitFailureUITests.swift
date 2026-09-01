@@ -50,14 +50,49 @@ final class CommitFailureUITests: XCTestCase {
         XCTAssertEqual(rows.count, seededRowCount)
     }
 
-    private func rejectingApp() -> XCUIApplication {
+    func testARejectedRoutineDeleteClosesTheSheetThatCoversTheBanner() {
+        let app = rejectingApp(fixture: "-uiTestingRoutineFixture")
+        app.launch()
+
+        let manageButton = app.buttons["routineHomeManageButton"]
+        XCTAssertTrue(manageButton.waitForExistence(timeout: 8))
+        manageButton.tap()
+
+        let manageSheet = app.navigationBars["루틴 관리"]
+        XCTAssertTrue(manageSheet.waitForExistence(timeout: 3))
+
+        let deleteButton = app.buttons["routineDelete-00000000-0000-0000-0000-000000000301"]
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 3))
+        deleteButton.tap()
+
+        // The banner lives in the board's tree whether or not a sheet covers it, so asserting only
+        // that it exists would pass on the very defect this test is here for. The sheet going away
+        // is what makes the banner readable, so that is what gets asserted first.
+        let sheetClosed = expectation(
+            for: NSPredicate(format: "exists == false"),
+            evaluatedWith: manageSheet
+        )
+        wait(for: [sheetClosed], timeout: 5)
+
+        let banner = app.descendants(matching: .any)[bannerIdentifier]
+        XCTAssertTrue(banner.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            banner.label.contains("저장하지 못했습니다"),
+            "배너가 저장 실패를 말하지 않습니다: \(banner.label)"
+        )
+
+        // The refused delete was rolled back, so the rule is still there to manage.
+        XCTAssertTrue(manageButton.waitForExistence(timeout: 3))
+    }
+
+    private func rejectingApp(fixture: String = "-storeScreenshotFixture") -> XCUIApplication {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         // `-onboardingVariant control` like every other UI test here: a random `guided` draw would
         // replace the board with the onboarding card and these assertions would be a coin flip.
         app.launchArguments = uiTestKoreanLocaleArguments + [
             "-uiTestingInMemoryStore",
-            "-storeScreenshotFixture",
+            fixture,
             "-uiTestingRejectSaves",
             "-onboardingVariant", "control",
         ]
