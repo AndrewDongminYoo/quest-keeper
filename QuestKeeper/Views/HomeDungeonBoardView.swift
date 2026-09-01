@@ -63,9 +63,6 @@ struct HomeDungeonBoardView: View {
                     if storeFailedToOpen {
                         StoreFailureBanner()
                     }
-                    if lastCommitFailed {
-                        CommitFailureBanner()
-                    }
                     // 권한 안내는 재방문 알림 설정 시트로 보내는데, 첫 퀘스트 전에는 그 시트의 토글이
                     // 비활성이라 안내대로 할 수 있는 일이 없다. 거부 상태의 시스템 설정 경로는 그대로 둔다.
                     if let notificationPermissionAction,
@@ -147,6 +144,17 @@ struct HomeDungeonBoardView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 18)
                 .padding(.bottom, 28)
+            }
+            // Pinned rather than placed in the scrolled content, unlike `StoreFailureBanner`, which
+            // renders at launch before there is anywhere to scroll. This one appears in response to
+            // an action the user can take anywhere on the board, so inside the `LazyVStack` it would
+            // land above the viewport and the rejected write would look like it worked.
+            .safeAreaInset(edge: .bottom) {
+                if lastCommitFailed {
+                    CommitFailureBanner()
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                }
             }
         }
         .sheet(item: $presentedSheet) { sheet in

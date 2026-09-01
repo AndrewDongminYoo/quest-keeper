@@ -5,6 +5,11 @@ import SwiftData
 nonisolated enum DailyFocusSelectionRecordResult: Equatable, Sendable {
     case inserted(DailyFocusSelectionSnapshot)
     case unchanged(DailyFocusSelectionSnapshot)
+    /// The selection does not apply: outside `1...3`, a duplicate, an ineligible quest, a second
+    /// confirmation for the day, or a revision without a predecessor. Nothing was written and the
+    /// store is fine, so a caller must not report it as a refused write.
+    case rejected
+    /// The store refused the write, or a read it depends on failed.
     case failed
 }
 
@@ -25,14 +30,14 @@ enum DailyFocusSelectionRecorder {
         do {
             guard (1...3).contains(selectedQuestIDs.count),
                   Set(selectedQuestIDs).count == selectedQuestIDs.count else {
-                return .failed
+                return .rejected
             }
 
             let installations = try context.fetch(FetchDescriptor<RetentionInstallation>())
             guard installations.count == 1,
                   let installation = installations.first,
                   installation.schemaVersion == RetentionInstallation.currentSchemaVersion else {
-                return .failed
+                return .rejected
             }
 
             let dayKey = DailyFocusDay.key(for: recordedAt, calendar: calendar)
@@ -62,7 +67,7 @@ enum DailyFocusSelectionRecorder {
                     && previouslySelectedQuestIDs.contains(questID)
                     && currentDayCalendar.isDate(completedAt, inSameDayAs: recordedAt)
             }) else {
-                return .failed
+                return .rejected
             }
             let orderedQuestIDs = selectedQuestIDs.sorted {
                 guard let lhs = questsByID[$0], let rhs = questsByID[$1] else { return false }
@@ -78,11 +83,11 @@ enum DailyFocusSelectionRecorder {
             }
             switch kind {
             case .confirmation:
-                guard confirmation == nil else { return .failed }
+                guard confirmation == nil else { return .rejected }
             case .revision:
                 guard confirmation != nil,
                       let latest,
-                      recordedAt > latest.recordedAt else { return .failed }
+                      recordedAt > latest.recordedAt else { return .rejected }
             }
 
             let data = try JSONEncoder().encode(orderedQuestIDs.map(\.uuidString))

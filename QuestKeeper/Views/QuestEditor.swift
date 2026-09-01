@@ -16,7 +16,10 @@ struct QuestEditor: View {
     let quest: Quest?
     let notificationService: QuestNotificationService
     let onAuthorizationChange: (QuestNotificationAuthorization) -> Void
-    let onSaved: (Quest) -> Void
+    /// Reports whether the store took the write. The editor's follow-up work reads `savedQuest`,
+    /// and a refused save rolls a newly inserted quest back out of the context, so the sync below
+    /// must not run on `false`.
+    let onSaved: (Quest) -> Bool
 
     @State private var title: String
     @State private var details: String
@@ -29,7 +32,7 @@ struct QuestEditor: View {
         draft: QuestEditorDraft? = nil,
         notificationService: QuestNotificationService = .shared,
         onAuthorizationChange: @escaping (QuestNotificationAuthorization) -> Void = { _ in },
-        onSaved: @escaping (Quest) -> Void = { _ in }
+        onSaved: @escaping (Quest) -> Bool = { _ in true }
     ) {
         self.quest = quest
         self.notificationService = notificationService
@@ -130,8 +133,13 @@ struct QuestEditor: View {
             )
             savedQuest = newQuest
         }
-        onSaved(savedQuest)
+        let didPersist = onSaved(savedQuest)
+        // Dismiss either way: the board carries the rejected-write banner, and a sheet that stays
+        // open with an inert Save button reads as unresponsive rather than as feedback.
         dismiss()
+        // On a refused save the insert was rolled back, so `savedQuest` no longer belongs to the
+        // context and the sync below would read a discarded object.
+        guard didPersist else { return }
 
         Task { @MainActor in
             let authorization = await notificationService.syncWithoutRequestingAuthorization(

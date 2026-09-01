@@ -77,7 +77,7 @@ struct RoutineCompletionRecorderTests {
             at: date(year: 2026, month: 8, day: 30, hour: 12),
             calendar: calendar,
             in: context
-        ) == .failed)
+        ) == .rejected)
         #expect(try context.fetch(FetchDescriptor<RoutineCompletion>()).isEmpty)
     }
 
@@ -114,7 +114,7 @@ struct RoutineCompletionRecorderTests {
             at: today,
             calendar: calendar,
             in: context
-        ) == .failed)
+        ) == .rejected)
         #expect(try context.fetch(FetchDescriptor<RoutineCompletion>()).isEmpty)
     }
 
@@ -128,7 +128,7 @@ private extension RoutineCompletionRecordResult {
         switch self {
         case .inserted(let snapshot), .unchanged(let snapshot):
             snapshot
-        case .failed:
+        case .rejected, .failed:
             nil
         }
     }

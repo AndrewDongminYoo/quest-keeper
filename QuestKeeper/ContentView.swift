@@ -204,8 +204,11 @@ struct ContentView: View {
                         notificationService: notificationService,
                         onAuthorizationChange: { notificationAuthorization = $0 },
                         onSaved: { quest in
+                            // The offer stands if the quest was not stored; clearing it would drop
+                            // the recovery path for a write that never landed.
+                            guard handleQuestSaved(quest) else { return false }
                             recoveryOffer = nil
-                            handleQuestSaved(quest)
+                            return true
                         }
                     )
                 case .detail(let quest):
@@ -215,7 +218,17 @@ struct ContentView: View {
                             now: context.date,
                             notificationService: notificationService,
                             onAuthorizationChange: { notificationAuthorization = $0 },
-                            onSaved: handleQuestSaved,
+                            onSaved: { quest in
+                                guard handleQuestSaved(quest) else {
+                                    // The editor here is nested inside the detail sheet, so its own
+                                    // dismissal only uncovers that sheet and the board's banner
+                                    // stays hidden. Close the detail route too, or the refused edit
+                                    // reports nothing until the user happens to back out.
+                                    self.route = nil
+                                    return false
+                                }
+                                return true
+                            },
                             onRetryTomorrow: {
                                 retryTomorrow(quest)
                                 self.route = nil
@@ -396,12 +409,22 @@ struct ContentView: View {
             calendar: DailyFocusDay.gregorianCalendar(timeZone: .current),
             in: modelContext
         )
+        // `rejected` is a selection that does not apply, not a storage problem. The sheet stays open
+        // on it, which is the accurate surface; raising the banner would misname the cause.
         switch result {
-        case .inserted: note(.committed)
-        case .unchanged: note(.nothingToWrite)
-        case .failed: note(.refused)
+        case .inserted:
+            note(.committed)
+            return true
+        case .unchanged:
+            note(.nothingToWrite)
+            return true
+        case .rejected:
+            note(.nothingToWrite)
+            return false
+        case .failed:
+            note(.refused)
+            return false
         }
-        return result != .failed
     }
 
     private func confirmRecommendedDailyFocus(_ displayedQuestIDs: [UUID]) {
@@ -467,7 +490,10 @@ struct ContentView: View {
             in: modelContext
         ) {
         case .inserted: note(.committed)
-        case .unchanged: note(.nothingToWrite)
+        // `rejected` is a stale tap, not a refused write — the board had not caught up with local
+        // midnight. Reporting it as a store failure would send the user to retry something that
+        // cannot succeed; the next board tick removes the row instead.
+        case .unchanged, .rejected: note(.nothingToWrite)
         case .failed: note(.refused)
         }
     }
@@ -613,11 +639,18 @@ struct ContentView: View {
         persistWidgetSnapshot(payload)
     }
 
-    private func handleQuestSaved(_ quest: Quest) {
+    @discardableResult
+    private func handleQuestSaved(_ quest: Quest) -> Bool {
+        // The editor mutates or inserts into the shared context and never saves, so creation and
+        // editing — the app's most common writes — reached neither the commit nor its failure
+        // feedback. Commit here, on the same terms as `complete` and `delete`: publish nothing for
+        // a write the store did not take.
+        guard commitPendingChanges() else { return false }
         writeWidgetSnapshot(including: quest)
         if reengagementSettings.isEnabled {
             reconcileNotifications(at: .now)
         }
+        return true
     }
 
     private func saveReengagementSettings(_ settings: ReengagementReminderSettings) {
