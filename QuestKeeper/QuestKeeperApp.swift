@@ -503,6 +503,14 @@ nonisolated enum LaunchArguments {
               arguments.indices.contains(index + 1) else { return nil }
         return UUID(uuidString: arguments[index + 1])
     }
+
+    static func uiTestingNotificationRouteDelaySeconds(arguments: [String]) -> Double {
+        guard let index = arguments.firstIndex(of: "-uiTestingNotificationRouteDelaySeconds"),
+              arguments.indices.contains(index + 1),
+              let seconds = Double(arguments[index + 1]),
+              seconds >= 0 else { return 2 }
+        return seconds
+    }
 #endif
 }
 

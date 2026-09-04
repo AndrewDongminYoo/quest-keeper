@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
     @State private var routineSheet: RoutineSheetRoute?
     @State private var homeSheet: HomeDungeonSheet?
+    @State private var isQuestDetailEditorPresented = false
     @State private var pendingNotificationQuestID: UUID?
     @State private var notificationAuthorization: QuestNotificationAuthorization?
     @State private var reengagementSettings: ReengagementReminderSettings
@@ -54,6 +55,7 @@ struct ContentView: View {
 #if DEBUG
     private let rejectsSaves: Bool
     private let uiTestingNotificationRouteQuestID: UUID?
+    private let uiTestingNotificationRouteDelaySeconds: Double
     @State private var hasScheduledUITestingNotificationRoute = false
     @State private var hasDeliveredUITestingNotificationRoute = false
 #endif
@@ -92,6 +94,9 @@ struct ContentView: View {
             arguments: ProcessInfo.processInfo.arguments
         )
         uiTestingNotificationRouteQuestID = LaunchArguments.uiTestingNotificationRouteQuestID(
+            arguments: ProcessInfo.processInfo.arguments
+        )
+        uiTestingNotificationRouteDelaySeconds = LaunchArguments.uiTestingNotificationRouteDelaySeconds(
             arguments: ProcessInfo.processInfo.arguments
         )
 #endif
@@ -223,7 +228,10 @@ struct ContentView: View {
                     onSheetDismissed: resumePendingNotificationRoute
                 )
             }
-            .sheet(item: $route, onDismiss: resumePendingNotificationRoute) { route in
+            .sheet(item: $route, onDismiss: {
+                isQuestDetailEditorPresented = false
+                resumePendingNotificationRoute()
+            }) { route in
                 switch route {
                 case .create(let draft):
                     QuestEditor(
@@ -255,6 +263,12 @@ struct ContentView: View {
                             notificationService: notificationService,
                             onAuthorizationChange: { notificationAuthorization = $0 },
                             onSaved: handleQuestSaved,
+                            onEditingChange: { isEditing in
+                                isQuestDetailEditorPresented = isEditing
+                                if !isEditing {
+                                    resumePendingNotificationRoute()
+                                }
+                            },
                             onRetryTomorrow: {
                                 retryTomorrow(quest)
                                 self.route = nil
@@ -340,7 +354,7 @@ struct ContentView: View {
                       let questID = uiTestingNotificationRouteQuestID else { return }
                 hasScheduledUITestingNotificationRoute = true
                 Task { @MainActor in
-                    try? await Task.sleep(for: .seconds(2))
+                    try? await Task.sleep(for: .seconds(uiTestingNotificationRouteDelaySeconds))
                     guard !Task.isCancelled else { return }
                     notificationRouteStore.route(questIDString: questID.uuidString)
                     hasDeliveredUITestingNotificationRoute = true
@@ -911,6 +925,9 @@ struct ContentView: View {
     }
 
     private var hasProtectedPresentation: Bool {
+        if isQuestDetailEditorPresented {
+            return true
+        }
         if route != nil {
             switch route {
             case .create?, .recoveryCreate?:

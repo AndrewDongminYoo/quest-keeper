@@ -53,6 +53,30 @@ final class NotificationPresentationUITests: XCTestCase {
         assertNotificationQuestOpens(in: app)
     }
 
+    func testQuestEditorFromDetailPreservesInputAndDefersNotificationQuestUntilDismissal() {
+        let app = launch(additionalArguments: [
+            "-uiTestingNotificationRouteDelaySeconds", "8",
+        ])
+
+        let otherQuest = app.staticTexts["회복 퀘스트 2"]
+        XCTAssertTrue(otherQuest.waitForExistence(timeout: 3))
+        otherQuest.tap()
+        let editButton = app.buttons["questDetailEditButton"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 3))
+        editButton.tap()
+
+        let titleField = app.textFields.firstMatch
+        XCTAssertTrue(titleField.waitForExistence(timeout: 3))
+        titleField.tap()
+        titleField.typeText(" 보존")
+
+        assertNotificationRouteWasDelivered(in: app)
+        XCTAssertTrue(app.navigationBars["퀘스트 수정"].exists)
+        XCTAssertEqual(titleField.value as? String, "회복 퀘스트 2 보존")
+        app.buttons["취소"].tap()
+        assertNotificationQuestOpens(in: app)
+    }
+
     private func assertNotificationRouteWasDelivered(in app: XCUIApplication) {
         let marker = app.descendants(matching: .any)["uiTestingNotificationRouteDelivered"]
         XCTAssertTrue(marker.waitForExistence(timeout: 5))
