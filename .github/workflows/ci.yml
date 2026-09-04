@@ -13,6 +13,7 @@ jobs:
   test:
     name: Swift tests
     runs-on: macos-26
+    timeout-minutes: 60
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
 
@@ -20,7 +21,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Check main release version
+        run: bash scripts/test-main-release-version.sh
+
+      - name: Run localization checks
+        run: bash scripts/test-localization.sh
+
+      - name: Run store screenshot contract checks
+        run: bash scripts/test-store-screenshots.sh
 
       - name: Report the runner's simulator state
         run: |
@@ -69,7 +80,8 @@ jobs:
           xcodebuild test -scheme QuestKeeper \
             -destination "platform=iOS Simulator,id=$simulator_id" \
             -only-testing:QuestKeeperTests \
-            -parallel-testing-enabled NO
+            -parallel-testing-enabled NO \
+            -resultBundlePath "$RUNNER_TEMP/QuestKeeperTests.xcresult"
 
           # The UI target was already being built on every run and never executed, which is how
           # two stale expectations reached main unnoticed (#72). It reuses the build above, so the
@@ -82,8 +94,34 @@ jobs:
           # sheet. Without a retry the job fails on machine load rather than on the code. The
           # retries are named in the xcodebuild output, so a test that only ever passes on the
           # second attempt is still visible rather than silently green.
+          ui_test_log="$RUNNER_TEMP/QuestKeeperUITests.log"
+          set +e
           xcodebuild test -scheme QuestKeeper \
             -destination "platform=iOS Simulator,id=$simulator_id" \
             -only-testing:QuestKeeperUITests \
             -parallel-testing-enabled NO \
-            -retry-tests-on-failure
+            -retry-tests-on-failure \
+            -resultBundlePath "$RUNNER_TEMP/QuestKeeperUITests.xcresult" \
+            2>&1 | tee "$ui_test_log"
+          ui_test_exit=${PIPESTATUS[0]}
+          set -e
+
+          retry_count=$(grep -Ec 'Test Case .* started \(Iteration [2-9][0-9]* of [0-9]+\)' "$ui_test_log" || true)
+          {
+            echo "### UI test retries"
+            echo
+            echo "- Retry events reported by xcodebuild: $retry_count"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$ui_test_exit"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/QuestKeeperTests.xcresult
+            ${{ runner.temp }}/QuestKeeperUITests.xcresult
+            ${{ runner.temp }}/QuestKeeperUITests.log
+          if-no-files-found: warn

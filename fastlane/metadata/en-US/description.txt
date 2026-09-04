@@ -13,7 +13,8 @@ Stack up small wins like a game.
 ■ Features
 · Deadline reminders: local notifications that fire only when they matter.
 · Home Screen widget: check today's dungeon and your hero without opening the app.
-· Fully offline and local: no account, no login, no ads.
+· Local-first: no account, no login, no ads, and app data stays on your device.
+· Optional Tip Jar: the app contacts Apple's App Store only to load prices and process purchases.
 · No data collection: everything stays on your device.
 
 ■ Made for

@@ -185,6 +185,42 @@ struct QuestNotificationServiceTests {
         ])
     }
 
+    @Test("reconcile restores the previous valid schedule when a later add fails")
+    func reconcileRestoresPreviousScheduleAfterAddFailure() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let previousQuestID = UUID(uuidString: "ABABABAB-ABAB-ABAB-ABAB-ABABABABABAB")!
+        let replacementQuestID = UUID(uuidString: "CDCDCDCD-CDCD-CDCD-CDCD-CDCDCDCDCDCD")!
+        let previousRequests = QuestNotificationPlanner.identifiers(for: previousQuestID).enumerated().map {
+            index, identifier in
+            makeScheduledRequest(
+                identifier: identifier,
+                fireDate: now.addingTimeInterval(Double(8 + index) * hour),
+                title: "Previous title \(index)",
+                body: "Previous body \(index)"
+            )
+        }
+        let external = makeRequest(identifier: "external.notification")
+        center.pendingRequestsList = previousRequests + [external]
+        center.addErrorOnAttempt = 2
+
+        let authorization = await service.reconcile(
+            quests: [quest(id: replacementQuestID, deadlineOffset: 3 * hour)],
+            now: now
+        )
+
+        #expect(authorization == .unavailable)
+        #expect(Set(center.pendingRequestsList.map(\.identifier)) == Set((previousRequests + [external]).map(\.identifier)))
+        for previous in previousRequests {
+            let restored = center.pendingRequestsList.first { $0.identifier == previous.identifier }
+            let previousTrigger = previous.trigger as? UNCalendarNotificationTrigger
+            let restoredTrigger = restored?.trigger as? UNCalendarNotificationTrigger
+            #expect(restoredTrigger?.dateComponents == previousTrigger?.dateComponents)
+            #expect(restored?.content.title == previous.content.title)
+            #expect(restored?.content.body == previous.content.body)
+        }
+    }
+
     @Test("reconcile refreshes existing QuestKeeper requests for current deadlines")
     func reconcileRefreshesExistingRequests() async {
         let center = FakeQuestNotificationCenter()
@@ -313,6 +349,41 @@ struct QuestNotificationServiceTests {
         #expect(authorization == .unavailable)
         #expect(center.pendingRequestsList.map(\.identifier) == [unrelatedID])
         #expect(center.pendingRequestsList.contains { questIdentifiers.contains($0.identifier) } == false)
+    }
+
+    @Test("editing a quest preserves its previous reminders when replacement fails")
+    func syncRestoresPreviousQuestRequestsAfterReplacementFailure() async {
+        let center = FakeQuestNotificationCenter(status: .authorized)
+        let service = makeService(center: center)
+        let questID = UUID(uuidString: "EFEFEFEF-EFEF-EFEF-EFEF-EFEFEFEFEFEF")!
+        let previousRequests = QuestNotificationPlanner.identifiers(for: questID).enumerated().map {
+            index, identifier in
+            makeScheduledRequest(
+                identifier: identifier,
+                fireDate: now.addingTimeInterval(Double(8 + index) * hour),
+                title: "Previous title \(index)",
+                body: "Previous body \(index)"
+            )
+        }
+        let external = makeRequest(identifier: "external.notification")
+        center.pendingRequestsList = previousRequests + [external]
+        center.addErrorOnAttempt = 2
+
+        let authorization = await service.sync(
+            quest: quest(id: questID, deadlineOffset: 3 * hour),
+            now: now
+        )
+
+        #expect(authorization == .unavailable)
+        #expect(Set(center.pendingRequestsList.map(\.identifier)) == Set((previousRequests + [external]).map(\.identifier)))
+        for previous in previousRequests {
+            let restored = center.pendingRequestsList.first { $0.identifier == previous.identifier }
+            let previousTrigger = previous.trigger as? UNCalendarNotificationTrigger
+            let restoredTrigger = restored?.trigger as? UNCalendarNotificationTrigger
+            #expect(restoredTrigger?.dateComponents == previousTrigger?.dateComponents)
+            #expect(restored?.content.title == previous.content.title)
+            #expect(restored?.content.body == previous.content.body)
+        }
     }
 
     @Test("denied permission skips scheduling without throwing")
@@ -603,15 +674,23 @@ struct QuestNotificationServiceTests {
         UNNotificationRequest(identifier: identifier, content: UNMutableNotificationContent(), trigger: nil)
     }
 
-    private func makeScheduledRequest(identifier: String, fireDate: Date) -> UNNotificationRequest {
+    private func makeScheduledRequest(
+        identifier: String,
+        fireDate: Date,
+        title: String = "",
+        body: String = ""
+    ) -> UNNotificationRequest {
         let calendar = Calendar(identifier: .gregorian)
         let components = calendar.dateComponents(
             [.timeZone, .year, .month, .day, .hour, .minute, .second],
             from: fireDate
         )
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
         return UNNotificationRequest(
             identifier: identifier,
-            content: UNMutableNotificationContent(),
+            content: content,
             trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         )
     }
@@ -835,8 +914,8 @@ private final class FakeQuestNotificationCenter: QuestNotificationCenter {
         pendingRequestsList.append(request)
     }
 
-    func pendingNotificationRequests() async -> [UNNotificationRequest] {
-        pendingRequestsList
+    func pendingNotificationRequests() async -> [RestorableNotificationRequest] {
+        pendingRequestsList.map { RestorableNotificationRequest(request: $0) }
     }
 
     func pendingNotificationIdentifiers() async -> [String] {

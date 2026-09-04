@@ -428,6 +428,8 @@ private final class InertQuestNotificationCenter: QuestNotificationCenter {
 
     func add(_ request: UNNotificationRequest) async throws {}
 
+    func pendingNotificationRequests() async -> [RestorableNotificationRequest] { [] }
+
     func pendingNotificationIdentifiers() async -> [String] { [] }
 
     func pendingQuestNotifications() async -> [PendingQuestNotification] { [] }
@@ -494,6 +496,20 @@ nonisolated enum LaunchArguments {
     /// as the test seam — the service, the board, and the sheet all run their real code above it.
     static func notificationDenialFixtureEnabled(arguments: [String]) -> Bool {
         arguments.contains("-uiTestingNotificationDenied")
+    }
+
+    static func uiTestingNotificationRouteQuestID(arguments: [String]) -> UUID? {
+        guard let index = arguments.firstIndex(of: "-uiTestingNotificationRouteQuestID"),
+              arguments.indices.contains(index + 1) else { return nil }
+        return UUID(uuidString: arguments[index + 1])
+    }
+
+    static func uiTestingNotificationRouteDelaySeconds(arguments: [String]) -> Double {
+        guard let index = arguments.firstIndex(of: "-uiTestingNotificationRouteDelaySeconds"),
+              arguments.indices.contains(index + 1),
+              let seconds = Double(arguments[index + 1]),
+              seconds >= 0 else { return 2 }
+        return seconds
     }
 #endif
 }

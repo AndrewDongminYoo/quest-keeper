@@ -71,8 +71,10 @@ PY
 	fi
 done
 
-if ! stray="$(
-	/usr/bin/python3 - "${repo_root}/QuestKeeper" "${repo_root}/QuestKeeperShared" "${repo_root}/QuestKeeperWidget" <<'PY'
+stray_output="$(mktemp)"
+trap 'rm -f -- "${stray_output}"' EXIT
+
+if /usr/bin/python3 - "${repo_root}/QuestKeeper" "${repo_root}/QuestKeeperShared" "${repo_root}/QuestKeeperWidget" >"${stray_output}" <<'PY'; then
 import pathlib
 import re
 import sys
@@ -149,12 +151,14 @@ for root in sys.argv[1:]:
             if hangul.search(cleaned_line):
                 print(f"{path}:{lineno}:{original_lines[lineno - 1].strip()}")
 PY
-)"; then
+	stray="$(<"${stray_output}")"
+	if [[ -n ${stray} ]]; then
+		echo "FAIL: hardcoded Korean literal outside a defaultValue: argument or a comment" >&2
+		printf '%s\n' "${stray}" >&2
+		status=1
+	fi
+else
 	echo "FAIL: stray-Korean-literal scan crashed" >&2
-	status=1
-elif [[ -n ${stray} ]]; then
-	echo "FAIL: hardcoded Korean literal outside a defaultValue: argument or a comment" >&2
-	printf '%s\n' "${stray}" >&2
 	status=1
 fi
 

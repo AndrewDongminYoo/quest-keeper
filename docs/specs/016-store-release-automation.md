@@ -9,9 +9,10 @@ Generate reproducible App Store screenshots and the current version's “What’
 Fastlane Snapshot runs only `StoreScreenshotUITests` in a Debug build on the highest-resolution iPhone simulator configured in `fastlane/Snapfile`, once per locale in that file's `languages`.
 The app uses an in-memory SwiftData store and DEBUG-only launch fixtures, so captures do not read or mutate personal quest data.
 The test pins no locale of its own — Snapshot's injected `-AppleLanguages` decides it — and identifies screens by `accessibilityIdentifier`, so the same test runs unchanged under every locale.
-Eight product states are captured into `fastlane/screenshots/generated/<locale>` while the previously downloaded store screenshots remain untouched: `01-dungeon`, `02-battle`, `03-hero-appearance`, `04-focus-plan`, `05-focus-selection`, `06-daily-grave`, `07-quest-editor`, `08-empty-dungeon`.
+Six product states that users can reach in Release builds are captured into `fastlane/screenshots/generated/<locale>` while the previously downloaded store screenshots remain untouched: `01-dungeon`, `02-battle`, `03-hero-appearance`, `06-daily-grave`, `07-quest-editor`, and `08-empty-dungeon`.
+Before Snapshot launches, `scripts/validate-store-screenshot-reachability.sh` rejects feature-availability arguments that only work in DEBUG builds.
 `scripts/process-store-screenshots.sh` converts the raw Simulator PNG files to 8-bit RGB without alpha.
-`scripts/validate-store-screenshots.sh` then requires all eight named PNG files per locale, an Apple-supported 6.9-inch portrait size, 8-bit channels, and no alpha channel.
+`scripts/validate-store-screenshots.sh` then requires all six named PNG files per locale, an Apple-supported 6.9-inch portrait size, 8-bit channels, and no alpha channel.
 Both scripts take the locale list as trailing arguments and default to `ko en-US`.
 
 Monster sprites are chosen from each fixture quest's per-launch `UUID`, so re-running the lane redraws them and every PNG differs byte-for-byte from the committed one. That is expected; discard the rerun unless it was for a real content change.

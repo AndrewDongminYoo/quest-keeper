@@ -15,8 +15,6 @@ expected_names=(
 	01-dungeon
 	02-battle
 	03-hero-appearance
-	04-focus-plan
-	05-focus-selection
 	06-daily-grave
 	07-quest-editor
 	08-empty-dungeon

@@ -50,6 +50,7 @@ struct QuestDetailView: View {
     let notificationService: QuestNotificationService
     let onAuthorizationChange: (QuestNotificationAuthorization) -> Void
     let onSaved: (Quest) -> Bool
+    let onEditingChange: (Bool) -> Void
     let onRetryTomorrow: (() -> Void)?
     let onRecordLateCompletion: (() -> Void)?
 
@@ -61,6 +62,7 @@ struct QuestDetailView: View {
         notificationService: QuestNotificationService = .shared,
         onAuthorizationChange: @escaping (QuestNotificationAuthorization) -> Void = { _ in },
         onSaved: @escaping (Quest) -> Bool = { _ in true },
+        onEditingChange: @escaping (Bool) -> Void = { _ in },
         onRetryTomorrow: (() -> Void)? = nil,
         onRecordLateCompletion: (() -> Void)? = nil
     ) {
@@ -69,6 +71,7 @@ struct QuestDetailView: View {
         self.notificationService = notificationService
         self.onAuthorizationChange = onAuthorizationChange
         self.onSaved = onSaved
+        self.onEditingChange = onEditingChange
         self.onRetryTomorrow = onRetryTomorrow
         self.onRecordLateCompletion = onRecordLateCompletion
     }
@@ -139,12 +142,15 @@ struct QuestDetailView: View {
                 }
                 if capabilities.canEdit {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(AppStrings.questActionEdit) { isEditing = true }
+                        Button(AppStrings.questActionEdit) {
+                            isEditing = true
+                            onEditingChange(true)
+                        }
                             .accessibilityIdentifier("questDetailEditButton")
                     }
                 }
             }
-            .sheet(isPresented: $isEditing) {
+            .sheet(isPresented: $isEditing, onDismiss: { onEditingChange(false) }) {
                 QuestEditor(
                     quest: quest,
                     notificationService: notificationService,

@@ -56,11 +56,19 @@ nonisolated struct PendingQuestNotification: Equatable, Sendable {
     let fireDate: Date
 }
 
+/// An immutable pending request carried from UserNotifications back to the MainActor for rollback.
+nonisolated struct RestorableNotificationRequest: @unchecked Sendable {
+    let request: UNNotificationRequest
+
+    var identifier: String { request.identifier }
+}
+
 @MainActor
 protocol QuestNotificationCenter: AnyObject {
     func authorizationStatus() async -> UNAuthorizationStatus
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
     func add(_ request: UNNotificationRequest) async throws
+    func pendingNotificationRequests() async -> [RestorableNotificationRequest]
     func pendingNotificationIdentifiers() async -> [String]
     func pendingQuestNotifications() async -> [PendingQuestNotification]
     func removePendingNotificationRequests(withIdentifiers identifiers: [String])
@@ -103,6 +111,16 @@ final class SystemQuestNotificationCenter: QuestNotificationCenter {
                 } else {
                     continuation.resume()
                 }
+            }
+        }
+    }
+
+    func pendingNotificationRequests() async -> [RestorableNotificationRequest] {
+        await withCheckedContinuation { continuation in
+            center.getPendingNotificationRequests { requests in
+                continuation.resume(
+                    returning: requests.map { RestorableNotificationRequest(request: $0) }
+                )
             }
         }
     }
@@ -348,6 +366,10 @@ final class QuestNotificationService {
         authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
         let identifiers = QuestNotificationPlanner.identifiers(for: questID)
+        let identifierSet = Set(identifiers)
+        let previousRequests = await center.pendingNotificationRequests().filter {
+            identifierSet.contains($0.identifier)
+        }
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
 
@@ -375,6 +397,7 @@ final class QuestNotificationService {
                 // taken from *other* quests — leaving it would silently drop their reminders until
                 // the next full reconcile. Put them back before reporting the failure.
                 performCancel(questID: questID)
+                await restore(previousRequests)
                 await restore(evicted)
                 return .unavailable
             }
@@ -384,8 +407,18 @@ final class QuestNotificationService {
     }
 
     private func restore(_ plans: [QuestNotificationPlan]) async {
-        for plan in plans {
-            try? await center.add(request(for: plan))
+        await restore(plans.map { RestorableNotificationRequest(request: request(for: $0)) })
+    }
+
+    private func restore(_ requests: [RestorableNotificationRequest]) async {
+        for snapshot in requests {
+            do {
+                try await center.add(snapshot.request)
+            } catch {
+                notificationLogger.error(
+                    "Failed to restore notification request \(snapshot.identifier, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                )
+            }
         }
     }
 
@@ -527,12 +560,13 @@ final class QuestNotificationService {
         deliveredIdentifiersToRemove: [String],
         authorizationRequestPolicy: AuthorizationRequestPolicy
     ) async -> QuestNotificationAuthorization {
-        let pendingIdentifiers = await center.pendingNotificationIdentifiers()
-        let questKeeperIdentifiers = pendingIdentifiers
-            .filter {
-                QuestNotificationPlanner.isQuestNotificationIdentifier($0)
-                    || ReengagementReminderPlanner.isReengagementNotificationIdentifier($0)
+        let questKeeperRequests = await center.pendingNotificationRequests()
+            .filter { request in
+                let identifier = request.identifier
+                return QuestNotificationPlanner.isQuestNotificationIdentifier(identifier)
+                    || ReengagementReminderPlanner.isReengagementNotificationIdentifier(identifier)
             }
+        let questKeeperIdentifiers = questKeeperRequests.map(\.identifier)
 
         if !questKeeperIdentifiers.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: questKeeperIdentifiers)
@@ -550,22 +584,28 @@ final class QuestNotificationService {
         guard !plans.isEmpty || !reengagementPlans.isEmpty else { return authorization }
         guard authorization.canSchedule else { return authorization }
 
-        for plan in plans {
+        let requests = plans.map(request(for:)) + reengagementPlans.map(request(for:))
+        for request in requests {
             do {
-                try await center.add(request(for: plan))
+                try await center.add(request)
             } catch {
-                return .unavailable
-            }
-        }
-        for plan in reengagementPlans {
-            do {
-                try await center.add(request(for: plan))
-            } catch {
+                await restoreReconcileSnapshot(questKeeperRequests)
                 return .unavailable
             }
         }
 
         return authorization
+    }
+
+    private func restoreReconcileSnapshot(_ requests: [RestorableNotificationRequest]) async {
+        let currentIdentifiers = await center.pendingNotificationIdentifiers().filter {
+            QuestNotificationPlanner.isQuestNotificationIdentifier($0)
+                || ReengagementReminderPlanner.isReengagementNotificationIdentifier($0)
+        }
+        if !currentIdentifiers.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: currentIdentifiers)
+        }
+        await restore(requests)
     }
 
     @discardableResult
