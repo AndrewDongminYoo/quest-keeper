@@ -18,6 +18,7 @@ default_platform(:ios)
 platform :ios do
   desc "Capture and validate deterministic ko and en-US App Store screenshots"
   lane :screenshots do
+    sh("bash", "../scripts/validate-store-screenshot-reachability.sh")
     snapshot
     sh("bash", "../scripts/process-store-screenshots.sh")
     sh("bash", "../scripts/validate-store-screenshots.sh")

@@ -26,14 +26,6 @@ final class StoreScreenshotUITests: XCTestCase {
         snapshot("02-battle", timeWaitingForIdle: 0)
         battle.terminate()
 
-        let focus = launch(arguments: ["-storeScreenshotFixture", "-dailyFocusLoopEnabled"])
-        XCTAssertTrue(focus.buttons["focusPlanConfirmButton"].waitForExistence(timeout: 8))
-        snapshot("04-focus-plan", timeWaitingForIdle: 0)
-        focus.buttons["focusPlanEditButton"].tap()
-        XCTAssertTrue(focus.buttons["dailyFocusSelectionConfirmButton"].waitForExistence(timeout: 8))
-        snapshot("05-focus-selection", timeWaitingForIdle: 0)
-        focus.terminate()
-
         let grave = launch(arguments: ["-storeScreenshotFixture", "-uiTestingDailyFocusGrave"])
         // 섹션 제목은 children: .combine으로 합쳐져 요소 타입이 정해지지 않는다.
         let graveSectionTitle = grave.descendants(matching: .any)["graveSectionTitle"]

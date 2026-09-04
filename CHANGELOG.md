@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-04
+
+### Added
+
+- Added optional Tip Jar purchases that support development without changing progress or locking features.
+- Added daily routines, a rotating routine roster, and a Hall of Fame for completed quests.
+- Added user-controlled reengagement reminders, including local attribution for opened reminders.
+- Added a weekly review that summarizes the week that just ended and starts the next planning flow.
+- Recorded completions made after a deadline instead of treating them as unavailable actions.
+
+### Fixed
+
+- Preserved reminder capacity for the requests that are actually scheduled, and reconciled reminders after a quest is created from Shortcuts.
+- Restored the previous valid reminder schedule when a replacement request fails partway through.
+- Reopened the shared store before the Shortcuts creation path reads or writes it.
+- Kept delayed Tip Jar purchase outcomes available when the app receives them after launch.
+- Showed a visible error when the store refuses a write and kept unsaved state out of notifications and widgets.
+- Corrected reengagement measurement so an opened reminder is attributed once to its matching send.
+- Closed read-only sheets before opening a quest from a notification, and deferred that route until an active editor is dismissed.
+
+### Internal
+
+- Added the full UI test suite to CI and resolved simulator destinations from the runner's installed devices.
+- Added localization, release-version, store-screenshot, retry-summary, and test-result artifact checks to CI.
+- Restricted store screenshots to the six screens available under the Release feature policy.
+- Added cross-process measurement for the app and widget store and documented the observed visibility boundary.
+
 ## [1.3.0] - 2026-08-17
 
 ### Changed
@@ -107,7 +134,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added local-only retention measurement with privacy-safe retry-event identity and upgrade handling.
 - Added deterministic tests for quest derivation, notifications, widgets, onboarding, daily focus, and recovery flows.
 
-[Unreleased]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.3.0+26081713...HEAD
+[Unreleased]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.4.0+26090413...HEAD
+[1.4.0]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.3.0+26081713...v1.4.0+26090413
 [1.3.0]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.2.0+26081501...v1.3.0+26081713
 [1.2.0]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.1.0+26080813...v1.2.0+26081501
 [1.1.0]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.0.0+26072410...v1.1.0+26080813
