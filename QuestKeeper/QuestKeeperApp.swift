@@ -428,6 +428,8 @@ private final class InertQuestNotificationCenter: QuestNotificationCenter {
 
     func add(_ request: UNNotificationRequest) async throws {}
 
+    func pendingNotificationRequests() async -> [RestorableNotificationRequest] { [] }
+
     func pendingNotificationIdentifiers() async -> [String] { [] }
 
     func pendingQuestNotifications() async -> [PendingQuestNotification] { [] }
