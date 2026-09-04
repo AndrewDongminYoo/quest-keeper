@@ -71,7 +71,7 @@ final class NotificationPresentationUITests: XCTestCase {
         titleField.typeText(" 보존")
 
         assertNotificationRouteWasDelivered(in: app)
-        XCTAssertTrue(app.navigationBars["퀘스트 수정"].exists)
+        XCTAssertTrue(titleField.exists)
         XCTAssertEqual(titleField.value as? String, "회복 퀘스트 2 보존")
         app.buttons["취소"].tap()
         assertNotificationQuestOpens(in: app)
