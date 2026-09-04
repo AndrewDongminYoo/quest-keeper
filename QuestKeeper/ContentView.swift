@@ -23,6 +23,8 @@ struct ContentView: View {
     @State private var route: QuestSheetRoute?
     @State private var dailyFocusEditor: DailyFocusEditorRoute?
     @State private var routineSheet: RoutineSheetRoute?
+    @State private var homeSheet: HomeDungeonSheet?
+    @State private var pendingNotificationQuestID: UUID?
     @State private var notificationAuthorization: QuestNotificationAuthorization?
     @State private var reengagementSettings: ReengagementReminderSettings
     @State private var reengagementAttribution: ReengagementNotificationAttribution?
@@ -51,6 +53,9 @@ struct ContentView: View {
     @State private var lastCommitFailed = false
 #if DEBUG
     private let rejectsSaves: Bool
+    private let uiTestingNotificationRouteQuestID: UUID?
+    @State private var hasScheduledUITestingNotificationRoute = false
+    @State private var hasDeliveredUITestingNotificationRoute = false
 #endif
 
     init(
@@ -84,6 +89,9 @@ struct ContentView: View {
         self.storeFailedToOpen = storeFailedToOpen
 #if DEBUG
         rejectsSaves = LaunchArguments.saveRejectionFixtureEnabled(
+            arguments: ProcessInfo.processInfo.arguments
+        )
+        uiTestingNotificationRouteQuestID = LaunchArguments.uiTestingNotificationRouteQuestID(
             arguments: ProcessInfo.processInfo.arguments
         )
 #endif
@@ -154,6 +162,7 @@ struct ContentView: View {
                 ).compactMap { routineRulesByID[$0] }
 
                 HomeDungeonBoardView(
+                    presentedSheet: $homeSheet,
                     state: state,
                     isMourning: !pendingDeaths.isEmpty,
                     allQuests: quests,
@@ -210,10 +219,11 @@ struct ContentView: View {
                     onOpenDetail: { route = .detail($0) },
                     onCreateRoutine: { routineSheet = .create },
                     onManageRoutines: { routineSheet = .manage },
-                    onCompleteRoutine: completeRoutine
+                    onCompleteRoutine: completeRoutine,
+                    onSheetDismissed: resumePendingNotificationRoute
                 )
             }
-            .sheet(item: $route) { route in
+            .sheet(item: $route, onDismiss: resumePendingNotificationRoute) { route in
                 switch route {
                 case .create(let draft):
                     QuestEditor(
@@ -260,7 +270,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .sheet(item: $dailyFocusEditor) { editor in
+            .sheet(item: $dailyFocusEditor, onDismiss: resumePendingNotificationRoute) { editor in
                 let rankedIDs = DailyFocusState.rankedPendingQuestIDs(
                     quests: quests.map(\.snapshot),
                     now: .now
@@ -288,7 +298,7 @@ struct ContentView: View {
                     return didSave
                 }
             }
-            .sheet(item: $routineSheet) { sheet in
+            .sheet(item: $routineSheet, onDismiss: resumePendingNotificationRoute) { sheet in
                 switch sheet {
                 case .create:
                     RoutineEditor(routine: nil, onSave: saveRoutine)
@@ -323,6 +333,30 @@ struct ContentView: View {
             .onChange(of: quests.map(\.id), initial: true) { _, _ in
                 consumeNotificationRoute()
             }
+#if DEBUG
+            .onChange(of: uiTestingActivePresentationID) { _, presentationID in
+                guard presentationID != nil,
+                      !hasScheduledUITestingNotificationRoute,
+                      let questID = uiTestingNotificationRouteQuestID else { return }
+                hasScheduledUITestingNotificationRoute = true
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
+                    guard !Task.isCancelled else { return }
+                    notificationRouteStore.route(questIDString: questID.uuidString)
+                    hasDeliveredUITestingNotificationRoute = true
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                if hasDeliveredUITestingNotificationRoute {
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .accessibilityElement()
+                        .accessibilityLabel("Notification route delivered")
+                        .accessibilityIdentifier("uiTestingNotificationRouteDelivered")
+                        .allowsHitTesting(false)
+                }
+            }
+#endif
         }
         .onChange(of: activationReplay?.id, initial: true) { _, _ in
             applyActivationReplay()
@@ -341,6 +375,7 @@ struct ContentView: View {
                     break
                 }
             case .active:
+                resumePendingNotificationRoute()
                 refreshNotificationAuthorization()
             default:
                 break
@@ -845,8 +880,85 @@ struct ContentView: View {
                 reengagementAttribution = attribution
             }
         }
+        routeNotificationToQuest(quest)
+    }
+
+    private func routeNotificationToQuest(_ quest: Quest) {
+        if case let .detail(presentedQuest) = route, presentedQuest.id == quest.id {
+            return
+        }
+        guard pendingNotificationQuestID != quest.id else { return }
+
+        pendingNotificationQuestID = quest.id
+        resumePendingNotificationRoute()
+    }
+
+    private func resumePendingNotificationRoute() {
+        guard scenePhase == .active,
+              let questID = pendingNotificationQuestID,
+              !hasProtectedPresentation else { return }
+
+        if dismissNextInterruptiblePresentation() {
+            return
+        }
+
+        pendingNotificationQuestID = nil
+        let descriptor = FetchDescriptor<Quest>(
+            predicate: #Predicate { $0.id == questID }
+        )
+        guard let quest = try? modelContext.fetch(descriptor).first else { return }
         route = .detail(quest)
     }
+
+    private var hasProtectedPresentation: Bool {
+        if route != nil {
+            switch route {
+            case .create?, .recoveryCreate?:
+                return true
+            case .detail?, nil:
+                break
+            }
+        }
+        if dailyFocusEditor != nil {
+            return true
+        }
+        if routineSheet != nil {
+            switch routineSheet {
+            case .create?, .edit?:
+                return true
+            case .manage?, nil:
+                break
+            }
+        }
+        return homeSheet == .reengagement
+    }
+
+    @discardableResult
+    private func dismissNextInterruptiblePresentation() -> Bool {
+        if route != nil {
+            route = nil
+            return true
+        }
+        if routineSheet != nil {
+            routineSheet = nil
+            return true
+        }
+        if homeSheet != nil {
+            homeSheet = nil
+            return true
+        }
+        return false
+    }
+
+#if DEBUG
+    private var uiTestingActivePresentationID: String? {
+        if let route { return "quest-\(route.id)" }
+        if let dailyFocusEditor { return "focus-\(dailyFocusEditor.id.uuidString)" }
+        if let routineSheet { return "routine-\(routineSheet.id)" }
+        if let homeSheet { return "home-\(homeSheet.id)" }
+        return nil
+    }
+#endif
 
     private func openNotificationSettings() {
         guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }

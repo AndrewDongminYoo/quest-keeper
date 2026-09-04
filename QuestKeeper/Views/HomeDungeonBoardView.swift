@@ -4,7 +4,7 @@ struct HomeDungeonBoardView: View {
     @Environment(\.tipJarStore) private var tipJarStore
     @AppStorage(HeroAppearance.StorageKey.gender) private var heroGenderRawValue = HeroAppearance.default.gender.rawValue
     @AppStorage(HeroAppearance.StorageKey.hairColor) private var heroHairColorRawValue = HeroAppearance.default.hairColor.rawValue
-    @State private var presentedSheet: HomeDungeonSheet?
+    @Binding var presentedSheet: HomeDungeonSheet?
 
     let state: HeroState
     let isMourning: Bool
@@ -49,6 +49,7 @@ struct HomeDungeonBoardView: View {
     let onCreateRoutine: () -> Void
     let onManageRoutines: () -> Void
     let onCompleteRoutine: (RoutineRule) -> Void
+    let onSheetDismissed: () -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -169,7 +170,7 @@ struct HomeDungeonBoardView: View {
                 }
             }
         }
-        .sheet(item: $presentedSheet) { sheet in
+        .sheet(item: $presentedSheet, onDismiss: onSheetDismissed) { sheet in
             switch sheet {
             case .appearance:
                 HeroAppearanceSheet(gender: heroGenderBinding, hairColor: heroHairColorBinding)
@@ -233,7 +234,7 @@ extension EnvironmentValues {
     }
 }
 
-private enum HomeDungeonSheet: String, Identifiable {
+enum HomeDungeonSheet: String, Identifiable {
     case appearance
     case hallOfFame
     case about

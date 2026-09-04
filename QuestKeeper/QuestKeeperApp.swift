@@ -497,6 +497,12 @@ nonisolated enum LaunchArguments {
     static func notificationDenialFixtureEnabled(arguments: [String]) -> Bool {
         arguments.contains("-uiTestingNotificationDenied")
     }
+
+    static func uiTestingNotificationRouteQuestID(arguments: [String]) -> UUID? {
+        guard let index = arguments.firstIndex(of: "-uiTestingNotificationRouteQuestID"),
+              arguments.indices.contains(index + 1) else { return nil }
+        return UUID(uuidString: arguments[index + 1])
+    }
 #endif
 }
 
