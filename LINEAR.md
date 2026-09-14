@@ -1,11 +1,11 @@
 # Linear
 
-Quest Keeper의 제품 개선 및 개발 실행 현황은 [Linear의 Quest Keeper 프로젝트](https://linear.app/andrewdongminyoo/project/quest-keeper-6cd76cd53892)에서 관리합니다.
+TODO Slayer의 제품 개선 및 개발 실행 현황은 [Linear의 TODO Slayer 프로젝트](https://linear.app/andrewdongminyoo/project/todo-slayer-6cd76cd53892)에서 관리합니다.
 
 ## 연결 정보
 
 - Linear 팀: `Andrewdongminyoo` (`AND`)
-- Linear 프로젝트: `Quest Keeper`
+- Linear 프로젝트: `TODO Slayer`
 - 프로젝트 ID: `81423e38-3859-4d6c-ba86-b63edda14496`
 - 이슈 식별자: `AND-*`
 

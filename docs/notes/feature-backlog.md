@@ -8,18 +8,19 @@ Deployment target is iOS 26.5, so App Intents, interactive WidgetKit, ActivityKi
 
 ## Status
 
-- **Selected / next:** Interactive Widget (App Intents).
-- Everything else below is unstarted and unordered beyond the rough priority given.
+- **Completed:** Interactive Widget (App Intents), Hall of Fame, and Tip Jar.
+- The completion labels below reflect only items verified in the current source.
+- Unlabeled candidates remain proposals and are not ordered beyond the rough priority given.
 
 ## Candidates
 
-### 1. Interactive Widget (App Intents) — selected
+### 1. Interactive Widget (App Intents) — completed
 
-Today the widget renders the App Group snapshot read-only; `README.md` lists "Interactive widget actions" as out of scope for the MVP, so this is the natural next graduation.
+The widget now completes a quest through `CompleteQuestIntent` while preserving the existing App Group and SwiftData fact boundary.
 
 - **New OS boundary:** the App Intents framework — `AppIntent`, WidgetKit `Button(intent:)`, writing raw facts back through the App Group / SwiftData store from the intent, then `WidgetCenter.reloadTimelines`.
-- **Product value:** complete or retry-tomorrow a quest straight from the Home Screen without opening the app.
-- **Fact-only guardrail:** the intent mutates only stored facts (`completedAt`, `deadline`) and lets the existing derivation recompute; no derived state is stored.
+- **Product value:** complete a quest straight from the Home Screen without opening the app.
+- **Fact-only guardrail:** the intent mutates only the stored `completedAt` fact and lets the existing derivation recompute; no derived state is stored.
 - **Adjacent learning:** App Shortcuts / Siri phrases reuse the same intents.
 
 ### 2. Live Activity / Dynamic Island (ActivityKit)
@@ -30,11 +31,11 @@ Surface the most urgent quest's countdown on the Lock Screen and Dynamic Island.
 - **Product value:** the derived urgency axis (`urgency = f(time remaining)`) becomes visible on a system surface without opening the app.
 - **Fact-only guardrail:** the activity is a projection of the nearest-deadline fact; nothing new is persisted.
 
-### 3. Hall of Fame (전리품 창고)
+### 3. Hall of Fame (전리품 창고) — completed
 
-The BLUEPRINT 2차 backlog's first item — a gallery of completed "small wins."
+A gallery of completed "small wins."
 
-- **New OS boundary:** a second navigation destination, `@Query` / `FetchDescriptor` filtering and sorting on `completedAt`, optionally Swift Charts for a weekly victory trend.
+- **New OS boundary:** a second navigation destination over the existing `@Query` results, with filtering and sorting derived from `completedAt`.
 - **Product value:** completes the "celebrate small wins" thesis with positive reinforcement.
 - **Fact-only guardrail:** accumulating **victories** (not failures) is explicitly allowed by BLUEPRINT (Total Victories); the daily dungeon still resets misses by derivation.
 
@@ -46,13 +47,13 @@ Actionable deadline notifications with inline buttons.
 - **Product value:** `완료` / `내일 도전하기` directly from the notification banner.
 - **Fact-only guardrail:** the action routes through the existing fact-mutation path.
 
-### 5. Tip Jar (StoreKit 2)
+### 5. Tip Jar (StoreKit 2) — completed
 
 A single optional tip, added as a learning item rather than a revenue item.
 
 - **Product type:** a **consumable** with a few price tiers, matching common OSS tip-jar practice. This choice picks the APIs below: `Transaction.currentEntitlements` returns a consumable only while it is unfinished, and a tip is finished as soon as it verifies — so neither entitlement queries nor a restore flow apply here. (The one case it does surface is a transaction left unfinished after failing verification; see `docs/specs/020-tip-jar.md`.)
 - **New OS boundary:** StoreKit 2 — `Product.products(for:)`, `purchase()`, `Transaction.updates`, and `transaction.finish()`, verified on-device through JWS so the "no backend" non-goal holds.
-- **Product value:** none in revenue terms. Installs are zero, so the bottleneck is distribution, not price; this item is sized so its worth does not depend on earning anything.
+- **Product value:** none in revenue terms. At selection time, distribution rather than price was the known bottleneck, so this item was sized without depending on revenue.
 - **Fact-only guardrail:** a tip grants nothing in-game, so no entitlement reaches the derivation layer and nothing new lands on `Quest`.
 - **Constraints:** the live listing promises `no account, no login, no ads` in both locales, and `DESIGN.md`'s shame-free voice forbids gating core task management. A tip is additive, never a gate, and it stays out of the miss-to-revive flow.
 - **Deferred siblings:** environment-surface pixel art, palette theming, and theme/skin products are all on hold — they are a product line for an audience that does not exist yet.
