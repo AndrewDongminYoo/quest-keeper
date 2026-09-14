@@ -20,7 +20,7 @@ The widget now completes a quest through `CompleteQuestIntent` while preserving 
 
 - **New OS boundary:** the App Intents framework — `AppIntent`, WidgetKit `Button(intent:)`, writing raw facts back through the App Group / SwiftData store from the intent, then `WidgetCenter.reloadTimelines`.
 - **Product value:** complete a quest straight from the Home Screen without opening the app.
-- **Fact-only guardrail:** the intent mutates only the stored `completedAt` fact and lets the existing derivation recompute; no derived state is stored.
+- **Fact-only guardrail:** the intent mutates only the Quest's stored `completedAt` fact, records a `.questCompleted` retention event with source `.widget`, and lets the existing derivation recompute; no derived state is stored.
 - **Adjacent learning:** App Shortcuts / Siri phrases reuse the same intents.
 
 ### 2. Live Activity / Dynamic Island (ActivityKit)
@@ -35,7 +35,7 @@ Surface the most urgent quest's countdown on the Lock Screen and Dynamic Island.
 
 A gallery of completed "small wins."
 
-- **New OS boundary:** a second navigation destination over the existing `@Query` results, with filtering and sorting derived from `completedAt`.
+- **New OS boundary:** a second navigation destination over the existing `@Query` results, filtering for the on-time victory outcome (`completedAt <= deadline`) and sorting by `completedAt`.
 - **Product value:** completes the "celebrate small wins" thesis with positive reinforcement.
 - **Fact-only guardrail:** accumulating **victories** (not failures) is explicitly allowed by BLUEPRINT (Total Victories); the daily dungeon still resets misses by derivation.
 
