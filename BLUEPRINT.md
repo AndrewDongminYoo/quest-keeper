@@ -101,10 +101,12 @@
 - Optional quest descriptions are persisted as raw facts.
 - One common Quest detail surface presents quest information and becomes read-only when editing is unavailable.
 - One background Create Quest App Shortcut creates quests without opening the app.
+- The Home Screen widget completes quests through an App Intent while preserving the raw-fact storage boundary.
+- The Hall of Fame derives a read-only victory history from existing completion facts.
+- An optional StoreKit 2 tip jar supports the project without gating any app feature.
 
 ## Backlog (2차 이후, 스코프 밖)
 
-- **전리품 창고 (Hall of Fame)**: 완료한 '작은 성공'들을 반짝이는 픽셀 아트로 모아보는 긍정 강화 화면
 - CloudKit 동기화
 - LLM을 활용한 자동 태스크 분할(Chunking) 기능 (수수께끼 노인의 진화)
 - SpriteKit 전환: 타격 이펙트, 몹 처치 애니메이션 폴리싱
