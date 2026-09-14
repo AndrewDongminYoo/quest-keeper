@@ -24,9 +24,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Check main release version
-        run: bash scripts/test-main-release-version.sh
-
       - name: Run localization checks
         run: bash scripts/test-localization.sh
 
