@@ -2,7 +2,7 @@
 //  AboutSheet.swift
 //  QuestKeeper
 //
-//  Spec 020 — version, legal links, and the tip jar. Built on the HeroAppearanceSheet
+//  Specs 020 and 029 — version, legal links, aggregate report sharing, and the tip jar. Built on the HeroAppearanceSheet
 //  shape so the two sheets read as one surface.
 //
 
@@ -10,11 +10,19 @@ import SwiftUI
 
 struct AboutSheet: View {
     @State private var model: TipJarModel
+    @State private var isUsageReportPresented = false
+
+    private let usageReportLoader: UsageReportExportLoader
 
     @Environment(\.dismiss) private var dismiss
 
     init(store: TipJarStore) {
+        self.init(store: store, usageReportLoader: Self.defaultUsageReportLoader())
+    }
+
+    init(store: TipJarStore, usageReportLoader: UsageReportExportLoader) {
         _model = State(initialValue: TipJarModel(store: store))
+        self.usageReportLoader = usageReportLoader
     }
 
     /// 번들이 표시용으로 들고 있는 이름. 코드에 상수로 적지 않는다 — 로케일별 이름과
@@ -71,6 +79,20 @@ struct AboutSheet: View {
                 }
                 .listRowBackground(DungeonPalette.stone)
 
+                Section {
+                    Button {
+                        isUsageReportPresented = true
+                    } label: {
+                        Label(AppStrings.aboutUsageReportAction, systemImage: "chart.bar.doc.horizontal")
+                    }
+                    .accessibilityIdentifier("usageReportDisclosureButton")
+                } header: {
+                    Text(AppStrings.aboutUsageReportSection)
+                } footer: {
+                    Text(AppStrings.aboutUsageReportNote)
+                }
+                .listRowBackground(DungeonPalette.stone)
+
                 tipSection
                     .listRowBackground(DungeonPalette.stone)
             }
@@ -89,6 +111,29 @@ struct AboutSheet: View {
             .task { await model.listenForOutcomes() }
         }
         .presentationDetents([.medium, .large])
+        .sheet(isPresented: $isUsageReportPresented) {
+            UsageReportShareSheet(
+                loader: usageReportLoader,
+                appVersion: appVersion,
+                buildNumber: buildNumber
+            )
+        }
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+    }
+
+    private static func defaultUsageReportLoader() -> UsageReportExportLoader {
+#if DEBUG
+        DebugUsageReportFixture.loader(arguments: ProcessInfo.processInfo.arguments)
+#else
+        UsageReportExportLoader()
+#endif
     }
 
     @ViewBuilder
