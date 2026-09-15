@@ -15,6 +15,12 @@ else
 	locales=(ko)
 fi
 
+if [[ ! -d ${raw_root} ]]; then
+	echo "raw screenshot root not found: ${raw_root}" >&2
+	exit 1
+fi
+
+normalized_raw_root="$(realpath "${raw_root}")"
 mkdir -p "${output_root}"
 normalized_output_root="$(realpath "${output_root}")"
 release_output_root="${repo_root}/fastlane/screenshots/generated"
@@ -25,8 +31,8 @@ if [[ ${normalized_output_root} == "${normalized_release_output_root}" ]]; then
 	exit 1
 fi
 
-if [[ ${raw_root} == "${output_root}" ]]; then
-	echo "raw and generated screenshot roots must be different: ${raw_root}" >&2
+if [[ ${normalized_raw_root} == "${normalized_output_root}" ]]; then
+	echo "raw and candidate screenshot roots must be different: ${raw_root}" >&2
 	exit 1
 fi
 
@@ -102,7 +108,21 @@ for locale in "${locales[@]}"; do
 		exit 1
 	fi
 
-	mkdir -p "${generated_locale}" "${staged_locale}"
+	mkdir -p "${generated_locale}"
+	normalized_raw_locale="$(realpath "${raw_locale}")"
+	normalized_generated_locale="$(realpath "${generated_locale}")"
+	case "${normalized_generated_locale}/" in
+	"${normalized_release_output_root}/"*)
+		echo "candidate output must not use the release screenshot directory: ${generated_locale}" >&2
+		exit 1
+		;;
+	*) ;;
+	esac
+	if [[ ${normalized_raw_locale} == "${normalized_generated_locale}" ]]; then
+		echo "raw and candidate screenshot locale directories must be different: ${raw_locale}" >&2
+		exit 1
+	fi
+	mkdir -p "${staged_locale}"
 
 	if [[ ${locale} == ko ]]; then
 		copy_file="${copy_root}/ko.txt"

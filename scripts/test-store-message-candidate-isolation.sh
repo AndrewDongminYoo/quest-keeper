@@ -66,4 +66,65 @@ for forbidden_output in "${mock_release}" "${mock_release}/ko/.."; do
 	fi
 done
 
+raw_alias="${mock_raw}/ko/.."
+set +e
+STORE_SCREENSHOT_FONT_PATH="${work_dir}/StoreScreenshotFont.ttc" \
+	PATH="${mock_bin}:${PATH}" \
+	bash "${mock_repo}/scripts/compose-store-screenshots.sh" "${mock_raw}" "${raw_alias}" ko >"${work_dir}/raw-alias.log" 2>&1
+command_exit=$?
+set -e
+
+if [[ ${command_exit} -eq 0 ]]; then
+	echo "FAIL: the candidate composer accepted equivalent raw and output roots" >&2
+	exit 1
+fi
+
+if ! grep -qF "raw and candidate screenshot roots must be different" "${work_dir}/raw-alias.log"; then
+	echo "FAIL: the candidate composer did not explain the raw-output alias rejection" >&2
+	cat "${work_dir}/raw-alias.log" >&2
+	exit 1
+fi
+
+raw_locale_alias_root="${work_dir}/raw-locale-alias"
+mkdir -p "${raw_locale_alias_root}"
+ln -s "${mock_raw}/ko" "${raw_locale_alias_root}/ko"
+set +e
+STORE_SCREENSHOT_FONT_PATH="${work_dir}/StoreScreenshotFont.ttc" \
+	PATH="${mock_bin}:${PATH}" \
+	bash "${mock_repo}/scripts/compose-store-screenshots.sh" "${mock_raw}" "${raw_locale_alias_root}" ko >"${work_dir}/raw-locale-alias.log" 2>&1
+command_exit=$?
+set -e
+
+if [[ ${command_exit} -eq 0 ]]; then
+	echo "FAIL: the candidate composer accepted equivalent raw and output locale directories" >&2
+	exit 1
+fi
+
+if ! grep -qF "raw and candidate screenshot locale directories must be different" "${work_dir}/raw-locale-alias.log"; then
+	echo "FAIL: the candidate composer did not explain the raw-output locale alias rejection" >&2
+	cat "${work_dir}/raw-locale-alias.log" >&2
+	exit 1
+fi
+
+release_locale_alias_root="${work_dir}/release-locale-alias"
+mkdir -p "${release_locale_alias_root}" "${mock_release}/ko"
+ln -s "${mock_release}/ko" "${release_locale_alias_root}/ko"
+set +e
+STORE_SCREENSHOT_FONT_PATH="${work_dir}/StoreScreenshotFont.ttc" \
+	PATH="${mock_bin}:${PATH}" \
+	bash "${mock_repo}/scripts/compose-store-screenshots.sh" "${mock_raw}" "${release_locale_alias_root}" ko >"${work_dir}/release-locale-alias.log" 2>&1
+command_exit=$?
+set -e
+
+if [[ ${command_exit} -eq 0 ]]; then
+	echo "FAIL: the candidate composer accepted a release locale directory alias" >&2
+	exit 1
+fi
+
+if ! grep -qF "candidate output must not use the release screenshot directory" "${work_dir}/release-locale-alias.log"; then
+	echo "FAIL: the candidate composer did not explain the release locale alias rejection" >&2
+	cat "${work_dir}/release-locale-alias.log" >&2
+	exit 1
+fi
+
 echo "store message candidate isolation tests passed"
