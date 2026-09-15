@@ -596,6 +596,15 @@ nonisolated extension AppStrings {
     static let aboutVersionLabel = LocalizedStringResource("about.versionLabel", defaultValue: "버전")
     static let aboutPrivacyPolicy = LocalizedStringResource("about.privacyPolicy", defaultValue: "개인정보 처리방침")
     static let aboutSourceRepository = LocalizedStringResource("about.sourceRepository", defaultValue: "오픈소스 저장소")
+    static let aboutUsageReportSection = LocalizedStringResource("about.usageReport.section", defaultValue: "앱 개선")
+    static let aboutUsageReportAction = LocalizedStringResource(
+        "about.usageReport.action",
+        defaultValue: "사용 보고서 공유하기"
+    )
+    static let aboutUsageReportNote = LocalizedStringResource(
+        "about.usageReport.note",
+        defaultValue: "내용을 확인하고 직접 선택할 때만 기기 밖으로 보냅니다."
+    )
 
     static let aboutTipSection = LocalizedStringResource("about.tip.section", defaultValue: "용사에게 물약 사주기")
     static let aboutTipNote = LocalizedStringResource(
@@ -621,6 +630,56 @@ nonisolated extension AppStrings {
     static let heroHeaderAboutButtonHint = LocalizedStringResource(
         "hero.header.about.hint",
         defaultValue: "버전과 개인정보 처리방침, 후원 항목을 엽니다."
+    )
+}
+
+// MARK: - Usage report sharing (spec 029)
+
+nonisolated extension AppStrings {
+    static let usageReportNavigationTitle = LocalizedStringResource(
+        "usageReport.navigationTitle",
+        defaultValue: "사용 보고서"
+    )
+    static let usageReportDoneAction = LocalizedStringResource("usageReport.doneAction", defaultValue: "닫기")
+    static let usageReportIntro = LocalizedStringResource(
+        "usageReport.intro",
+        defaultValue: "앱을 더 낫게 만드는 데 참고할 집계 보고서입니다. 아래 내용을 확인한 뒤 공유할 앱과 대상을 직접 선택합니다."
+    )
+    static let usageReportIncludedTitle = LocalizedStringResource(
+        "usageReport.includedTitle",
+        defaultValue: "포함하는 정보"
+    )
+    static let usageReportIncludedDescription = LocalizedStringResource(
+        "usageReport.includedDescription",
+        defaultValue: "온보딩 실험 배정, 단계별 집계 인원수, 완료·첫 성공·유예·재방문·반복 완료 비율, 첫 가치까지 걸린 시간, 주간 활성 설치 수, 집계 기간·기준 시간대·데이터 품질, 앱 버전"
+    )
+    static let usageReportExcludedTitle = LocalizedStringResource(
+        "usageReport.excludedTitle",
+        defaultValue: "포함하지 않는 정보"
+    )
+    static let usageReportExcludedDescription = LocalizedStringResource(
+        "usageReport.excludedDescription",
+        defaultValue: "퀘스트 제목과 설명, 설치·퀘스트 식별자, 알림 내용, 개별 행동 기록"
+    )
+    static let usageReportUnavailable = LocalizedStringResource(
+        "usageReport.unavailable",
+        defaultValue: "아직 공유할 보고서가 없습니다. 앱을 다시 연 뒤 확인해 주세요."
+    )
+    static let usageReportEncodingFailed = LocalizedStringResource(
+        "usageReport.encodingFailed",
+        defaultValue: "보고서 파일을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요."
+    )
+    static let usageReportShareAction = LocalizedStringResource(
+        "usageReport.shareAction",
+        defaultValue: "공유 계속하기"
+    )
+    static let usageReportShareNote = LocalizedStringResource(
+        "usageReport.shareNote",
+        defaultValue: "개발자에게 보내려면 ydm2790@gmail.com을 받는 사람으로 선택하세요. 공유 앱은 계정이나 전송 정보를 별도로 처리할 수 있습니다."
+    )
+    static let usageReportFileTitle = LocalizedStringResource(
+        "usageReport.fileTitle",
+        defaultValue: "TODO Slayer 사용 보고서"
     )
 }
 

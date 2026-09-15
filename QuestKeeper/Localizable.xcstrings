@@ -273,6 +273,54 @@
         }
       }
     },
+    "about.usageReport.action" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share Usage Report"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 보고서 공유하기"
+          }
+        }
+      }
+    },
+    "about.usageReport.note" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing leaves your device unless you review it and choose to share."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내용을 확인하고 직접 선택할 때만 기기 밖으로 보냅니다."
+          }
+        }
+      }
+    },
+    "about.usageReport.section" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Improvement"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱 개선"
+          }
+        }
+      }
+    },
     "about.versionLabel" : {
       "localizations" : {
         "en" : {
@@ -3415,6 +3463,198 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "저장소를 열지 못했습니다"
+          }
+        }
+      }
+    },
+    "usageReport.doneAction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "닫기"
+          }
+        }
+      }
+    },
+    "usageReport.encodingFailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The report file could not be prepared. Please try again shortly."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보고서 파일을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요."
+          }
+        }
+      }
+    },
+    "usageReport.excludedDescription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quest titles and descriptions, installation and quest identifiers, notification content, and individual activity records"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "퀘스트 제목과 설명, 설치·퀘스트 식별자, 알림 내용, 개별 행동 기록"
+          }
+        }
+      }
+    },
+    "usageReport.excludedTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Included"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "포함하지 않는 정보"
+          }
+        }
+      }
+    },
+    "usageReport.fileTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TODO Slayer Usage Report"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TODO Slayer 사용 보고서"
+          }
+        }
+      }
+    },
+    "usageReport.includedDescription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onboarding assignment; aggregate step counts; completion, first-success, deferral, return, and repeat-completion rates; time to first value; weekly active installation count; reporting period, time zone, data quality; and app version"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "온보딩 실험 배정, 단계별 집계 인원수, 완료·첫 성공·유예·재방문·반복 완료 비율, 첫 가치까지 걸린 시간, 주간 활성 설치 수, 집계 기간·기준 시간대·데이터 품질, 앱 버전"
+          }
+        }
+      }
+    },
+    "usageReport.includedTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Included"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "포함하는 정보"
+          }
+        }
+      }
+    },
+    "usageReport.intro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This aggregate report can help improve the app. Review it below, then choose the app and recipient yourself."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱을 더 낫게 만드는 데 참고할 집계 보고서입니다. 아래 내용을 확인한 뒤 공유할 앱과 대상을 직접 선택합니다."
+          }
+        }
+      }
+    },
+    "usageReport.navigationTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage Report"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 보고서"
+          }
+        }
+      }
+    },
+    "usageReport.shareAction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue to Share"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "공유 계속하기"
+          }
+        }
+      }
+    },
+    "usageReport.shareNote" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To send the report to the developer, choose ydm2790@gmail.com as the recipient. The sharing app may separately process account or delivery information."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개발자에게 보내려면 ydm2790@gmail.com을 받는 사람으로 선택하세요. 공유 앱은 계정이나 전송 정보를 별도로 처리할 수 있습니다."
+          }
+        }
+      }
+    },
+    "usageReport.unavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no report to share yet. Reopen the app and check again."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 공유할 보고서가 없습니다. 앱을 다시 연 뒤 확인해 주세요."
           }
         }
       }

@@ -24,7 +24,7 @@ It crosses the OS surfaces that are easy to avoid from Flutter or React Native: 
 
 - Persist facts, derive state.
 - Do not store HP, `isDead`, grave counts, retry counts, notification IDs, widget IDs, monster type, urgency, mob level, or outcome on `Quest`.
-- Keep the app local-only and offline-first.
+- Keep task data local-only and make every aggregate usage-report export user-initiated.
 - Keep notifications and widgets as side effects around stored facts, not as sources of truth.
 - Prefer Apple first-party frameworks and avoid third-party dependencies for the MVP.
 - Keep Korean user-facing copy intentional and shame-free.
