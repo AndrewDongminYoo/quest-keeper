@@ -15,16 +15,10 @@ else
 	locales=(ko)
 fi
 
-output_parent="$(dirname "${output_root}")"
-mkdir -p "${output_parent}"
-normalized_output_parent="$(realpath "${output_parent}")"
-output_basename="$(basename "${output_root}")"
-normalized_output_root="${normalized_output_parent}/${output_basename}"
+mkdir -p "${output_root}"
+normalized_output_root="$(realpath "${output_root}")"
 release_output_root="${repo_root}/fastlane/screenshots/generated"
-release_output_parent="$(dirname "${release_output_root}")"
-normalized_release_output_parent="$(realpath "${release_output_parent}")"
-release_output_basename="$(basename "${release_output_root}")"
-normalized_release_output_root="${normalized_release_output_parent}/${release_output_basename}"
+normalized_release_output_root="$(realpath "${release_output_root}")"
 
 if [[ ${normalized_output_root} == "${normalized_release_output_root}" ]]; then
 	echo "candidate output must not use the release screenshot directory: ${output_root}" >&2

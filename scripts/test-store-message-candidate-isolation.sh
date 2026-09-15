@@ -46,22 +46,24 @@ printf 'composed\n' >"${output}"
 SCRIPT
 chmod +x "${mock_bin}/magick"
 
-set +e
-STORE_SCREENSHOT_FONT_PATH="${work_dir}/StoreScreenshotFont.ttc" \
-	PATH="${mock_bin}:${PATH}" \
-	bash "${mock_repo}/scripts/compose-store-screenshots.sh" "${mock_raw}" "${mock_release}" ko >"${work_dir}/composer.log" 2>&1
-command_exit=$?
-set -e
+for forbidden_output in "${mock_release}" "${mock_release}/ko/.."; do
+	set +e
+	STORE_SCREENSHOT_FONT_PATH="${work_dir}/StoreScreenshotFont.ttc" \
+		PATH="${mock_bin}:${PATH}" \
+		bash "${mock_repo}/scripts/compose-store-screenshots.sh" "${mock_raw}" "${forbidden_output}" ko >"${work_dir}/composer.log" 2>&1
+	command_exit=$?
+	set -e
 
-if [[ ${command_exit} -eq 0 ]]; then
-	echo "FAIL: the candidate composer accepted the release screenshot directory" >&2
-	exit 1
-fi
+	if [[ ${command_exit} -eq 0 ]]; then
+		echo "FAIL: the candidate composer accepted the release screenshot directory: ${forbidden_output}" >&2
+		exit 1
+	fi
 
-if ! grep -qF "candidate output must not use the release screenshot directory" "${work_dir}/composer.log"; then
-	echo "FAIL: the candidate composer did not explain the release-path rejection" >&2
-	cat "${work_dir}/composer.log" >&2
-	exit 1
-fi
+	if ! grep -qF "candidate output must not use the release screenshot directory" "${work_dir}/composer.log"; then
+		echo "FAIL: the candidate composer did not explain the release-path rejection" >&2
+		cat "${work_dir}/composer.log" >&2
+		exit 1
+	fi
+done
 
 echo "store message candidate isolation tests passed"
