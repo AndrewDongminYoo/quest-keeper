@@ -9,13 +9,18 @@ Generate reproducible App Store screenshots and the current version's “What’
 Fastlane Snapshot runs only `StoreScreenshotUITests` in a Debug build on the highest-resolution iPhone simulator configured in `fastlane/Snapfile`, once per locale in that file's `languages`.
 The app uses an in-memory SwiftData store and DEBUG-only launch fixtures, so captures do not read or mutate personal quest data.
 The test pins no locale of its own — Snapshot's injected `-AppleLanguages` decides it — and identifies screens by `accessibilityIdentifier`, so the same test runs unchanged under every locale.
-Six product states that users can reach in Release builds are captured into `fastlane/screenshots/generated/<locale>` while the previously downloaded store screenshots remain untouched: `01-dungeon`, `02-battle`, `03-hero-appearance`, `06-daily-grave`, `07-quest-editor`, and `08-empty-dungeon`.
+Six product states that users can reach in Release builds are captured into `fastlane/screenshots/raw/<locale>`: `01-dungeon`, `02-battle`, `03-hero-appearance`, `06-daily-grave`, `07-quest-editor`, and `08-empty-dungeon`.
 Before Snapshot launches, `scripts/validate-store-screenshot-reachability.sh` rejects feature-availability arguments that only work in DEBUG builds.
 `scripts/process-store-screenshots.sh` converts the raw Simulator PNG files to 8-bit RGB without alpha.
-`scripts/validate-store-screenshots.sh` then requires all six named PNG files per locale, an Apple-supported 6.9-inch portrait size, 8-bit channels, and no alpha channel.
-Both scripts take the locale list as trailing arguments and default to `ko en-US`.
+`scripts/compose-store-screenshots.sh` reads the Korean copy from `fastlane/screenshots/copy/ko.txt` and writes the upload set to `fastlane/screenshots/generated/<locale>`.
+The Korean set places the dungeon, battle, and daily grave first and adds the approved captions to those three images.
+The script copies the remaining Korean captures and every English capture without changing their pixels.
+`scripts/validate-store-screenshots.sh` then requires the locale-specific set of six PNG files, an Apple-supported 6.9-inch portrait size, 8-bit channels, and no alpha channel.
+All three scripts take the locale list as trailing arguments and default to `ko en-US`.
 
-Monster sprites are chosen from each fixture quest's per-launch `UUID`, so re-running the lane redraws them and every PNG differs byte-for-byte from the committed one. That is expected; discard the rerun unless it was for a real content change.
+Monster sprites are chosen from each fixture quest's per-launch `UUID`, so re-running the lane redraws the raw captures and every affected final PNG differs byte-for-byte from the committed one.
+That is expected.
+Discard the rerun unless it was for a real content change.
 
 ## Release-note pipeline
 
@@ -34,6 +39,8 @@ bundle exec fastlane ios store_assets
 
 `store_assets` prepares both local surfaces and performs no upload.
 The existing `release` lane remains the only lane that builds and uploads a release.
+`bundle exec fastlane ios release` is the only supported upload entry point.
+Do not run `fastlane deliver` directly because that command bypasses capture, composition, and screenshot validation.
 
 Snapshot writes derived data to its own default location. On a machine whose root volume is tight, redirect it for that run instead of pinning a path in `Snapfile` — the path is machine-specific and the file is shared:
 

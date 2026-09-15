@@ -26,7 +26,16 @@ exit 1
 SCRIPT
 chmod +x "${fake_bin}/magick"
 
-expected_names=(
+ko_names=(
+	01-dungeon
+	02-battle
+	03-daily-grave
+	04-hero-appearance
+	05-quest-editor
+	06-empty-dungeon
+)
+
+en_names=(
 	01-dungeon
 	02-battle
 	03-hero-appearance
@@ -35,10 +44,12 @@ expected_names=(
 	08-empty-dungeon
 )
 
-for locale in ko en-US; do
-	for name in "${expected_names[@]}"; do
-		: >"${screenshot_root}/${locale}/${name}.png"
-	done
+for name in "${ko_names[@]}"; do
+	: >"${screenshot_root}/ko/${name}.png"
+done
+
+for name in "${en_names[@]}"; do
+	: >"${screenshot_root}/en-US/${name}.png"
 done
 
 output_file="${work_dir}/output.log"
@@ -101,5 +112,7 @@ for forbidden_argument in -dailyFocusLoopEnabled -recoveryLoopVariant; do
 		exit 1
 	fi
 done
+
+bash "${repo_root}/scripts/test-compose-store-screenshots.sh"
 
 echo "store screenshot tests passed"

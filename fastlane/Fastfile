@@ -21,6 +21,7 @@ platform :ios do
     sh("bash", "../scripts/validate-store-screenshot-reachability.sh")
     snapshot
     sh("bash", "../scripts/process-store-screenshots.sh")
+    sh("bash", "../scripts/compose-store-screenshots.sh")
     sh("bash", "../scripts/validate-store-screenshots.sh")
   end
 
