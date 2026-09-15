@@ -11,6 +11,9 @@ final class UsageReportSharingUITests: XCTestCase {
 
         openUsageReportDisclosure(in: app)
 
+        XCTAssertTrue(app.otherElements["usageReportIntroCard"].exists)
+        XCTAssertTrue(app.otherElements["usageReportIncludedCard"].exists)
+        XCTAssertTrue(app.otherElements["usageReportExcludedCard"].exists)
         XCTAssertTrue(app.staticTexts["usageReportIncludedDescription"].exists)
         XCTAssertTrue(app.staticTexts["usageReportExcludedDescription"].exists)
         let shareAction = app.descendants(matching: .any)["usageReportShareButton"]
@@ -38,7 +41,7 @@ final class UsageReportSharingUITests: XCTestCase {
         openUsageReportDisclosure(in: app)
 
         let shareAction = app.descendants(matching: .any)["usageReportShareButton"]
-        for _ in 0..<4 where !shareAction.exists {
+        for _ in 0..<10 where !shareAction.isHittable {
             app.swipeUp()
         }
         XCTAssertTrue(shareAction.waitForExistence(timeout: 3))
