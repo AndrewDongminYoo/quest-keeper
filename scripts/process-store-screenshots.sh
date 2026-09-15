@@ -3,8 +3,8 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-screenshot_root="${1:-${repo_root}/fastlane/screenshots/raw}"
-# Snapfile의 languages와 같은 순서. 로캘을 추가할 때는 처리, 합성, 검증 스크립트를 함께 고친다.
+screenshot_root="${1:-${repo_root}/fastlane/screenshots/generated}"
+# Snapfile의 languages와 같은 순서. 로캘을 추가할 때는 두 스크립트를 함께 고친다.
 if [[ $# -ge 2 ]]; then
 	locales=("${@:2}")
 else

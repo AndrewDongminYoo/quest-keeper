@@ -13,8 +13,9 @@ work_dir="$(mktemp -d)" || {
 trap 'rm -rf "${work_dir}"' EXIT
 
 fake_bin="${work_dir}/bin"
-screenshot_root="${work_dir}/screenshots"
-mkdir -p "${fake_bin}" "${screenshot_root}/ko" "${screenshot_root}/en-US"
+release_root="${work_dir}/release"
+candidate_root="${work_dir}/candidate"
+mkdir -p "${fake_bin}" "${release_root}/ko" "${release_root}/en-US" "${candidate_root}/ko"
 
 cat >"${fake_bin}/magick" <<'SCRIPT'
 #!/usr/bin/env bash
@@ -26,7 +27,7 @@ exit 1
 SCRIPT
 chmod +x "${fake_bin}/magick"
 
-ko_names=(
+candidate_ko_names=(
 	01-dungeon
 	02-battle
 	03-daily-grave
@@ -35,7 +36,7 @@ ko_names=(
 	06-empty-dungeon
 )
 
-en_names=(
+release_names=(
 	01-dungeon
 	02-battle
 	03-hero-appearance
@@ -44,16 +45,17 @@ en_names=(
 	08-empty-dungeon
 )
 
-for name in "${ko_names[@]}"; do
-	: >"${screenshot_root}/ko/${name}.png"
+for name in "${release_names[@]}"; do
+	: >"${release_root}/ko/${name}.png"
+	: >"${release_root}/en-US/${name}.png"
 done
 
-for name in "${en_names[@]}"; do
-	: >"${screenshot_root}/en-US/${name}.png"
+for name in "${candidate_ko_names[@]}"; do
+	: >"${candidate_root}/ko/${name}.png"
 done
 
 output_file="${work_dir}/output.log"
-PATH="${fake_bin}:${PATH}" bash "${validator}" "${screenshot_root}" ko en-US >"${output_file}" 2>&1
+PATH="${fake_bin}:${PATH}" bash "${validator}" "${release_root}" ko en-US >"${output_file}" 2>&1
 command_exit=$?
 
 if [[ ${command_exit} -ne 0 ]]; then
@@ -74,10 +76,21 @@ if ! grep -qF "validated 6 en-US App Store screenshots" "${output_file}"; then
 	exit 1
 fi
 
+STORE_SCREENSHOT_PROFILE=and-41 PATH="${fake_bin}:${PATH}" \
+	bash "${validator}" "${candidate_root}" ko >"${output_file}" 2>&1
+command_exit=$?
+
+if [[ ${command_exit} -ne 0 ]]; then
+	echo "FAIL: the isolated AND-41 candidate set was rejected" >&2
+	cat "${output_file}" >&2
+	exit 1
+fi
+
 for forbidden_name in 04-focus-plan 05-focus-selection; do
-	: >"${screenshot_root}/ko/${forbidden_name}.png"
+	: >"${candidate_root}/ko/${forbidden_name}.png"
 	set +e
-	PATH="${fake_bin}:${PATH}" bash "${validator}" "${screenshot_root}" ko en-US >"${output_file}" 2>&1
+	STORE_SCREENSHOT_PROFILE=and-41 PATH="${fake_bin}:${PATH}" \
+		bash "${validator}" "${candidate_root}" ko >"${output_file}" 2>&1
 	command_exit=$?
 	set -e
 	if [[ ${command_exit} -eq 0 ]]; then
@@ -85,7 +98,7 @@ for forbidden_name in 04-focus-plan 05-focus-selection; do
 		cat "${output_file}" >&2
 		exit 1
 	fi
-	rm "${screenshot_root}/ko/${forbidden_name}.png"
+	rm "${candidate_root}/ko/${forbidden_name}.png"
 done
 
 if ! bash "${reachability_validator}" "${store_test}" >>"${output_file}" 2>&1; then
@@ -114,5 +127,6 @@ for forbidden_argument in -dailyFocusLoopEnabled -recoveryLoopVariant; do
 done
 
 bash "${repo_root}/scripts/test-compose-store-screenshots.sh"
+bash "${repo_root}/scripts/test-store-message-candidate-isolation.sh"
 
 echo "store screenshot tests passed"

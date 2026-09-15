@@ -9,7 +9,7 @@ trap 'rm -rf "${work_dir}"' EXIT
 
 raw_root="${work_dir}/raw"
 output_root="${work_dir}/generated"
-copy_root="${repo_root}/fastlane/screenshots/copy"
+copy_root="${repo_root}/fastlane/candidates/and-41/copy"
 fake_bin="${work_dir}/bin"
 font_path="${work_dir}/StoreScreenshotFont.ttc"
 magick_log="${work_dir}/magick.log"
@@ -83,6 +83,28 @@ if [[ -e ${output_root}/en-US/stale.png ]]; then
 	echo "FAIL: the composer retained a stale English screenshot" >&2
 	exit 1
 fi
+
+en_only_output="${work_dir}/en-only"
+mkdir -p "${en_only_output}"
+set +e
+STORE_SCREENSHOT_FONT_PATH="${work_dir}/missing-font.ttc" \
+	PATH="/usr/bin:/bin" \
+	bash "${composer}" "${raw_root}" "${en_only_output}" en-US >"${work_dir}/en-only.log" 2>&1
+command_exit=$?
+set -e
+
+if [[ ${command_exit} -ne 0 ]]; then
+	echo "FAIL: en-US passthrough required Korean rendering dependencies" >&2
+	cat "${work_dir}/en-only.log" >&2
+	exit 1
+fi
+
+for name in "${raw_names[@]}"; do
+	if ! cmp -s "${raw_root}/en-US/iPhone 17 Pro Max-${name}.png" "${en_only_output}/en-US/iPhone 17 Pro Max-${name}.png"; then
+		echo "FAIL: en-US-only passthrough changed ${name}.png" >&2
+		exit 1
+	fi
+done
 
 render_contracts=(
 	'01-dungeon|01-dungeon|밀린 할 일이 부담될 땐|오늘의 몬스터부터'

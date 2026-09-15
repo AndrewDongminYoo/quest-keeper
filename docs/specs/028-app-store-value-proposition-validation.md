@@ -84,19 +84,20 @@ Quest editor and empty dungeon remain supporting screenshots.
 The screenshot test remains the source of truthful product states.
 Do not add marketing text to a DEBUG-only app fixture or hand-edit a generated PNG.
 
-The implemented composition step has these properties:
+The implemented candidate composition step has these properties:
 
-- Preserve the raw Snapshot captures as separate source artifacts.
-- Generate a final 1320 by 2868 pixel App Store image from each selected source capture.
+- Preserve the raw captures as separate source artifacts under `fastlane/candidates/and-41/`.
+- Generate a final 1320 by 2868 pixel candidate image from each selected source capture.
 - Reserve a high-contrast caption band above an inset app capture.
 - Keep the app capture uncropped so the marketing asset does not hide product state.
 - Read Korean copy from one reviewable source file instead of duplicating strings in a script.
 - Give output files explicit numeric prefixes that define App Store order.
-- Make the existing screenshot validator inspect the final upload directory.
-- Make the release lane upload only the validated final directory.
+- Validate the candidate with an explicit AND-41 profile.
+- Reject the release screenshot directory as a candidate-composer output.
+- Keep every candidate metadata and screenshot file outside the paths configured in `fastlane/Deliverfile`.
 
-This implementation slice changes the Korean subtitle and Korean screenshot set only.
-It must preserve the current English metadata and screenshots.
+This implementation slice adds an isolated Korean subtitle and screenshot candidate only.
+It preserves the release Korean and English metadata and screenshots.
 English recovery-first copy requires a separate native-language review before adoption.
 
 The implementation must not change app behavior, onboarding, task rules, privacy behavior, or in-app purchase surfaces.
@@ -158,23 +159,25 @@ Otherwise, the result cannot distinguish a traffic-source effect from a store-me
 
 ## Current Result
 
-The recovery-first direction, Korean copy, local subtitle source, and generated Korean assets are implemented.
+The recovery-first direction, Korean copy, candidate subtitle source, and generated Korean candidate assets are implemented under `fastlane/candidates/and-41/`.
 Repeated local composition produced an identical SHA-256 manifest.
 Pixel comparison found zero changed pixels between each generated English screenshot and its prior committed version.
 The game-first and privacy-first candidates are deferred for the reasons in this document.
-The live App Store subtitle and screenshots remain unchanged.
+The operator approved the final Korean contact sheet represented by commit `a027266` on 2026-09-15.
+The release-path and live App Store subtitle and screenshots remain unchanged.
 
-AND-41 remains in progress until the five-person preference test and rendered-asset review pass.
+AND-41 remains in progress until the five-person preference test passes.
 Publication remains separate follow-up work.
 
 ## Sources
 
 - `docs/store/app-store-listing.md`
 - `docs/specs/016-store-release-automation.md`
-- `fastlane/metadata/ko/subtitle.txt`
+- `fastlane/candidates/and-41/metadata/ko/subtitle.txt`
+- `fastlane/candidates/and-41/copy/ko.txt`
 - `fastlane/metadata/ko/description.txt`
 - `fastlane/metadata/en-US/subtitle.txt`
-- `fastlane/screenshots/generated/ko/`
+- `fastlane/candidates/and-41/screenshots/ko/`
 - `QuestKeeperUITests/StoreScreenshotUITests.swift`
 - [Apple acquisition metrics](https://developer.apple.com/help/app-store-connect-analytics/acquisition/acquisition)
 - [Apple product page optimization overview](https://developer.apple.com/help/app-store-connect/create-product-page-optimization-tests/overview-of-product-page-optimization)

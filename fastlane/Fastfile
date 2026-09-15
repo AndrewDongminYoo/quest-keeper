@@ -21,8 +21,14 @@ platform :ios do
     sh("bash", "../scripts/validate-store-screenshot-reachability.sh")
     snapshot
     sh("bash", "../scripts/process-store-screenshots.sh")
-    sh("bash", "../scripts/compose-store-screenshots.sh")
     sh("bash", "../scripts/validate-store-screenshots.sh")
+  end
+
+  desc "Compose and validate the isolated AND-41 Korean store candidate"
+  lane :store_message_candidate do
+    sh("bash", "../scripts/process-store-screenshots.sh", "../fastlane/candidates/and-41/raw", "ko")
+    sh("bash", "../scripts/compose-store-screenshots.sh")
+    sh("env", "STORE_SCREENSHOT_PROFILE=and-41", "bash", "../scripts/validate-store-screenshots.sh", "../fastlane/candidates/and-41/screenshots", "ko")
   end
 
   desc "Generate and validate What's New metadata for the current version"

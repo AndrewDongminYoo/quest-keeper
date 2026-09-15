@@ -3,15 +3,32 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-raw_root="${1:-${repo_root}/fastlane/screenshots/raw}"
-output_root="${2:-${repo_root}/fastlane/screenshots/generated}"
-copy_root="${STORE_SCREENSHOT_COPY_ROOT:-${repo_root}/fastlane/screenshots/copy}"
+candidate_root="${repo_root}/fastlane/candidates/and-41"
+raw_root="${1:-${candidate_root}/raw}"
+output_root="${2:-${candidate_root}/screenshots}"
+copy_root="${STORE_SCREENSHOT_COPY_ROOT:-${candidate_root}/copy}"
 font_path="${STORE_SCREENSHOT_FONT_PATH:-/System/Library/Fonts/AppleSDGothicNeo.ttc}"
 
 if [[ $# -ge 3 ]]; then
 	locales=("${@:3}")
 else
-	locales=(ko en-US)
+	locales=(ko)
+fi
+
+output_parent="$(dirname "${output_root}")"
+mkdir -p "${output_parent}"
+normalized_output_parent="$(realpath "${output_parent}")"
+output_basename="$(basename "${output_root}")"
+normalized_output_root="${normalized_output_parent}/${output_basename}"
+release_output_root="${repo_root}/fastlane/screenshots/generated"
+release_output_parent="$(dirname "${release_output_root}")"
+normalized_release_output_parent="$(realpath "${release_output_parent}")"
+release_output_basename="$(basename "${release_output_root}")"
+normalized_release_output_root="${normalized_release_output_parent}/${release_output_basename}"
+
+if [[ ${normalized_output_root} == "${normalized_release_output_root}" ]]; then
+	echo "candidate output must not use the release screenshot directory: ${output_root}" >&2
+	exit 1
 fi
 
 if [[ ${raw_root} == "${output_root}" ]]; then
@@ -19,14 +36,24 @@ if [[ ${raw_root} == "${output_root}" ]]; then
 	exit 1
 fi
 
-if ! command -v magick >/dev/null 2>&1; then
-	echo "ImageMagick is required to compose store screenshots" >&2
-	exit 1
-fi
+requires_korean_rendering=false
+for locale in "${locales[@]}"; do
+	if [[ ${locale} == ko ]]; then
+		requires_korean_rendering=true
+		break
+	fi
+done
 
-if [[ ! -f ${font_path} ]]; then
-	echo "store screenshot font not found: ${font_path}" >&2
-	exit 1
+if [[ ${requires_korean_rendering} == true ]]; then
+	if ! command -v magick >/dev/null 2>&1; then
+		echo "ImageMagick is required to compose store screenshots" >&2
+		exit 1
+	fi
+
+	if [[ ! -f ${font_path} ]]; then
+		echo "store screenshot font not found: ${font_path}" >&2
+		exit 1
+	fi
 fi
 
 temporary_root="$(mktemp -d)"
