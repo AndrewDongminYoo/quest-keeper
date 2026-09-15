@@ -4,14 +4,24 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 screenshot_root="${1:-${repo_root}/fastlane/screenshots/generated}"
-# Snapfile의 languages와 같은 순서. 로캘을 추가할 때는 두 스크립트를 함께 고친다.
+# Snapfile의 languages와 같은 순서. 로캘을 추가할 때는 처리, 검증 스크립트를 함께 고친다.
 if [[ $# -ge 2 ]]; then
 	locales=("${@:2}")
 else
 	locales=(ko en-US)
 fi
+profile="${STORE_SCREENSHOT_PROFILE:-release}"
 
-expected_names=(
+ko_expected_names=(
+	01-dungeon
+	02-battle
+	03-daily-grave
+	04-hero-appearance
+	05-quest-editor
+	06-empty-dungeon
+)
+
+default_expected_names=(
 	01-dungeon
 	02-battle
 	03-hero-appearance
@@ -30,6 +40,12 @@ trap 'rm -f "${file_list}"' EXIT
 
 for locale in "${locales[@]}"; do
 	locale_directory="${screenshot_root}/${locale}"
+	if [[ ${profile} == and-41 && ${locale} == ko ]]; then
+		expected_names=("${ko_expected_names[@]}")
+	else
+		expected_names=("${default_expected_names[@]}")
+	fi
+
 	if [[ ! -d ${locale_directory} ]]; then
 		echo "screenshot locale directory not found: ${locale_directory}" >&2
 		exit 1
