@@ -44,11 +44,11 @@ The Korean description already supports each selected claim:
 
 The operator reviewed the three concepts as visual cards on 2026-09-14 and selected candidate A.
 
-| Candidate         | Subtitle                              | First screenshot                               | Second screenshot                   | Third screenshot                     | Result                                                                                                                             |
-| ----------------- | ------------------------------------- | ---------------------------------------------- | ----------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| A: Recovery first | `죄책감 없이 다시 시작하는 픽셀 투두` | `밀린 할 일이 부담될 땐` / `오늘의 몬스터부터` | `끝낸 할 일은` / `단칼에 처치`      | `놓쳐도 괜찮아요` / `내일 다시 도전` | Selected because it identifies the target problem, demonstrates the game reward, and ends with the product's recovery difference.  |
-| B: Game first     | `할 일을 사냥하는 픽셀 RPG 투두`      | `할 일을` / `몬스터로 바꾸세요`                | `마감이 다가오면` / `몬스터가 성장` | `완료하면` / `한 번에 처치`          | Deferred because it explains the mechanic but does not distinguish TODO Slayer from another gamified task app.                     |
-| C: Privacy first  | `광고 없이 기기에서 쓰는 로컬 투두`   | `계정 없이` / `바로 시작`                      | `광고 없이` / `내 일에 집중`        | `기록은` / `기기 안에만`             | Deferred because privacy reduces purchase risk but does not lead with the user's overdue-task problem or the app's primary reward. |
+| Candidate         | Target user problem                                                                                         | Subtitle                              | First screenshot                               | Second screenshot                   | Third screenshot                     | Result                                                                                                                             |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------- | ----------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| A: Recovery first | A person feels burdened by overdue tasks and needs a low-pressure way to start again.                       | `죄책감 없이 다시 시작하는 픽셀 투두` | `밀린 할 일이 부담될 땐` / `오늘의 몬스터부터` | `끝낸 할 일은` / `단칼에 처치`      | `놓쳐도 괜찮아요` / `내일 다시 도전` | Selected because it identifies the target problem, demonstrates the game reward, and ends with the product's recovery difference.  |
+| B: Game first     | A person finds ordinary task tracking unmotivating and wants task completion to feel like a game.           | `할 일을 사냥하는 픽셀 RPG 투두`      | `할 일을` / `몬스터로 바꾸세요`                | `마감이 다가오면` / `몬스터가 성장` | `완료하면` / `한 번에 처치`          | Deferred because it explains the mechanic but does not distinguish TODO Slayer from another gamified task app.                     |
+| C: Privacy first  | A person avoids task apps that require an account, show ads, or send personal task data outside the device. | `광고 없이 기기에서 쓰는 로컬 투두`   | `계정 없이` / `바로 시작`                      | `광고 없이` / `내 일에 집중`        | `기록은` / `기기 안에만`             | Deferred because privacy reduces purchase risk but does not lead with the user's overdue-task problem or the app's primary reward. |
 
 Candidate A is the only approved working direction.
 Candidate B remains supporting language in the description.
@@ -159,14 +159,22 @@ Otherwise, the result cannot distinguish a traffic-source effect from a store-me
 
 ## Current Result
 
-The recovery-first direction, Korean copy, candidate subtitle source, and generated Korean candidate assets are implemented under `fastlane/candidates/and-41/`.
-Repeated local composition produced an identical SHA-256 manifest.
-Pixel comparison found zero changed pixels between each generated English screenshot and its prior committed version.
-The game-first and privacy-first candidates are deferred for the reasons in this document.
-The operator approved the final Korean contact sheet represented by commit `a027266` on 2026-09-15.
+Candidate A remains the selected working direction.
+PR #81 and commit `962f8c1` contain the isolated Korean candidate assets, composer, and repository checks.
+Use `bash scripts/test-compose-store-screenshots.sh` to verify the composition contract and `bash scripts/test-store-message-candidate-isolation.sh` to verify release-path isolation.
+Commit `a027266` records the operator's 2026-09-15 approval of the final Korean contact sheet.
+Only candidate A has rendered assets.
+Rendered comparison cards for candidates B and C are still required to conduct the A, B, and C human preference test.
 The release-path and live App Store subtitle and screenshots remain unchanged.
 
-AND-41 remains in progress until the five-person preference test passes.
+AND-41 is blocked on three external inputs:
+
+- Five eligible Korean-speaking participants for the preference test.
+- Rendered comparison cards for candidates B and C.
+- Recorded results against the preference-test thresholds in this document.
+
+The five-person preference validation has not passed.
+AI-agent opinions cannot replace the required participant record.
 Publication remains separate follow-up work.
 
 ## Sources
@@ -179,6 +187,8 @@ Publication remains separate follow-up work.
 - `fastlane/metadata/en-US/subtitle.txt`
 - `fastlane/candidates/and-41/screenshots/ko/`
 - `QuestKeeperUITests/StoreScreenshotUITests.swift`
+- [PR #81](https://github.com/AndrewDongminYoo/quest-keeper/pull/81)
+- [Contact-sheet approval commit `a027266`](https://github.com/AndrewDongminYoo/quest-keeper/commit/a027266ea4ac62b7f17dee9686bb854e468f3078)
 - [Apple acquisition metrics](https://developer.apple.com/help/app-store-connect-analytics/acquisition/acquisition)
 - [Apple product page optimization overview](https://developer.apple.com/help/app-store-connect/create-product-page-optimization-tests/overview-of-product-page-optimization)
 - [Apple campaign links](https://developer.apple.com/help/app-store-connect-analytics/acquisition/campaign-links)
