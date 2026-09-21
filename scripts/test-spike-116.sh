@@ -100,4 +100,15 @@ expect_private_paths_rejected \
 	"${linked_input}" \
 	"${fixture_dir}/symlink-input-result.json"
 
+failure_test_binary="${fixture_dir}/generation-failure-test"
+xcrun swiftc \
+	-D SPIKE_116_TESTS \
+	-swift-version 6 \
+	-parse-as-library \
+	-framework FoundationModels \
+	-o "${failure_test_binary}" \
+	"${repo_root}/scripts/spike-116/main.swift" \
+	"${repo_root}/scripts/spike-116/test-generation-failure.swift"
+"${failure_test_binary}"
+
 echo "spike-116 tests passed"

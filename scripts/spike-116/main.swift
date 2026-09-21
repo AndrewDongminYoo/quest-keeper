@@ -14,8 +14,14 @@ private struct AvailabilityReport: Encodable {
     let contextSize: Int
 }
 
-private struct ResultRecord: Encodable {
+enum GenerationStatus: String, Encodable {
+    case generated
+    case generationFailed = "generation_failed"
+}
+
+struct ResultRecord: Encodable {
     let caseID: String
+    let status: GenerationStatus
     let subquests: [String]
 }
 
@@ -46,6 +52,38 @@ private enum CLIError: LocalizedError {
     }
 }
 
+func generateResultRecords(
+    titles: [String],
+    generate: @Sendable (String) async throws -> [String]
+) async -> [ResultRecord] {
+    var records: [ResultRecord] = []
+    records.reserveCapacity(titles.count)
+
+    for (index, title) in titles.enumerated() {
+        let caseID = String(format: "case-%02d", index + 1)
+        do {
+            records.append(
+                ResultRecord(
+                    caseID: caseID,
+                    status: .generated,
+                    subquests: try await generate(title)
+                )
+            )
+        } catch {
+            records.append(
+                ResultRecord(
+                    caseID: caseID,
+                    status: .generationFailed,
+                    subquests: []
+                )
+            )
+        }
+    }
+
+    return records
+}
+
+#if !SPIKE_116_TESTS
 @main
 private enum Spike116 {
     static func main() async {
@@ -90,9 +128,7 @@ private enum Spike116 {
             throw CLIError.unsupportedKoreanLocale
         }
 
-        var records: [ResultRecord] = []
-        records.reserveCapacity(titles.count)
-        for (index, title) in titles.enumerated() {
+        let records = await generateResultRecords(titles: titles) { title in
             let session = LanguageModelSession(
                 model: model,
                 instructions: "The person's locale is ko-KR. You MUST respond in Korean. Split the quest into concrete actions without adding commentary."
@@ -101,12 +137,7 @@ private enum Spike116 {
                 to: "Split this quest into practical steps: \(title)",
                 generating: QuestSplit.self
             )
-            records.append(
-                ResultRecord(
-                    caseID: String(format: "case-%02d", index + 1),
-                    subquests: response.content.subquests
-                )
-            )
+            return response.content.subquests
         }
 
         let encoder = JSONEncoder()
@@ -157,3 +188,4 @@ private enum Spike116 {
         FileHandle.standardOutput.write(Data("\n".utf8))
     }
 }
+#endif

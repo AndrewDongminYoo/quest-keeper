@@ -80,7 +80,9 @@ scripts/spike-116/run.sh \
 
 Before compilation, the runner resolves both paths to canonical physical locations and rejects the repository root or any descendant, including a symlink that resolves into the repository.
 After that privacy boundary passes, the Swift harness validates the exact title count before checking model availability or starting generation.
-The result contains opaque identifiers from `case-01` through `case-20` and a structured subquest list for each case.
+The result contains opaque identifiers from `case-01` through `case-20`, a `generated` or `generation_failed` status, and a structured subquest list for each case.
+If one generation request fails, the harness records that case as `generation_failed` with an empty subquest list and continues through the remaining titles.
+The evaluator must score that case as unusable rather than retrying or replacing its source title.
 It does not copy source titles into the result JSON and does not assign a score.
 The evaluator keeps the private input file as the local lookup between case identifiers and source titles.
 
