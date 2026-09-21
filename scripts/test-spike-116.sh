@@ -13,7 +13,14 @@ fail() {
 [[ -f ${runner} ]] || fail "spike-116 runner is missing: ${runner}"
 
 fixture_dir="$(mktemp -d)"
-trap 'rm -rf "${fixture_dir}"' EXIT
+repository_output_link=""
+cleanup() {
+	if [[ -n ${repository_output_link} ]]; then
+		rm -f -- "${repository_output_link}"
+	fi
+	rm -rf "${fixture_dir}"
+}
+trap cleanup EXIT
 
 availability_output="$(bash "${runner}" --check-availability)" || fail "availability check failed"
 if ! printf '%s' "${availability_output}" | /usr/bin/python3 -c '
@@ -99,6 +106,28 @@ expect_private_paths_rejected \
 	"a symlink resolving to a repository-contained input" \
 	"${linked_input}" \
 	"${fixture_dir}/symlink-input-result.json"
+
+same_path_output="${fixture_dir}/same-input-and-output.log"
+set +e
+same_path_rejection="$(DEVELOPER_DIR="${missing_developer_dir}" bash "${runner}" --input "${invalid_input}" --output "${invalid_input}" 2>&1)"
+same_path_exit=$?
+set -e
+[[ ${same_path_exit} -ne 0 ]] || fail "runner accepted identical canonical input and output paths"
+[[ ${same_path_rejection} == *"input and output paths must resolve to different files"* ]] || {
+	printf '%s\n' "${same_path_rejection}" >"${same_path_output}"
+	fail "runner did not reject identical canonical input and output paths before compilation"
+}
+
+external_output_target="${fixture_dir}/external-output.json"
+printf '{}\n' >"${external_output_target}"
+repository_output_link="${repo_root}/scripts/spike-116/privacy-probe-output-link.json"
+[[ ! -e ${repository_output_link} && ! -L ${repository_output_link} ]] || fail "repository output link probe already exists: ${repository_output_link}"
+ln -s "${external_output_target}" "${repository_output_link}"
+expect_private_paths_rejected \
+	"an output symlink located inside the repository" \
+	"${invalid_input}" \
+	"${repository_output_link}"
+[[ -L ${repository_output_link} ]] || fail "runner replaced the repository-contained output symlink"
 
 failure_test_binary="${fixture_dir}/generation-failure-test"
 xcrun swiftc \

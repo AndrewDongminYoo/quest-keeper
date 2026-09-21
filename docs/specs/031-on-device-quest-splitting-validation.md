@@ -78,7 +78,8 @@ scripts/spike-116/run.sh \
   --output /absolute/private/path/quest-splitting-results.json
 ```
 
-Before compilation, the runner resolves both paths to canonical physical locations and rejects the repository root or any descendant, including a symlink that resolves into the repository.
+Before compilation, the runner resolves both paths to canonical physical locations, rejects identical input and output files, and rejects the repository root or any descendant.
+The output path is also rejected when the path entry itself is inside the repository, including a repository-contained symlink that points to an external file.
 After that privacy boundary passes, the Swift harness validates the exact title count before checking model availability or starting generation.
 The result contains opaque identifiers from `case-01` through `case-20`, a `generated` or `generation_failed` status, and a structured subquest list for each case.
 If one generation request fails, the harness records that case as `generation_failed` with an empty subquest list and continues through the remaining titles.
