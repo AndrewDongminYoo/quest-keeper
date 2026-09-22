@@ -18,6 +18,7 @@ oxipng_log="${work_dir}/oxipng.log"
 mkdir -p \
 	"${mock_repo}/scripts" \
 	"${raw_root}" \
+	"${candidate_root}/copy" \
 	"${candidate_root}/screenshots/ko" \
 	"${candidate_root}/comparison/b/copy" \
 	"${candidate_root}/comparison/c/copy" \
@@ -27,6 +28,7 @@ mkdir -p \
 
 cp "${repo_root}/scripts/compose-store-screenshots.sh" "${mock_repo}/scripts/compose-store-screenshots.sh"
 cp "${repo_root}/scripts/compose-store-message-comparisons.sh" "${mock_repo}/scripts/compose-store-message-comparisons.sh"
+cp "${source_candidate_root}/copy/ko.txt" "${candidate_root}/copy/ko.txt"
 cp "${source_candidate_root}/comparison/b/copy/ko.txt" "${candidate_root}/comparison/b/copy/ko.txt"
 cp "${source_candidate_root}/comparison/c/copy/ko.txt" "${candidate_root}/comparison/c/copy/ko.txt"
 
@@ -153,7 +155,11 @@ for candidate in a b c; do
 
 	card_command="$(<"${card_path}")"
 	if [[ ${candidate} == a ]]; then
-		screenshot_root="${candidate_root}/screenshots/ko"
+		screenshot_root="/comparison-a/ko"
+		if [[ ${card_command} == *"${candidate_root}/screenshots/ko"* ]]; then
+			echo "FAIL: candidate a participant card reused stale derived screenshots" >&2
+			exit 1
+		fi
 	else
 		screenshot_root="${output_root}/screenshots/${candidate}/ko"
 	fi

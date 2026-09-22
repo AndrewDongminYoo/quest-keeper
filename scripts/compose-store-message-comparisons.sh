@@ -7,6 +7,8 @@ candidate_root="${repo_root}/fastlane/candidates/and-41"
 raw_root="${candidate_root}/raw"
 output_root="${1:-${candidate_root}/comparison}"
 store_composer="${repo_root}/scripts/compose-store-screenshots.sh"
+temporary_root="$(mktemp -d)"
+trap 'rm -rf "${temporary_root}"' EXIT
 
 if ! command -v magick >/dev/null 2>&1; then
 	echo "ImageMagick is required to compose store message comparisons" >&2
@@ -16,6 +18,17 @@ if ! command -v oxipng >/dev/null 2>&1; then
 	echo "oxipng is required to optimize store message comparisons" >&2
 	exit 1
 fi
+
+candidate_a_copy_root="${temporary_root}/copy-a"
+candidate_a_output_root="${temporary_root}/comparison-a"
+mkdir -p "${candidate_a_copy_root}"
+head -n 3 "${candidate_root}/copy/ko.txt" >"${candidate_a_copy_root}/ko.txt"
+STORE_SCREENSHOT_COPY_ROOT="${candidate_a_copy_root}" \
+	STORE_SCREENSHOT_EXPECTED_COUNT=3 \
+	bash "${store_composer}" \
+	"${raw_root}" \
+	"${candidate_a_output_root}" \
+	ko
 
 for candidate in b c; do
 	STORE_SCREENSHOT_COPY_ROOT="${candidate_root}/comparison/${candidate}/copy" \
@@ -38,7 +51,7 @@ expected_names=(
 
 for candidate in a b c; do
 	if [[ ${candidate} == a ]]; then
-		screenshot_root="${candidate_root}/screenshots/ko"
+		screenshot_root="${candidate_a_output_root}/ko"
 	else
 		screenshot_root="${output_root}/screenshots/${candidate}/ko"
 	fi
