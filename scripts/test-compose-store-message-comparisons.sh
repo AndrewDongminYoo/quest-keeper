@@ -209,13 +209,22 @@ for candidate in a b c; do
 	fi
 done
 
-if command -v magick >/dev/null 2>&1; then
+if command -v magick >/dev/null 2>&1 && command -v oxipng >/dev/null 2>&1; then
 	rebuilt_root="${work_dir}/rebuilt"
 	bash "${repo_root}/scripts/compose-store-message-comparisons.sh" "${rebuilt_root}"
 	if ! diff -u "${persisted_root}/manifest.sha256" "${rebuilt_root}/manifest.sha256"; then
 		echo "FAIL: checked-in comparison assets differ from a clean regeneration" >&2
 		exit 1
 	fi
+fi
+
+if [[ ${STORE_SCREENSHOT_PARTIAL_TOOL_CHECK:-0} == 0 ]]; then
+	magick_only_bin="${work_dir}/magick-only-bin"
+	mkdir -p "${magick_only_bin}"
+	cp "${fake_bin}/magick" "${magick_only_bin}/magick"
+	STORE_SCREENSHOT_PARTIAL_TOOL_CHECK=1 \
+		PATH="${magick_only_bin}:/usr/bin:/bin" \
+		bash "${repo_root}/scripts/test-compose-store-message-comparisons.sh"
 fi
 
 echo "store message comparison card tests passed"
