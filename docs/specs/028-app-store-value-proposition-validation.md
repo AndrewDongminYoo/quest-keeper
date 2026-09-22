@@ -162,15 +162,15 @@ Otherwise, the result cannot distinguish a traffic-source effect from a store-me
 Candidate A remains the selected working direction.
 PR #81 and commit `962f8c1` contain the isolated Korean candidate assets, composer, and repository checks.
 Use `bash scripts/test-compose-store-screenshots.sh` to verify the composition contract and `bash scripts/test-store-message-candidate-isolation.sh` to verify release-path isolation.
+Use `bash scripts/test-compose-store-message-comparisons.sh` to verify the three candidate cards, persisted asset manifest, and clean regeneration contract.
 Commit `a027266` records the operator's 2026-09-15 approval of the final Korean contact sheet.
-Only candidate A has rendered assets.
-Rendered comparison cards for candidates B and C are still required to conduct the A, B, and C human preference test.
+Candidates B and C now have isolated three-screenshot renders that use the same source captures and order as candidate A.
+The comparison generator also produces unlabeled A, B, and C participant cards with equal dimensions.
 The release-path and live App Store subtitle and screenshots remain unchanged.
 
-AND-41 is blocked on three external inputs:
+AND-41 is blocked on two external inputs:
 
 - Five eligible Korean-speaking participants for the preference test.
-- Rendered comparison cards for candidates B and C.
 - Recorded results against the preference-test thresholds in this document.
 
 The five-person preference validation has not passed.
@@ -183,10 +183,15 @@ Publication remains separate follow-up work.
 - `docs/specs/016-store-release-automation.md`
 - `fastlane/candidates/and-41/metadata/ko/subtitle.txt`
 - `fastlane/candidates/and-41/copy/ko.txt`
+- `fastlane/candidates/and-41/comparison/b/`
+- `fastlane/candidates/and-41/comparison/c/`
+- `fastlane/candidates/and-41/comparison/cards/ko/`
 - `fastlane/metadata/ko/description.txt`
 - `fastlane/metadata/en-US/subtitle.txt`
 - `fastlane/candidates/and-41/screenshots/ko/`
 - `QuestKeeperUITests/StoreScreenshotUITests.swift`
+- `scripts/compose-store-message-comparisons.sh`
+- `scripts/test-compose-store-message-comparisons.sh`
 - [PR #81](https://github.com/AndrewDongminYoo/quest-keeper/pull/81)
 - [Contact-sheet approval commit `a027266`](https://github.com/AndrewDongminYoo/quest-keeper/commit/a027266ea4ac62b7f17dee9686bb854e468f3078)
 - [Apple acquisition metrics](https://developer.apple.com/help/app-store-connect-analytics/acquisition/acquisition)

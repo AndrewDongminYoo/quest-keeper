@@ -8,6 +8,7 @@ raw_root="${1:-${candidate_root}/raw}"
 output_root="${2:-${candidate_root}/screenshots}"
 copy_root="${STORE_SCREENSHOT_COPY_ROOT:-${candidate_root}/copy}"
 font_path="${STORE_SCREENSHOT_FONT_PATH:-/System/Library/Fonts/AppleSDGothicNeo.ttc}"
+expected_korean_count="${STORE_SCREENSHOT_EXPECTED_COUNT:-6}"
 
 if [[ $# -ge 3 ]]; then
 	locales=("${@:3}")
@@ -161,8 +162,8 @@ for locale in "${locales[@]}"; do
 			composed_count=$((composed_count + 1))
 		done <"${copy_file}"
 
-		if [[ ${composed_count} -ne 6 ]]; then
-			echo "expected 6 Korean store screenshot rows, found ${composed_count}" >&2
+		if [[ ${composed_count} -ne ${expected_korean_count} ]]; then
+			echo "expected ${expected_korean_count} Korean store screenshot rows, found ${composed_count}" >&2
 			exit 1
 		fi
 	else

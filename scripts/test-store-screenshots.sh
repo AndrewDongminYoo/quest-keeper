@@ -127,6 +127,7 @@ for forbidden_argument in -dailyFocusLoopEnabled -recoveryLoopVariant; do
 done
 
 bash "${repo_root}/scripts/test-compose-store-screenshots.sh"
+bash "${repo_root}/scripts/test-compose-store-message-comparisons.sh"
 bash "${repo_root}/scripts/test-store-message-candidate-isolation.sh"
 
 echo "store screenshot tests passed"
