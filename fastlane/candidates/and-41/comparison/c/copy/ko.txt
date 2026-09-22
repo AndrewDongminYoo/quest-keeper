@@ -1,0 +1,3 @@
+01-dungeon|01-dungeon|계정 없이|바로 시작
+02-battle|02-battle|광고 없이|내 일에 집중
+03-daily-grave|06-daily-grave|기록은|기기 안에만

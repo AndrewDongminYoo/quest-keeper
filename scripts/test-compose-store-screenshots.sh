@@ -142,6 +142,34 @@ for contract in "${passthrough_contracts[@]}"; do
 	fi
 done
 
+comparison_copy_root="${work_dir}/comparison-copy"
+comparison_output="${work_dir}/comparison-output"
+mkdir -p "${comparison_copy_root}" "${comparison_output}/ko"
+cat >"${comparison_copy_root}/ko.txt" <<'COPY'
+01-dungeon|01-dungeon|할 일을|몬스터로 바꾸세요
+02-battle|02-battle|마감이 다가오면|몬스터가 성장
+03-daily-grave|06-daily-grave|완료하면|한 번에 처치
+COPY
+printf 'stale\n' >"${comparison_output}/ko/stale.png"
+
+QUESTKEEPER_MAGICK_LOG="${magick_log}" \
+	STORE_SCREENSHOT_COPY_ROOT="${comparison_copy_root}" \
+	STORE_SCREENSHOT_EXPECTED_COUNT=3 \
+	STORE_SCREENSHOT_FONT_PATH="${font_path}" \
+	PATH="${fake_bin}:${PATH}" \
+	bash "${composer}" "${raw_root}" "${comparison_output}" ko
+
+comparison_files=("${comparison_output}/ko"/*.png)
+if [[ ${#comparison_files[@]} -ne 3 ]]; then
+	echo "FAIL: comparison profile produced ${#comparison_files[@]} screenshots instead of 3" >&2
+	exit 1
+fi
+
+if [[ -e ${comparison_output}/ko/stale.png ]]; then
+	echo "FAIL: the comparison profile retained a stale screenshot" >&2
+	exit 1
+fi
+
 mv "${raw_root}/ko/iPhone 17 Pro Max-06-daily-grave.png" "${work_dir}/missing-daily-grave.png"
 set +e
 QUESTKEEPER_MAGICK_LOG="${magick_log}" \
