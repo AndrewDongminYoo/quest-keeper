@@ -600,7 +600,11 @@ final class QuestNotificationService {
             do {
                 try await center.add(request)
             } catch {
-                await restoreReconcileSnapshot(questKeeperRequests)
+                // Roll back only what this plan still wants. The snapshot predates the mutation that
+                // triggered the reconcile, so it can hold requests for a quest that was just
+                // completed or deleted, or a reminder that was just switched off.
+                let wanted = Set(requests.map(\.identifier))
+                await restoreReconcileSnapshot(questKeeperRequests.filter { wanted.contains($0.identifier) })
                 return .unavailable
             }
         }
