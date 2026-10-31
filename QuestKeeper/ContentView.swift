@@ -1021,5 +1021,5 @@ struct DailyFocusEditorRoute: Identifiable {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [Quest.self, RoutineRule.self, RoutineCompletion.self], inMemory: true)
+        .modelContainer(QuestModelContainer.makeEphemeralFallback())
 }
