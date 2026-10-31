@@ -339,8 +339,12 @@ struct ContentView: View {
                 notificationRouteStore.resume(for: modelContext.container)
             }
             .onChange(of: notificationRouteStore.readyGeneration, initial: true) { _, _ in
-                consumeNotificationRoute()
-                resumePendingNotificationRoute()
+                // When consuming a route already resumed it, resuming again in the same callback
+                // would open the quest before the sheet that resume closed has finished dismissing.
+                // Only a move held from before needs this nudge.
+                if !consumeNotificationRoute() {
+                    resumePendingNotificationRoute()
+                }
             }
             .onChange(of: notificationRouteStore.pendingQuestID, initial: true) { _, _ in
                 consumeNotificationRoute()
@@ -882,8 +886,10 @@ struct ContentView: View {
         }
     }
 
-    private func consumeNotificationRoute() {
-        guard let quest = notificationRouteStore.takeRoutedQuest(in: modelContext) else { return }
+    /// Returns whether it resumed the pending route itself.
+    @discardableResult
+    private func consumeNotificationRoute() -> Bool {
+        guard let quest = notificationRouteStore.takeRoutedQuest(in: modelContext) else { return false }
 
         // The route opens after the measurement write rather than before it. A refused write now
         // closes the standing sheets so the board's banner can be read, and this sheet is the one
@@ -900,17 +906,19 @@ struct ContentView: View {
                 reengagementAttribution = attribution
             }
         }
-        routeNotificationToQuest(quest)
+        return routeNotificationToQuest(quest)
     }
 
-    private func routeNotificationToQuest(_ quest: Quest) {
+    /// Returns whether it resumed the pending route.
+    private func routeNotificationToQuest(_ quest: Quest) -> Bool {
         if case let .detail(presentedQuest) = route, presentedQuest.id == quest.id {
-            return
+            return false
         }
-        guard pendingNotificationQuestID != quest.id else { return }
+        guard pendingNotificationQuestID != quest.id else { return false }
 
         pendingNotificationQuestID = quest.id
         resumePendingNotificationRoute()
+        return true
     }
 
     private func resumePendingNotificationRoute() {
