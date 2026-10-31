@@ -754,7 +754,7 @@ struct ContentView: View {
         }
         persistWidgetSnapshot(payload)
         if reengagementSettings.isEnabled {
-            reconcileNotifications(at: .now)
+            reconcileNotifications(at: .now, deletedQuestIDs: [questID])
         } else {
             Task { @MainActor in
                 await notificationService.cancel(questID: questID)
@@ -859,12 +859,16 @@ struct ContentView: View {
         }
     }
 
-    private func reconcileNotifications(at now: Date) {
+    private func reconcileNotifications(at now: Date, deletedQuestIDs: [UUID] = []) {
         Task { @MainActor in
             guard let currentQuests = try? modelContext.fetch(
                 FetchDescriptor<Quest>(sortBy: [SortDescriptor(\.deadline)])
             ) else { return }
-            notificationAuthorization = await notificationService.reconcile(quests: currentQuests, now: now)
+            notificationAuthorization = await notificationService.reconcile(
+                quests: currentQuests,
+                deletedQuestIDs: deletedQuestIDs,
+                now: now
+            )
         }
     }
 

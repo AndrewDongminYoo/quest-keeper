@@ -205,7 +205,10 @@ struct QuestNotificationServiceTests {
         center.addErrorOnAttempt = 2
 
         let authorization = await service.reconcile(
-            quests: [quest(id: replacementQuestID, deadlineOffset: 3 * hour)],
+            quests: [
+                quest(id: replacementQuestID, deadlineOffset: 3 * hour),
+                quest(id: previousQuestID, deadlineOffset: 9 * hour),
+            ],
             now: now
         )
 
@@ -219,6 +222,61 @@ struct QuestNotificationServiceTests {
             #expect(restored?.content.title == previous.content.title)
             #expect(restored?.content.body == previous.content.body)
         }
+    }
+
+    @Test("reconcile rollback does not restore requests the current state cancels")
+    func reconcileRollbackSkipsCancelledRequests() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let keptQuestID = UUID(uuidString: "A1A1A1A1-A1A1-A1A1-A1A1-A1A1A1A1A1A1")!
+        let completedQuestID = UUID(uuidString: "B2B2B2B2-B2B2-B2B2-B2B2-B2B2B2B2B2B2")!
+        let deletedQuestID = UUID(uuidString: "C3C3C3C3-C3C3-C3C3-C3C3-C3C3C3C3C3C3")!
+        let keptRequests = QuestNotificationPlanner.identifiers(for: keptQuestID).map {
+            makeScheduledRequest(identifier: $0, fireDate: now.addingTimeInterval(4 * hour))
+        }
+        let cancelledRequests = (
+            QuestNotificationPlanner.identifiers(for: completedQuestID)
+                + QuestNotificationPlanner.identifiers(for: deletedQuestID)
+                + [ReengagementReminderPlanner.allIdentifiers[0]]
+        ).map { makeScheduledRequest(identifier: $0, fireDate: now.addingTimeInterval(5 * hour)) }
+        let external = makeRequest(identifier: "external.notification")
+        center.pendingRequestsList = keptRequests + cancelledRequests + [external]
+        center.addErrorOnAttempt = 1
+
+        // Reminders are off by default, the completed quest is resolved, and the deleted quest is
+        // gone from the board, so only the kept quest's requests are still wanted.
+        let authorization = await service.reconcile(
+            quests: [
+                quest(id: keptQuestID, deadlineOffset: 5 * hour),
+                quest(id: completedQuestID, deadlineOffset: 6 * hour, completedAt: now),
+            ],
+            deletedQuestIDs: [deletedQuestID],
+            now: now
+        )
+
+        #expect(authorization == .unavailable)
+        #expect(Set(center.pendingRequestsList.map(\.identifier)) == Set((keptRequests + [external]).map(\.identifier)))
+    }
+
+    @Test("reconcile removes delivered notifications for deleted quests")
+    func reconcileRemovesDeliveredDeletedQuestNotifications() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let remainingQuestID = UUID(uuidString: "D4D4D4D4-D4D4-D4D4-D4D4-D4D4D4D4D4D4")!
+        let deletedQuestID = UUID(uuidString: "E5E5E5E5-E5E5-E5E5-E5E5-E5E5E5E5E5E5")!
+
+        await service.reconcile(
+            quests: [quest(id: remainingQuestID, deadlineOffset: 3 * hour)],
+            deletedQuestIDs: [deletedQuestID],
+            now: now
+        )
+
+        #expect(center.removedDeliveredIdentifiers == [
+            QuestNotificationPlanner.identifiers(for: remainingQuestID)
+                + QuestNotificationPlanner.identifiers(for: deletedQuestID)
+                + ReengagementReminderPlanner.allIdentifiers,
+        ])
+        #expect(center.addedRequests.map(\.identifier) == QuestNotificationPlanner.identifiers(for: remainingQuestID))
     }
 
     @Test("reconcile refreshes existing QuestKeeper requests for current deadlines")

@@ -231,10 +231,19 @@ final class QuestNotificationService {
         }
     }
 
+    /// - Parameter deletedQuestIDs: quests removed from the store since the last reconcile. Pending
+    ///   requests are cleared by prefix, but delivered ones need explicit identifiers, and a deleted
+    ///   quest is no longer in `quests` to supply them.
     @discardableResult
-    func reconcile(quests: [Quest], now: Date, locale: Locale = .current) async -> QuestNotificationAuthorization {
+    func reconcile(
+        quests: [Quest],
+        deletedQuestIDs: [UUID] = [],
+        now: Date,
+        locale: Locale = .current
+    ) async -> QuestNotificationAuthorization {
         await reconcile(
             quests: quests,
+            deletedQuestIDs: deletedQuestIDs,
             now: now,
             locale: locale,
             authorizationRequestPolicy: .never
@@ -317,6 +326,7 @@ final class QuestNotificationService {
     ) async -> QuestNotificationAuthorization {
         await reconcile(
             quests: quests,
+            deletedQuestIDs: [],
             now: now,
             locale: locale,
             authorizationRequestPolicy: .ifNeeded
@@ -325,6 +335,7 @@ final class QuestNotificationService {
 
     private func reconcile(
         quests: [Quest],
+        deletedQuestIDs: [UUID],
         now: Date,
         locale: Locale,
         authorizationRequestPolicy: AuthorizationRequestPolicy
@@ -344,8 +355,8 @@ final class QuestNotificationService {
             maximumCount: QuestNotificationPlanner.maximumScheduledNotifications - reengagementPlans.count,
             locale: locale
         )
-        let deliveredIdentifiersToRemove = quests.flatMap { quest in
-            QuestNotificationPlanner.identifiers(for: quest.id)
+        let deliveredIdentifiersToRemove = (quests.map(\.id) + deletedQuestIDs).flatMap { questID in
+            QuestNotificationPlanner.identifiers(for: questID)
         } + ReengagementReminderPlanner.allIdentifiers
 
         return await enqueue {
@@ -589,7 +600,11 @@ final class QuestNotificationService {
             do {
                 try await center.add(request)
             } catch {
-                await restoreReconcileSnapshot(questKeeperRequests)
+                // Roll back only what this plan still wants. The snapshot predates the mutation that
+                // triggered the reconcile, so it can hold requests for a quest that was just
+                // completed or deleted, or a reminder that was just switched off.
+                let wanted = Set(requests.map(\.identifier))
+                await restoreReconcileSnapshot(questKeeperRequests.filter { wanted.contains($0.identifier) })
                 return .unavailable
             }
         }
