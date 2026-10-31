@@ -290,6 +290,10 @@ struct QuestKeeperApp: App {
                     canReplayActivation = true
                 } else {
                     container = sharedModelContainer
+                    // `pause()` cleared readiness on the way out, and when the refresh above failed
+                    // the container identity did not change, so `ContentView`'s observer will not
+                    // resume it. Without this the route store stays not-ready for the whole session.
+                    notificationRouteStore.resume(for: container)
                     canReplayActivation = ActivationPolicy.shouldReplayActivation(
                         wasBackgrounded: didBackground,
                         hasFreshContainer: false
