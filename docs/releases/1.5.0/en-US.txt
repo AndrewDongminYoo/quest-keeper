@@ -1,0 +1,5 @@
+• Share a usage report from the About screen to help improve the app. You review what it contains and choose where it goes before anything is sent. Quest titles and descriptions aren't included.
+• Fixes an issue where reminders for a completed or deleted quest could come back.
+• Fixes an issue where alerts for a deleted quest stayed in Notification Center.
+• Fixes an issue where turning off return reminders might not take effect.
+• Plus minor bug fixes.

@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-31
+
+### Added
+
+- Added usage report sharing on the About screen: the person reviews an aggregate report without quest text or identifiers, then picks the destination in the system share sheet. Nothing is sent automatically.
+
+### Fixed
+
+- Restored only the reminders the new plan still wants after a failed reminder update, so a completed or deleted quest and a reminder just switched off no longer come back.
+- Removed delivered alerts of a deleted quest from Notification Center when return reminders are on.
+- Applied a return-reminder opt-out even when its measurement write fails.
+- Resumed a notification route held behind a sheet only on the current store after the app returns from the background.
+- Bounded raw quest text from Shortcuts before normalizing it.
+
+### Internal
+
+- Updated the privacy policy, terms, README, and both App Store descriptions for usage report sharing.
+- Built the ContentView preview from the production schema.
+- Added the on-device quest-splitting validation spike and the store message comparison cards, both outside the app target.
+- Grouped Dependabot updates by ecosystem, pinned pinact, and updated fastlane and the shellcheck configuration.
+
 ## [1.4.0] - 2026-09-04
 
 ### Added
@@ -134,7 +155,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added local-only retention measurement with privacy-safe retry-event identity and upgrade handling.
 - Added deterministic tests for quest derivation, notifications, widgets, onboarding, daily focus, and recovery flows.
 
-[Unreleased]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.4.0+26090413...HEAD
+[Unreleased]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.5.0+26103119...HEAD
+[1.5.0]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.4.0+26090413...v1.5.0+26103119
 [1.4.0]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.3.0+26081713...v1.4.0+26090413
 [1.3.0]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.2.0+26081501...v1.3.0+26081713
 [1.2.0]: https://github.com/AndrewDongminYoo/quest-keeper/compare/v1.1.0+26080813...v1.2.0+26081501
