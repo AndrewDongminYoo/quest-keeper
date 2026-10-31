@@ -35,6 +35,19 @@ struct QuestCreationInputTests {
         #expect(input.importance == .high)
     }
 
+    @Test("shortcut bounds oversized title and details to the stored limits")
+    func shortcutBoundsOversizedText() throws {
+        let input = try QuestCreationInput.shortcut(
+            title: String(repeating: "slime ", count: 200_000),
+            details: String(repeating: "quest\n", count: 500_000),
+            deadline: nil,
+            importance: nil,
+            now: now
+        )
+        #expect(input.title.count == QuestTitlePolicy.maximumLength)
+        #expect(input.details?.count == QuestDetailsPolicy.maximumLength)
+    }
+
     @Test("empty title and explicit non-future deadline fail before storage")
     func invalidShortcutInput() {
         #expect(throws: QuestCreationInputError.emptyTitle) {

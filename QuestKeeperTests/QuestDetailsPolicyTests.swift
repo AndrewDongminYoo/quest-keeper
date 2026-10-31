@@ -41,4 +41,25 @@ struct QuestDetailsPolicyTests {
         let abusive = "a" + String(repeating: "\u{0301}", count: 10_000)
         #expect(QuestDetailsPolicy.constrainedInput(abusive).unicodeScalars.count <= QuestDetailsPolicy.maximumScalars)
     }
+
+    @Test("raw input is kept at the bound and cut beyond it")
+    func boundsRawInput() {
+        let atBound = String(repeating: "a", count: QuestDetailsPolicy.maximumRawScalars)
+        #expect(QuestDetailsPolicy.boundedRawInput(atBound) == atBound)
+        #expect(QuestDetailsPolicy.boundedRawInput(atBound + "b").unicodeScalars.count == QuestDetailsPolicy.maximumRawScalars)
+    }
+
+    @Test("normalization does not read past the raw bound")
+    func ignoresTextPastRawBound() {
+        let padded = String(repeating: "\n", count: QuestDetailsPolicy.maximumRawScalars) + "tail"
+        #expect(QuestDetailsPolicy.normalized(padded) == nil)
+    }
+
+    @Test("normalization bounds oversized raw input before splitting lines")
+    func boundsOversizedRawInput() {
+        let oversizedLines = String(repeating: "quest\n", count: 500_000)
+        let abusive = "a" + String(repeating: "\u{0301}", count: 1_000_000)
+        #expect(QuestDetailsPolicy.normalized(oversizedLines)?.count == QuestDetailsPolicy.maximumLength)
+        #expect((QuestDetailsPolicy.normalized(abusive)?.unicodeScalars.count ?? 0) <= QuestDetailsPolicy.maximumScalars)
+    }
 }
