@@ -801,11 +801,12 @@ struct ContentView: View {
                     at: now,
                     in: modelContext
                 )
-            // 측정이 남지 않은 채 설정만 저장되면 활성/비활성 쌍이 어긋나고, 나중에 성공한
-            // 비활성화가 분모 없는 분자가 된다. 여기서 저장을 막는 쪽을 택한 이유는 이 실패가
-            // SwiftData 저장 실패라 앱이 이미 성한 상태가 아니고, 그때 알림 설정만 살아남는
-            // 편이 더 나쁘기 때문이다.
-            guard recorded == .inserted, commitPendingChanges() else { return }
+            // 측정 기록이 실패하면 켜기는 막고 끄기는 그대로 진행한다. 판단 근거는
+            // `ReengagementReminderSettings.canApply(over:measurementCommitted:)`가 가진다.
+            let measurementCommitted = recorded == .inserted && commitPendingChanges()
+            guard settings.canApply(over: previousSettings, measurementCommitted: measurementCommitted) else {
+                return
+            }
         }
 
         reengagementSettingsStore.save(settings)

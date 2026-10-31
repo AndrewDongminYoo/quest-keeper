@@ -77,6 +77,18 @@ nonisolated struct ReengagementReminderSettings: Codable, Equatable, Sendable {
     func canRequestAuthorization(hasCreatedQuest: Bool) -> Bool {
         hasCreatedQuest && isEnabled && isScheduleValid
     }
+
+    /// Whether these settings may be saved and scheduled over `previous`, given whether the
+    /// enable/disable measurement for the change reached the store.
+    ///
+    /// Enabling stays gated on the measurement. An enable with no record turns a later disable into
+    /// a numerator without a denominator, and declining to enable leaves reminders where they were.
+    /// Disabling is never gated: a failed measurement write must not keep reminders the person has
+    /// just switched off. The missing record only makes the disable rate undercount.
+    func canApply(over previous: ReengagementReminderSettings, measurementCommitted: Bool) -> Bool {
+        guard previous.isEnabled != isEnabled else { return true }
+        return measurementCommitted || !isEnabled
+    }
 }
 
 @MainActor
