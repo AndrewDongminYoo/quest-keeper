@@ -221,6 +221,27 @@ struct QuestNotificationServiceTests {
         }
     }
 
+    @Test("reconcile removes delivered notifications for deleted quests")
+    func reconcileRemovesDeliveredDeletedQuestNotifications() async {
+        let center = FakeQuestNotificationCenter()
+        let service = makeService(center: center)
+        let remainingQuestID = UUID(uuidString: "D4D4D4D4-D4D4-D4D4-D4D4-D4D4D4D4D4D4")!
+        let deletedQuestID = UUID(uuidString: "E5E5E5E5-E5E5-E5E5-E5E5-E5E5E5E5E5E5")!
+
+        await service.reconcile(
+            quests: [quest(id: remainingQuestID, deadlineOffset: 3 * hour)],
+            deletedQuestIDs: [deletedQuestID],
+            now: now
+        )
+
+        #expect(center.removedDeliveredIdentifiers == [
+            QuestNotificationPlanner.identifiers(for: remainingQuestID)
+                + QuestNotificationPlanner.identifiers(for: deletedQuestID)
+                + ReengagementReminderPlanner.allIdentifiers,
+        ])
+        #expect(center.addedRequests.map(\.identifier) == QuestNotificationPlanner.identifiers(for: remainingQuestID))
+    }
+
     @Test("reconcile refreshes existing QuestKeeper requests for current deadlines")
     func reconcileRefreshesExistingRequests() async {
         let center = FakeQuestNotificationCenter()

@@ -231,10 +231,19 @@ final class QuestNotificationService {
         }
     }
 
+    /// - Parameter deletedQuestIDs: quests removed from the store since the last reconcile. Pending
+    ///   requests are cleared by prefix, but delivered ones need explicit identifiers, and a deleted
+    ///   quest is no longer in `quests` to supply them.
     @discardableResult
-    func reconcile(quests: [Quest], now: Date, locale: Locale = .current) async -> QuestNotificationAuthorization {
+    func reconcile(
+        quests: [Quest],
+        deletedQuestIDs: [UUID] = [],
+        now: Date,
+        locale: Locale = .current
+    ) async -> QuestNotificationAuthorization {
         await reconcile(
             quests: quests,
+            deletedQuestIDs: deletedQuestIDs,
             now: now,
             locale: locale,
             authorizationRequestPolicy: .never
@@ -317,6 +326,7 @@ final class QuestNotificationService {
     ) async -> QuestNotificationAuthorization {
         await reconcile(
             quests: quests,
+            deletedQuestIDs: [],
             now: now,
             locale: locale,
             authorizationRequestPolicy: .ifNeeded
@@ -325,6 +335,7 @@ final class QuestNotificationService {
 
     private func reconcile(
         quests: [Quest],
+        deletedQuestIDs: [UUID],
         now: Date,
         locale: Locale,
         authorizationRequestPolicy: AuthorizationRequestPolicy
@@ -344,8 +355,8 @@ final class QuestNotificationService {
             maximumCount: QuestNotificationPlanner.maximumScheduledNotifications - reengagementPlans.count,
             locale: locale
         )
-        let deliveredIdentifiersToRemove = quests.flatMap { quest in
-            QuestNotificationPlanner.identifiers(for: quest.id)
+        let deliveredIdentifiersToRemove = (quests.map(\.id) + deletedQuestIDs).flatMap { questID in
+            QuestNotificationPlanner.identifiers(for: questID)
         } + ReengagementReminderPlanner.allIdentifiers
 
         return await enqueue {
