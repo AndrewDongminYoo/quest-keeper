@@ -53,6 +53,7 @@ nonthrowing
 Onone
 parallelizable
 pbxproj
+pinact
 plutil
 Podfile
 refault
