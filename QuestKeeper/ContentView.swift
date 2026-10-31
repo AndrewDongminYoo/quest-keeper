@@ -339,7 +339,12 @@ struct ContentView: View {
                 notificationRouteStore.resume(for: modelContext.container)
             }
             .onChange(of: notificationRouteStore.readyGeneration, initial: true) { _, _ in
-                consumeNotificationRoute()
+                // When consuming a route already resumed it, resuming again in the same callback
+                // would open the quest before the sheet that resume closed has finished dismissing.
+                // Only a move held from before needs this nudge.
+                if !consumeNotificationRoute() {
+                    resumePendingNotificationRoute()
+                }
             }
             .onChange(of: notificationRouteStore.pendingQuestID, initial: true) { _, _ in
                 consumeNotificationRoute()
@@ -881,8 +886,10 @@ struct ContentView: View {
         }
     }
 
-    private func consumeNotificationRoute() {
-        guard let quest = notificationRouteStore.takeRoutedQuest(in: modelContext) else { return }
+    /// Returns whether it resumed the pending route itself.
+    @discardableResult
+    private func consumeNotificationRoute() -> Bool {
+        guard let quest = notificationRouteStore.takeRoutedQuest(in: modelContext) else { return false }
 
         // The route opens after the measurement write rather than before it. A refused write now
         // closes the standing sheets so the board's banner can be read, and this sheet is the one
@@ -899,33 +906,55 @@ struct ContentView: View {
                 reengagementAttribution = attribution
             }
         }
-        routeNotificationToQuest(quest)
+        return routeNotificationToQuest(quest)
     }
 
-    private func routeNotificationToQuest(_ quest: Quest) {
+    /// Returns whether it resumed the pending route.
+    private func routeNotificationToQuest(_ quest: Quest) -> Bool {
         if case let .detail(presentedQuest) = route, presentedQuest.id == quest.id {
-            return
+            return false
         }
-        guard pendingNotificationQuestID != quest.id else { return }
+        guard pendingNotificationQuestID != quest.id else { return false }
 
         pendingNotificationQuestID = quest.id
         resumePendingNotificationRoute()
+        return true
     }
 
     private func resumePendingNotificationRoute() {
+        // Right after a real background, `QuestKeeperApp` swaps in a fresh container, and this view
+        // can still hold the previous container's context in the same update. A quest fetched from
+        // that context would be edited and saved apart from the store everything else now reads, so
+        // wait for the route store to report the current container ready; `readyGeneration` brings
+        // this call back once it is.
         guard scenePhase == .active,
               let questID = pendingNotificationQuestID,
-              !hasProtectedPresentation else { return }
+              !hasProtectedPresentation,
+              notificationRouteStore.isReady(for: modelContext.container) else { return }
+
+        // Resolve the quest before closing anything, so neither a failed read nor a deleted quest
+        // costs the person a sheet they had open.
+        let descriptor = FetchDescriptor<Quest>(
+            predicate: #Predicate { $0.id == questID }
+        )
+        let quest: Quest?
+        do {
+            quest = try modelContext.fetch(descriptor).first
+        } catch {
+            // A failed read is not an answer about the quest, so keep the route for the next resume.
+            return
+        }
+        guard let quest else {
+            // An empty result means the quest is gone, which ends the route.
+            pendingNotificationQuestID = nil
+            return
+        }
 
         if dismissNextInterruptiblePresentation() {
             return
         }
 
         pendingNotificationQuestID = nil
-        let descriptor = FetchDescriptor<Quest>(
-            predicate: #Predicate { $0.id == questID }
-        )
-        guard let quest = try? modelContext.fetch(descriptor).first else { return }
         route = .detail(quest)
     }
 
