@@ -22,7 +22,7 @@ Do not change the live App Store listing until the preference test and rendered-
 
 The supplied App Store Connect CSV covers 2026-06-15 through 2026-09-12.
 It contains 38 product page views across 90 days and 20 product page views in the latest 30-day period.
-The operator reported two downloads, but the matching date, storefront, source, and app-version filters are not verified.
+Two downloads were reported, but the matching date, storefront, source, and app-version filters are not verified.
 The download evidence is therefore `[PARTIAL]`.
 
 Product page views cannot establish App Store conversion by themselves.
@@ -42,7 +42,7 @@ The Korean description already supports each selected claim:
 
 ## Message Candidates
 
-The operator reviewed the three concepts as visual cards on 2026-09-14 and selected candidate A.
+The three concepts were reviewed as visual cards on 2026-09-14 and candidate A was selected.
 
 | Candidate         | Target user problem                                                                                         | Subtitle                              | First screenshot                               | Second screenshot                   | Third screenshot                     | Result                                                                                                                             |
 | ----------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------- | ----------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -118,7 +118,7 @@ For each participant:
 5. Ask which card makes them most likely to install the app.
 6. Record the reason in the participant's words.
 
-Do not reveal the operator's selected candidate before the participant responds.
+Do not reveal the selected candidate before the participant responds.
 Do not ask whether the participant likes the design as the primary question.
 
 Candidate A passes when all conditions are true:
@@ -145,7 +145,7 @@ Before a live listing change:
 The text-source check must first fail against a deliberately changed expected literal.
 Only then can its pass count as evidence that the validator reads the approved source.
 Static validation cannot establish legibility or semantic accuracy.
-The operator must approve the final rendered contact sheet before publication.
+The final rendered contact sheet must be approved before publication.
 
 ## Measurement After Publication
 
@@ -163,7 +163,7 @@ Candidate A remains the selected working direction.
 PR #81 and commit `962f8c1` contain the isolated Korean candidate assets, composer, and repository checks.
 Use `bash scripts/test-compose-store-screenshots.sh` to verify the composition contract and `bash scripts/test-store-message-candidate-isolation.sh` to verify release-path isolation.
 Use `bash scripts/test-compose-store-message-comparisons.sh` to verify the three candidate cards, persisted asset manifest, and clean regeneration contract.
-Commit `a027266` records the operator's 2026-09-15 approval of the final Korean contact sheet.
+Commit `a027266` records the 2026-09-15 approval of the final Korean contact sheet.
 Candidates B and C now have isolated three-screenshot renders that use the same source captures and order as candidate A.
 The comparison generator also produces unlabeled A, B, and C participant cards with equal dimensions.
 The release-path and live App Store subtitle and screenshots remain unchanged.
