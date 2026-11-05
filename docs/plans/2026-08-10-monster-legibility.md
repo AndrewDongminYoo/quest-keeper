@@ -994,4 +994,4 @@ git push -u origin ydm2790/and-114-monster-legibility
 
 Open the PR with `Closes AND-114` on its own line in the body — Linear closes only the issues a PR names with a magic word. Then check for an automated reviewer; if none has attached within a couple of minutes, post `@codex review`, and work the findings with the `responding-to-ai-pr-review` skill.
 
-Do not merge. The merge decision stays with the operator.
+Do not merge. The merge decision stays with the user.

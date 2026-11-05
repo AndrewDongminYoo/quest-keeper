@@ -277,7 +277,7 @@ Ordinary activity after a matured observation boundary also remains valid source
 Deterministic fixtures verify assignment grouping, event ordering, metric formulas, right-censoring, and rendering.
 They are not evidence that either variant improves real-user behavior.
 
-The local report remains exploratory until the operator deliberately supplies enough independent eligible installations or another evidence source for a decision.
+The local report remains exploratory until enough independent eligible installations or another evidence source are deliberately supplied for a decision.
 The report must not declare a winner, significance, confidence interval, or uplift conclusion automatically.
 Until a separate decision rule is approved, describe observed variant differences as counts and rates only.
 

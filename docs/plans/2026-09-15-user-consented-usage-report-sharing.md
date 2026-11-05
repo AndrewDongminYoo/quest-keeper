@@ -8,9 +8,9 @@ Do not add a backend, analytics SDK, persistent consent toggle, or automatic upl
 
 ## Visual Gate
 
-The change adds an About section and a disclosure sheet, so operator visual approval is required.
+The change adds an About section and a disclosure sheet, so visual approval is required.
 Prepare simulator captures in Korean and English at the final candidate SHA.
-Do not mark the PR merge-ready before the operator approves those artifacts.
+Do not mark the PR merge-ready before those artifacts are approved.
 
 ## Step 1: Prove The Export Contract Fails
 
@@ -120,4 +120,4 @@ Record the artifact paths and candidate SHA in the PR-loop state.
 Use `semantic-commit` to separate the contract documentation from the product implementation when both concerns remain independently useful.
 Push the branch and open a PR that closes AND-176.
 Start the bounded public-repository review and CI loop.
-Stop for operator visual approval or operator merge when all other readiness gates pass.
+Stop for visual approval or merge when all other readiness gates pass.

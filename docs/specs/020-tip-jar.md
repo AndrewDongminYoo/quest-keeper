@@ -7,7 +7,7 @@ Adds an optional tip through StoreKit 2, and the "About" surface that holds it.
 StoreKit 2 is the last untouched 1st-party boundary in the BLUEPRINT's learning line, sitting beside App Intents, WidgetKit, and UserNotifications.
 This spec crosses it with the smallest product that can: a consumable tip that grants nothing.
 
-**This is a learning item, not a revenue item, and it must be judged as one.** The app has zero installs beyond the operator's own, so the bottleneck is distribution rather than price, and no tier structure or placement changes that.
+**This is a learning item, not a revenue item, and it must be judged as one.** The app has zero installs beyond my own, so the bottleneck is distribution rather than price, and no tier structure or placement changes that.
 Sizing the work so its worth does not depend on earning anything is the point, not a concession.
 
 A second gap is closed on the way. The app has no surface that states its version, links its privacy policy, or names its source repository, and a tip belongs beside those rather than inside a gameplay screen.
@@ -133,9 +133,9 @@ StoreKit talks to Apple, so the app stops being offline-only the moment this shi
 
 `[UNCERTAIN]` The App Store Connect **App Privacy** declaration probably stays "Data Not Collected", because payment information handled solely by Apple is exempt from declaration and this app collects no User ID. That reading comes from a search summary rather than Apple's own page; confirm it in the App Privacy form before submitting.
 
-## Blocked on the operator
+## Blocked on me
 
-- **App Store Connect products.** The three consumables must be created in ASC before a real purchase can be tested; only the operator can do that. Local work proceeds against the `.storekit` file.
+- **App Store Connect products.** The three consumables must be created in ASC before a real purchase can be tested; only I can do that. Local work proceeds against the `.storekit` file.
 - **The In-App Purchase capability on the app target and App ID.** `QuestKeeper.xcodeproj` carries no such entry today — only the App Group is in `QuestKeeper.entitlements` — and a local `.storekit` configuration does not need it, so simulator testing passes while the signed build has no way to transact. Add it in Xcode (which regenerates the provisioning profile) before the first Sandbox or TestFlight purchase.
 - **A Sandbox tester account** for an end-to-end purchase on device.
 - **The Paid Applications Agreement**, banking, and tax setup, none of which is signed for a free-only account. Verify these on Apple's own pages rather than from recall.

@@ -2357,7 +2357,7 @@ Technical partial-failure combinations remain deterministic unit-test coverage b
 
 - [ ] **Step 9: Commit current documentation after the gate is green**
 
-Before committing, present this exact commit sequence and any deviations to the operator: `docs: add iOS shortcuts and quest details plan` first, then `feat(model)`, `feat(editor)`, `feat(shortcuts)` store, `feat(shortcuts)` coordinator, `feat(shortcuts)` action, `feat(details)` screen, `feat(details)` routing, then this documentation commit. Stage only the documented paths.
+Before committing, present this exact commit sequence and any deviations to the user: `docs: add iOS shortcuts and quest details plan` first, then `feat(model)`, `feat(editor)`, `feat(shortcuts)` store, `feat(shortcuts)` coordinator, `feat(shortcuts)` action, `feat(details)` screen, `feat(details)` routing, then this documentation commit. Stage only the documented paths.
 
 ```bash
 git add README.md CLAUDE.md BLUEPRINT.md
@@ -2380,7 +2380,7 @@ Expected: the working tree is clean, the semantic commit sequence is present, th
 
 ## Execution Handoff
 
-After implementation approval and before creating a branch or worktree, commit this currently untracked plan from the current checkout so the new worktree includes it. Inspect status first and stop for operator direction if the staged-name check includes a path other than this plan:
+After implementation approval and before creating a branch or worktree, commit this currently untracked plan from the current checkout so the new worktree includes it. Inspect status first and stop for user direction if the staged-name check includes a path other than this plan:
 
 ```bash
 git status --short
@@ -2391,4 +2391,4 @@ git commit -m "docs: add iOS shortcuts and quest details plan"
 
 Then verify the repository root with `git -C /Volumes/dongminyu/Development/01_personal/quest-keeper rev-parse --show-toplevel`, confirm `main` is still the intended base, and create the recommended branch or an isolated worktree through `superpowers:using-git-worktrees`. Do not reuse a dirty worktree or discard author-unknown changes.
 
-Recommended execution mode: `superpowers:subagent-driven-development`, one task at a time with review after each task. Inline execution with `superpowers:executing-plans` is acceptable if the operator prefers a single worker. In either mode, the root agent owns the branch, commits, and final verification; implementation workers receive explicit file ownership and never stage or commit.
+Recommended execution mode: `superpowers:subagent-driven-development`, one task at a time with review after each task. Inline execution with `superpowers:executing-plans` is acceptable if the user prefers a single worker. In either mode, the root agent owns the branch, commits, and final verification; implementation workers receive explicit file ownership and never stage or commit.

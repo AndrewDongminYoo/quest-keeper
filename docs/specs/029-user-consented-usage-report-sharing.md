@@ -113,7 +113,7 @@ The About row and share action have stable accessibility identifiers.
 The disclosure uses headings and body text that VoiceOver reads in content order.
 
 The new sheet must remain readable at the default Dynamic Type size and at an accessibility size.
-The operator must approve the rendered result before merge readiness.
+The rendered result must be approved before merge readiness.
 
 ## Acceptance Criteria
 
@@ -126,7 +126,7 @@ The operator must approve the rendered result before merge readiness.
 7. Korean and English strings pass the localization contract.
 8. Repository privacy, terms, README, and App Store descriptions match the new user-directed export behavior.
 9. Relevant unit and UI tests pass.
-10. The operator approves simulator evidence for the new About and disclosure surfaces.
+10. Simulator evidence for the new About and disclosure surfaces is approved.
 
 ## Non-Goals
 
