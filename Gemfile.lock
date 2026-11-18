@@ -8,7 +8,7 @@ GEM
     artifactory (3.0.17)
     atomos (0.1.3)
     aws-eventstream (1.4.1)
-    aws-partitions (1.1306.0)
+    aws-partitions (1.1307.0)
     aws-sdk-core (3.269.0)
       aws-eventstream (~> 1, >= 1.4.1)
       aws-partitions (~> 1, >= 1.992.0)
@@ -21,7 +21,7 @@ GEM
     aws-sdk-kms (1.144.0)
       aws-sdk-core (~> 3, >= 3.269.0)
       aws-sigv4 (~> 1.5)
-    aws-sdk-s3 (1.243.0)
+    aws-sdk-s3 (1.244.0)
       aws-sdk-core (~> 3, >= 3.269.0)
       aws-sdk-kms (~> 1)
       aws-sigv4 (~> 1.5)
@@ -271,10 +271,10 @@ CHECKSUMS
   artifactory (3.0.17) sha256=3023d5c964c31674090d655a516f38ca75665c15084140c08b7f2841131af263
   atomos (0.1.3) sha256=7d43b22f2454a36bace5532d30785b06de3711399cb1c6bf932573eda536789f
   aws-eventstream (1.4.1) sha256=ceb6a99c61df4bb00344e54aed0351574beca24f87a0d1487d1d2ed80929ce96
-  aws-partitions (1.1306.0) sha256=a81c504476036b27b2cadc6ca40fc338aa91d70f42cbda183145e216aa75fefd
+  aws-partitions (1.1307.0) sha256=3bc12f849026b21bc29e4b7b07adaca3f051999da6041d73fc16b20ad8c5f491
   aws-sdk-core (3.269.0) sha256=ad9e2b4bf9a11339cebb3a039ae8557944dd60c851abba5000bb7fa48923faa8
   aws-sdk-kms (1.144.0) sha256=4601ab2082e417d5bd4ff6b6655eea678c262a4682ab9859da5368872aef9968
-  aws-sdk-s3 (1.243.0) sha256=56a17292cb32b549012ebcb7f306f613433cc90f0d4ccb0fee351152c3876f8c
+  aws-sdk-s3 (1.244.0) sha256=6da6f21fc57bf4237061318b7a2ecbf9fbe55c2bd9f73acc74a123b0a7ce2f26
   aws-sigv4 (1.12.1) sha256=6973ff95cb0fd0dc58ba26e90e9510a2219525d07620c8babeb70ef831826c00
   babosa (1.0.4) sha256=18dea450f595462ed7cb80595abd76b2e535db8c91b350f6c4b3d73986c5bc99
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
