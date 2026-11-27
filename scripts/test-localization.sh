@@ -74,7 +74,7 @@ done
 stray_output="$(mktemp)"
 trap 'rm -f -- "${stray_output}"' EXIT
 
-if /usr/bin/python3 - "${repo_root}/QuestKeeper" "${repo_root}/QuestKeeperShared" "${repo_root}/QuestKeeperWidget" >"${stray_output}" <<'PY'; then
+if /usr/bin/python3 - "${repo_root}/QuestKeeper" "${repo_root}/QuestKeeperShared" "${repo_root}/QuestKeeperWidget" >"${stray_output}" <<'PY'
 import pathlib
 import re
 import sys
@@ -151,6 +151,7 @@ for root in sys.argv[1:]:
             if hangul.search(cleaned_line):
                 print(f"{path}:{lineno}:{original_lines[lineno - 1].strip()}")
 PY
+then
 	stray="$(<"${stray_output}")"
 	if [[ -n ${stray} ]]; then
 		echo "FAIL: hardcoded Korean literal outside a defaultValue: argument or a comment" >&2
